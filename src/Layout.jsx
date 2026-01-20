@@ -14,6 +14,7 @@ import {
   ChevronDown,
   User,
   Receipt,
+  TrendingUp,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -29,6 +30,7 @@ const navItems = [
   { name: "Projects", icon: Building2, page: "Projects" },
   { name: "Tasks", icon: ClipboardList, page: "Tasks" },
   { name: "Expenses", icon: Receipt, page: "Expenses" },
+  { name: "Income", icon: TrendingUp, page: "Income" },
 ];
 
 export default function Layout({ children, currentPageName }) {
