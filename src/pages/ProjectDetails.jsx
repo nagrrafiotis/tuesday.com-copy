@@ -174,7 +174,7 @@ export default function ProjectDetails() {
           </div>
         </div>
         
-        <div className="absolute top-6 left-6 pointer-events-auto">
+        <div className="absolute top-6 left-3 pointer-events-auto">
           <Link to={createPageUrl("Projects")}>
             <Button variant="ghost" className="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -183,7 +183,7 @@ export default function ProjectDetails() {
           </Link>
         </div>
 
-        <div className="absolute bottom-6 left-6 right-6 pointer-events-auto">
+        <div className="absolute bottom-6 left-3 right-3 pointer-events-auto">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div className="pointer-events-none">
@@ -211,7 +211,7 @@ export default function ProjectDetails() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-3 py-8">
         {/* Project Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
