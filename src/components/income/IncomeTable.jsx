@@ -63,7 +63,7 @@ export default function IncomeTable({ incomes, projects, onEdit, onDelete, showP
             {showProject && <TableHead>Project</TableHead>}
             <TableHead>Source</TableHead>
             <TableHead>Description</TableHead>
-            <TableHead>Payment Method</TableHead>
+            <TableHead>Payment Source</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
@@ -93,7 +93,7 @@ export default function IncomeTable({ incomes, projects, onEdit, onDelete, showP
                 <TableCell className="text-gray-500 max-w-xs truncate">
                   {income.description || "—"}
                 </TableCell>
-                <TableCell className="text-gray-600">{income.payment_method || "—"}</TableCell>
+                <TableCell className="text-gray-600">{income.payment_source || "—"}</TableCell>
                 <TableCell className="text-right font-semibold text-emerald-600">
                   {formatCurrency(income.amount)}
                 </TableCell>

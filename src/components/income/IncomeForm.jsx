@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Plus } from "lucide-react";
 import { format } from "date-fns";
 
 export default function IncomeForm({ income, projects, open, onClose, onSubmit }) {
@@ -24,11 +26,17 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
       description: "",
       date: new Date().toISOString().split("T")[0],
       amount: "",
-      payment_method: "",
+      payment_source: "",
       category: "sales",
     }
   );
   const [isSaving, setIsSaving] = useState(false);
+
+  const { data: paymentSources = [] } = useQuery({
+    queryKey: ["paymentSources"],
+    queryFn: () => base44.entities.PaymentSource.list("name"),
+    enabled: open,
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -146,13 +154,22 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
             </div>
 
             <div className="col-span-2">
-              <Label>Payment Method</Label>
-              <Input
-                value={formData.payment_method}
-                onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                placeholder="e.g., Bank Transfer, Check"
-                className="mt-1.5"
-              />
+              <Label>Payment Source</Label>
+              <Select
+                value={formData.payment_source}
+                onValueChange={(value) => setFormData({ ...formData, payment_source: value })}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Select payment source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentSources.map((ps) => (
+                    <SelectItem key={ps.id} value={ps.name}>
+                      {ps.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

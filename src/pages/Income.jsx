@@ -86,7 +86,7 @@ export default function Income() {
     };
 
     const csvData = [
-      ["Date", "Project", "Category", "Source", "Description", "Amount (€)", "Payment Method"],
+      ["Date", "Project", "Category", "Source", "Description", "Amount (€)", "Payment Source"],
       ...filteredIncomes.map((i) => [
         new Date(i.date).toLocaleDateString("de-DE"),
         getProjectName(i.project_id),
@@ -94,7 +94,7 @@ export default function Income() {
         i.source || "",
         i.description || "",
         i.amount || 0,
-        i.payment_method || "",
+        i.payment_source || "",
       ]),
     ];
 

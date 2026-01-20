@@ -15,6 +15,7 @@ import {
   User,
   Receipt,
   TrendingUp,
+  DollarSign,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -31,6 +32,7 @@ const navItems = [
   { name: "Tasks", icon: ClipboardList, page: "Tasks" },
   { name: "Expenses", icon: Receipt, page: "Expenses" },
   { name: "Income", icon: TrendingUp, page: "Income" },
+  { name: "Financial Overview", icon: DollarSign, page: "FinancialOverview" },
 ];
 
 export default function Layout({ children, currentPageName }) {
