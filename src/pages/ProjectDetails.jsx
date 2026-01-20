@@ -33,6 +33,8 @@ export default function ProjectDetails() {
   const [editingTask, setEditingTask] = useState(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [activeTab, setActiveTab] = useState("board");
+  const [imagePosition, setImagePosition] = useState({ x: 50, y: 50 });
+  const [isDragging, setIsDragging] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -140,15 +142,39 @@ export default function ProjectDetails() {
   return (
     <div className="min-h-screen bg-[#fafafa]">
       {/* Hero Section */}
-      <div className="relative h-64 md:h-80 overflow-hidden">
+      <div 
+        className="relative h-64 md:h-80 overflow-hidden group cursor-move"
+        onMouseDown={(e) => {
+          setIsDragging(true);
+          e.preventDefault();
+        }}
+        onMouseMove={(e) => {
+          if (isDragging) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            setImagePosition({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
+          }
+        }}
+        onMouseUp={() => setIsDragging(false)}
+        onMouseLeave={() => setIsDragging(false)}
+      >
         <img
           src={project.cover_image || defaultImages[project.property_type] || defaultImages.residential}
           alt={project.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-all"
+          style={{ objectPosition: `${imagePosition.x}% ${imagePosition.y}%` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
         
-        <div className="absolute top-6 left-6">
+        {/* Position indicator */}
+        <div className="absolute top-20 right-6 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <div className="bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs">
+            Drag to adjust image position
+          </div>
+        </div>
+        
+        <div className="absolute top-6 left-6 pointer-events-auto">
           <Link to={createPageUrl("Projects")}>
             <Button variant="ghost" className="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -157,10 +183,10 @@ export default function ProjectDetails() {
           </Link>
         </div>
 
-        <div className="absolute bottom-6 left-6 right-6">
+        <div className="absolute bottom-6 left-6 right-6 pointer-events-auto">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
+              <div className="pointer-events-none">
                 <Badge className={`${statusColors[project.status]} border-0 mb-3`}>
                   {project.status?.replace("_", " ")}
                 </Badge>
