@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
 import Tasks from './pages/Tasks';
+import Expenses from './pages/Expenses';
 import __Layout from './Layout.jsx';
 
 
@@ -18,6 +19,7 @@ export const PAGES = {
     "Projects": Projects,
     "ProjectDetails": ProjectDetails,
     "Tasks": Tasks,
+    "Expenses": Expenses,
 }
 
 export const pagesConfig = {

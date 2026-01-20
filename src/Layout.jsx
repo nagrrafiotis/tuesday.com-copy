@@ -13,6 +13,7 @@ import {
   LogOut,
   ChevronDown,
   User,
+  Receipt,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -27,6 +28,7 @@ const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },
   { name: "Projects", icon: Building2, page: "Projects" },
   { name: "Tasks", icon: ClipboardList, page: "Tasks" },
+  { name: "Expenses", icon: Receipt, page: "Expenses" },
 ];
 
 export default function Layout({ children, currentPageName }) {
