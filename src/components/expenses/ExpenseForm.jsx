@@ -19,7 +19,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, Users, Wrench, Package, Truck, Receipt, Plus } from "lucide-react";
+import { CalendarIcon, Users, Wrench, Package, Truck, Receipt, Plus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -36,21 +36,39 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
     expense || {
       project_id: projectId || "",
       category: "materials",
+      subcategory: "",
       payee: "",
       description: "",
       date: new Date().toISOString(),
       amount: "",
+      payment_source: "",
     }
   );
   const [loading, setLoading] = useState(false);
   const [showNewPayee, setShowNewPayee] = useState(false);
   const [newPayeeName, setNewPayeeName] = useState("");
+  const [showNewSubcategory, setShowNewSubcategory] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState("");
+  const [showNewPaymentSource, setShowNewPaymentSource] = useState(false);
+  const [newPaymentSourceName, setNewPaymentSourceName] = useState("");
   
   const queryClient = useQueryClient();
   
   const { data: payees = [] } = useQuery({
     queryKey: ["payees"],
     queryFn: () => base44.entities.Payee.list("name"),
+    enabled: open,
+  });
+  
+  const { data: subcategories = [] } = useQuery({
+    queryKey: ["subcategories"],
+    queryFn: () => base44.entities.Subcategory.list("name"),
+    enabled: open,
+  });
+  
+  const { data: paymentSources = [] } = useQuery({
+    queryKey: ["paymentSources"],
+    queryFn: () => base44.entities.PaymentSource.list("name"),
     enabled: open,
   });
   
@@ -63,6 +81,30 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
       setNewPayeeName("");
     },
   });
+  
+  const createSubcategoryMutation = useMutation({
+    mutationFn: (data) => base44.entities.Subcategory.create(data),
+    onSuccess: (newSubcat) => {
+      queryClient.invalidateQueries({ queryKey: ["subcategories"] });
+      setFormData({ ...formData, subcategory: newSubcat.name });
+      setShowNewSubcategory(false);
+      setNewSubcategoryName("");
+    },
+  });
+  
+  const createPaymentSourceMutation = useMutation({
+    mutationFn: (data) => base44.entities.PaymentSource.create(data),
+    onSuccess: (newSource) => {
+      queryClient.invalidateQueries({ queryKey: ["paymentSources"] });
+      setFormData({ ...formData, payment_source: newSource.name });
+      setShowNewPaymentSource(false);
+      setNewPaymentSourceName("");
+    },
+  });
+  
+  const filteredSubcategories = subcategories.filter(
+    (s) => s.parent_category === formData.category
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -105,26 +147,104 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
             </div>
           )}
 
-          <div>
-            <Label>Category *</Label>
-            <Select
-              value={formData.category}
-              onValueChange={(v) => setFormData({ ...formData, category: v })}
-            >
-              <SelectTrigger className="mt-1.5">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    <div className="flex items-center gap-2">
-                      <cat.icon className="w-4 h-4" />
-                      {cat.label}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Category *</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(v) => setFormData({ ...formData, category: v, subcategory: "" })}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      <div className="flex items-center gap-2">
+                        <cat.icon className="w-4 h-4" />
+                        {cat.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Subcategory</Label>
+              {!showNewSubcategory ? (
+                <div className="flex gap-2 mt-1.5">
+                  <Select
+                    value={formData.subcategory}
+                    onValueChange={(v) => setFormData({ ...formData, subcategory: v })}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredSubcategories.map((s) => (
+                        <SelectItem key={s.id} value={s.name}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowNewSubcategory(true)}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2 mt-1.5">
+                  <Input
+                    value={newSubcategoryName}
+                    onChange={(e) => setNewSubcategoryName(e.target.value)}
+                    placeholder="New subcategory"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newSubcategoryName.trim()) {
+                          createSubcategoryMutation.mutate({ 
+                            name: newSubcategoryName, 
+                            parent_category: formData.category 
+                          });
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    onClick={() => {
+                      if (newSubcategoryName.trim()) {
+                        createSubcategoryMutation.mutate({ 
+                          name: newSubcategoryName, 
+                          parent_category: formData.category 
+                        });
+                      }
+                    }}
+                    disabled={!newSubcategoryName.trim() || createSubcategoryMutation.isPending}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      setShowNewSubcategory(false);
+                      setNewSubcategoryName("");
+                    }}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
@@ -237,6 +357,74 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
                 required
               />
             </div>
+          </div>
+
+          <div>
+            <Label>Payment Source</Label>
+            {!showNewPaymentSource ? (
+              <div className="flex gap-2 mt-1.5">
+                <Select
+                  value={formData.payment_source}
+                  onValueChange={(v) => setFormData({ ...formData, payment_source: v })}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select payment source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentSources.map((ps) => (
+                      <SelectItem key={ps.id} value={ps.name}>
+                        {ps.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowNewPaymentSource(true)}
+                  className="shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2 mt-1.5">
+                <Input
+                  value={newPaymentSourceName}
+                  onChange={(e) => setNewPaymentSourceName(e.target.value)}
+                  placeholder="e.g., Bank 01, Cash, Cash X"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (newPaymentSourceName.trim()) {
+                        createPaymentSourceMutation.mutate({ name: newPaymentSourceName });
+                      }
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (newPaymentSourceName.trim()) {
+                      createPaymentSourceMutation.mutate({ name: newPaymentSourceName });
+                    }
+                  }}
+                  disabled={!newPaymentSourceName.trim() || createPaymentSourceMutation.isPending}
+                >
+                  Add
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowNewPaymentSource(false);
+                    setNewPaymentSourceName("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">

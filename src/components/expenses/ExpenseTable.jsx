@@ -64,6 +64,7 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
             {showProject && <TableHead>Project</TableHead>}
             <TableHead>Payee</TableHead>
             <TableHead>Description</TableHead>
+            <TableHead>Payment Source</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
@@ -85,10 +86,15 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
                   {format(new Date(expense.date), "MMM d, yyyy")}
                 </TableCell>
                 <TableCell>
-                  <Badge className={`${config.color} border-0 gap-1.5`}>
-                    <Icon className="w-3 h-3" />
-                    {config.label}
-                  </Badge>
+                  <div className="space-y-1">
+                    <Badge className={`${config.color} border-0 gap-1.5`}>
+                      <Icon className="w-3 h-3" />
+                      {config.label}
+                    </Badge>
+                    {expense.subcategory && (
+                      <div className="text-xs text-gray-500">{expense.subcategory}</div>
+                    )}
+                  </div>
                 </TableCell>
                 {showProject && (
                   <TableCell className="text-gray-600">
@@ -98,6 +104,9 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
                 <TableCell className="font-medium text-gray-900">{expense.payee}</TableCell>
                 <TableCell className="text-gray-500 max-w-xs truncate">
                   {expense.description || "—"}
+                </TableCell>
+                <TableCell className="text-gray-600">
+                  {expense.payment_source || "—"}
                 </TableCell>
                 <TableCell className="text-right font-semibold text-[#1e3a5f]">
                   {formatCurrency(expense.amount)}
