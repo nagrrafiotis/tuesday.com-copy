@@ -83,7 +83,7 @@ export default function Layout({ children, currentPageName }) {
       </header>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col bg-white border-r border-gray-100 z-40">
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-52 flex-col bg-white border-r border-gray-100 z-40">
         {/* Logo */}
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -216,7 +216,7 @@ export default function Layout({ children, currentPageName }) {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className={`lg:ml-64 ${isProjectDetails ? "" : "pt-16 lg:pt-0"}`}>
+      <main className={`lg:ml-52 ${isProjectDetails ? "" : "pt-16 lg:pt-0"}`}>
         {children}
       </main>
     </div>
