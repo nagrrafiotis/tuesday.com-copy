@@ -81,7 +81,7 @@ export default function IncomeTable({ incomes, projects, onEdit, onDelete, showP
                 className="hover:bg-gray-50/50 transition-colors group"
               >
                 <TableCell className="font-medium text-gray-600">
-                  {format(new Date(income.date), "d MMM yyyy")}
+                  {format(new Date(income.date), "dd/MM/yy")}
                 </TableCell>
                 <TableCell>
                   <Badge className={`${config.color} border-0`}>{config.label}</Badge>

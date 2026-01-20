@@ -349,7 +349,7 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full mt-1.5 justify-start font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.date ? format(new Date(formData.date), "PPP") : "Select date"}
+                    {formData.date ? format(new Date(formData.date), "dd/MM/yy") : "Select date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">

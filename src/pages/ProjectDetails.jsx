@@ -254,7 +254,7 @@ export default function ProjectDetails() {
                 <p className="text-sm text-gray-500">Target Date</p>
                 <p className="text-xl font-bold text-[#1e3a5f]">
                   {project.target_completion
-                    ? format(new Date(project.target_completion), "MMM yyyy")
+                    ? format(new Date(project.target_completion), "dd/MM/yy")
                     : "—"}
                 </p>
               </div>

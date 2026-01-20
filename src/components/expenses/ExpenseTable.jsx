@@ -165,7 +165,7 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
                 className="hover:bg-gray-50/50 transition-colors group"
               >
                 <TableCell className="font-medium text-gray-600">
-                  {format(new Date(expense.date), "d MMM yyyy")}
+                  {format(new Date(expense.date), "dd/MM/yy")}
                 </TableCell>
                 <TableCell>
                   <div className="space-y-1">

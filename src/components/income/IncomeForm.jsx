@@ -125,7 +125,7 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
                     className="w-full justify-start text-left mt-1.5"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.date ? format(new Date(formData.date), "d MMM yyyy") : "Pick a date"}
+                    {formData.date ? format(new Date(formData.date), "dd/MM/yy") : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
