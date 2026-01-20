@@ -94,6 +94,37 @@ export default function Expenses() {
     return matchesSearch && matchesProject && matchesCategory && matchesPayee && matchesPaymentSource;
   });
 
+  const exportToExcel = () => {
+    const getProjectName = (projectId) => {
+      return projects.find((p) => p.id === projectId)?.name || "Unknown";
+    };
+
+    const csvData = [
+      ["Date", "Project", "Category", "Subcategory", "Payee", "Description", "Amount (€)", "Payment Source"],
+      ...filteredExpenses.map((e) => [
+        new Date(e.date).toLocaleDateString("de-DE"),
+        getProjectName(e.project_id),
+        e.category || "",
+        e.subcategory || "",
+        e.payee || "",
+        e.description || "",
+        e.amount || 0,
+        e.payment_source || "",
+      ]),
+    ];
+
+    const csvContent = csvData.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `expenses_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (expensesLoading) {
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
@@ -118,17 +149,28 @@ export default function Expenses() {
             <h1 className="text-3xl font-bold text-[#1e3a5f]">Expenses</h1>
             <p className="text-gray-500 mt-1">Track and manage project costs</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingExpense(null);
-              setShowForm(true);
-            }}
-            className="bg-[#1e3a5f] hover:bg-[#152a45]"
-            disabled={projects.length === 0}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Expense
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={exportToExcel}
+              variant="outline"
+              disabled={filteredExpenses.length === 0}
+              className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export to Excel
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingExpense(null);
+                setShowForm(true);
+              }}
+              className="bg-[#1e3a5f] hover:bg-[#152a45]"
+              disabled={projects.length === 0}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Expense
+            </Button>
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
