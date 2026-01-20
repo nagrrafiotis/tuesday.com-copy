@@ -2,11 +2,11 @@ import Analytics from './pages/Analytics';
 import Board from './pages/Board';
 import Boards from './pages/Boards';
 import Dashboard from './pages/Dashboard';
-import Home from './pages/Home';
-import Projects from './pages/Projects';
-import ProjectDetails from './pages/ProjectDetails';
-import Tasks from './pages/Tasks';
 import Expenses from './pages/Expenses';
+import Home from './pages/Home';
+import ProjectDetails from './pages/ProjectDetails';
+import Projects from './pages/Projects';
+import Tasks from './pages/Tasks';
 import __Layout from './Layout.jsx';
 
 
@@ -15,11 +15,11 @@ export const PAGES = {
     "Board": Board,
     "Boards": Boards,
     "Dashboard": Dashboard,
-    "Home": Home,
-    "Projects": Projects,
-    "ProjectDetails": ProjectDetails,
-    "Tasks": Tasks,
     "Expenses": Expenses,
+    "Home": Home,
+    "ProjectDetails": ProjectDetails,
+    "Projects": Projects,
+    "Tasks": Tasks,
 }
 
 export const pagesConfig = {
