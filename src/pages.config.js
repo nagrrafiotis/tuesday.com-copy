@@ -10,7 +10,6 @@ import Tasks from './pages/Tasks';
 import Income from './pages/Income';
 import FinancialOverview from './pages/FinancialOverview';
 import Contacts from './pages/Contacts';
-import Calendar from './pages/Calendar';
 import Gantt from './pages/Gantt';
 import Gmail from './pages/Gmail';
 import __Layout from './Layout.jsx';
@@ -29,7 +28,6 @@ export const PAGES = {
     "Income": Income,
     "FinancialOverview": FinancialOverview,
     "Contacts": Contacts,
-    "Calendar": Calendar,
     "Gantt": Gantt,
     "Gmail": Gmail,
 }

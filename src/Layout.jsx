@@ -34,7 +34,6 @@ const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },
   { name: "Projects", icon: Building2, page: "Projects" },
   { name: "Tasks", icon: ClipboardList, page: "Tasks" },
-  { name: "Calendar", icon: Calendar, page: "Calendar" },
   { name: "Gantt", icon: BarChart3, page: "Gantt" },
   { name: "Expenses", icon: Receipt, page: "Expenses" },
   { name: "Income", icon: TrendingUp, page: "Income" },
