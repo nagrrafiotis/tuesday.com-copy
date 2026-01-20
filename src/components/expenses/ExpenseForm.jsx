@@ -19,7 +19,9 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, Users, Wrench, Package, Truck, Receipt } from "lucide-react";
+import { CalendarIcon, Users, Wrench, Package, Truck, Receipt, Plus } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const categories = [
   { value: "labor", label: "Labor", icon: Users },
@@ -41,6 +43,26 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
     }
   );
   const [loading, setLoading] = useState(false);
+  const [showNewPayee, setShowNewPayee] = useState(false);
+  const [newPayeeName, setNewPayeeName] = useState("");
+  
+  const queryClient = useQueryClient();
+  
+  const { data: payees = [] } = useQuery({
+    queryKey: ["payees"],
+    queryFn: () => base44.entities.Payee.list("name"),
+    enabled: open,
+  });
+  
+  const createPayeeMutation = useMutation({
+    mutationFn: (data) => base44.entities.Payee.create(data),
+    onSuccess: (newPayee) => {
+      queryClient.invalidateQueries({ queryKey: ["payees"] });
+      setFormData({ ...formData, payee: newPayee.name });
+      setShowNewPayee(false);
+      setNewPayeeName("");
+    },
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -107,13 +129,70 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
 
           <div>
             <Label>Payee / Vendor *</Label>
-            <Input
-              value={formData.payee}
-              onChange={(e) => setFormData({ ...formData, payee: e.target.value })}
-              placeholder="e.g., ABC Construction Co."
-              className="mt-1.5"
-              required
-            />
+            {!showNewPayee ? (
+              <div className="flex gap-2 mt-1.5">
+                <Select
+                  value={formData.payee}
+                  onValueChange={(v) => setFormData({ ...formData, payee: v })}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select payee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {payees.map((p) => (
+                      <SelectItem key={p.id} value={p.name}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowNewPayee(true)}
+                  className="shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2 mt-1.5">
+                <Input
+                  value={newPayeeName}
+                  onChange={(e) => setNewPayeeName(e.target.value)}
+                  placeholder="New payee name"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (newPayeeName.trim()) {
+                        createPayeeMutation.mutate({ name: newPayeeName, category: formData.category });
+                      }
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (newPayeeName.trim()) {
+                      createPayeeMutation.mutate({ name: newPayeeName, category: formData.category });
+                    }
+                  }}
+                  disabled={!newPayeeName.trim() || createPayeeMutation.isPending}
+                >
+                  Add
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowNewPayee(false);
+                    setNewPayeeName("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
           </div>
 
           <div>
