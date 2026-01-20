@@ -1,155 +1,188 @@
-
-import React, { useState, useEffect } from "react";
-import { Board } from "@/entities/Board";
-import { Item } from "@/entities/Item";
-import { User } from "@/entities/User";
-import { Button } from "@/components/ui/button";
+import React from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { 
-  Folder,
-  BarChart3,
-  ArrowRight,
-  Sparkles
-} from "lucide-react";
 import { motion } from "framer-motion";
-
-import StatsOverview from "../components/dashboard/StatsOverview";
-import RecentBoards from "../components/dashboard/RecentBoards";
-import ActivityFeed from "../components/dashboard/ActivityFeed";
-import QuickActions from "../components/dashboard/QuickActions";
+import StatsCard from "@/components/dashboard/StatsCard";
+import ProjectCard from "@/components/projects/ProjectCard";
+import TaskCard from "@/components/tasks/TaskCard";
+import { 
+  Building2, 
+  ClipboardList, 
+  TrendingUp, 
+  Clock,
+  Plus,
+  ArrowRight,
+  Calendar
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 
 export default function Dashboard() {
-  const [boards, setBoards] = useState([]);
-  const [items, setItems] = useState([]);
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+    queryKey: ["projects"],
+    queryFn: () => base44.entities.Project.list("-created_date"),
+  });
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: ["tasks"],
+    queryFn: () => base44.entities.Task.list("-created_date"),
+  });
 
-  const loadDashboardData = async () => {
-    setIsLoading(true);
-    try {
-      const [boardsData, itemsData, userData] = await Promise.all([
-        Board.list("-updated_date", 10),
-        Item.list("-updated_date", 20),
-        User.me()
-      ]);
-      
-      setBoards(boardsData);
-      setItems(itemsData);
-      setUser(userData);
-    } catch (error) {
-      console.error("Error loading dashboard data:", error);
-    }
-    setIsLoading(false);
+  const stats = {
+    totalProjects: projects.length,
+    activeProjects: projects.filter((p) => p.status === "in_progress").length,
+    totalTasks: tasks.length,
+    pendingTasks: tasks.filter((t) => t.status !== "completed").length,
+    avgProgress: projects.length
+      ? Math.round(projects.reduce((sum, p) => sum + (p.progress || 0), 0) / projects.length)
+      : 0,
   };
 
-  const handleCreateBoard = async (boardData) => {
-    try {
-      const newBoard = await Board.create(boardData);
-      // Prepend new board to the list to show it immediately
-      setBoards(prev => [newBoard, ...prev]);
-    } catch (error) {
-      console.error("Error creating board:", error);
-    }
-  };
+  const recentProjects = projects.slice(0, 3);
+  const upcomingTasks = tasks
+    .filter((t) => t.status !== "completed" && t.due_date)
+    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+    .slice(0, 5);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
-  };
-
-  const pendingTasks = items.filter(item => !item.data?.status || item.data?.status !== 'done').length;
+  if (projectsLoading || tasksLoading) {
+    return (
+      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-[#1e3a5f]/20"></div>
+          <p className="text-gray-500">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 md:p-8 bg-[#F5F6F8] min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Hero Section - Made more compact */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+    <div className="min-h-screen bg-[#fafafa]">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden"
+          className="mb-8"
         >
-          <div className="bg-gradient-to-br from-white via-white to-blue-50/30 rounded-2xl p-6 md:p-8 shadow-sm border border-white/60">
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-[#323338] leading-tight">
-                    {getGreeting()}, {user?.full_name?.split(' ')[0] || 'there'}!
-                  </h1>
-                  <p className="text-[#676879] text-base mt-1">
-                    Ready to make today productive? {pendingTasks > 0 && `You have ${pendingTasks} tasks waiting.`}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex flex-wrap gap-3 mt-6">
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Link to={createPageUrl("Boards")}>
-                    <Button className="bg-[#0073EA] hover:bg-[#0056B3] text-white rounded-xl h-10 px-5 font-medium shadow-lg hover:shadow-xl transition-all duration-200">
-                      <Folder className="w-4 h-4 mr-2" />
-                      View All Boards
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </Link>
-                </motion.div>
-                
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Link to={createPageUrl("Analytics")}>
-                    <Button variant="outline" className="border-2 border-[#E1E5F3] hover:border-[#0073EA] hover:bg-[#0073EA]/5 rounded-xl h-10 px-5 font-medium transition-all duration-200">
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      View Analytics
-                    </Button>
-                  </Link>
-                </motion.div>
-              </div>
-            </div>
-            
-            {/* Subtle background decoration - made smaller */}
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -translate-y-12 translate-x-12"></div>
-            <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-blue-500/5 to-transparent rounded-full translate-y-10 -translate-x-10"></div>
-          </div>
+          <h1 className="text-3xl font-bold text-[#1e3a5f]">Dashboard</h1>
+          <p className="text-gray-500 mt-1">Welcome back to your project overview</p>
         </motion.div>
 
-        {/* Stats Overview */}
-        <StatsOverview 
-          boards={boards}
-          items={items}
-          isLoading={isLoading}
-        />
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+          <StatsCard
+            title="Total Projects"
+            value={stats.totalProjects}
+            subtitle={`${stats.activeProjects} active`}
+            icon={Building2}
+            color="navy"
+          />
+          <StatsCard
+            title="Active Tasks"
+            value={stats.pendingTasks}
+            subtitle={`${stats.totalTasks} total`}
+            icon={ClipboardList}
+            color="gold"
+          />
+          <StatsCard
+            title="Avg. Progress"
+            value={`${stats.avgProgress}%`}
+            subtitle="across all projects"
+            icon={TrendingUp}
+            color="white"
+          />
+          <StatsCard
+            title="This Week"
+            value={upcomingTasks.length}
+            subtitle="upcoming deadlines"
+            icon={Clock}
+            color="white"
+          />
+        </div>
 
-        {/* Main Content Grid */}
-        <div className="grid xl:grid-cols-4 gap-8">
-          {/* Left Column - Boards and Activity */}
-          <div className="xl:col-span-3 space-y-8">
-            <RecentBoards 
-              boards={boards}
-              isLoading={isLoading}
-              onCreateBoard={handleCreateBoard}
-            />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Recent Projects */}
+          <div className="lg:col-span-2">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-semibold text-[#1e3a5f]">Recent Projects</h2>
+              <Link to={createPageUrl("Projects")}>
+                <Button variant="ghost" className="text-[#c9a962] hover:text-[#b89952]">
+                  View All
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
+
+            {recentProjects.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                {recentProjects.map((project, index) => (
+                  <ProjectCard key={project.id} project={project} index={index} />
+                ))}
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center"
+              >
+                <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-700 mb-2">No projects yet</h3>
+                <p className="text-gray-500 mb-6">Start by creating your first development project</p>
+                <Link to={createPageUrl("Projects")}>
+                  <Button className="bg-[#1e3a5f] hover:bg-[#152a45]">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Project
+                  </Button>
+                </Link>
+              </motion.div>
+            )}
           </div>
 
-          {/* Right Sidebar */}
-          <div className="space-y-8">
-            <QuickActions onCreateBoard={handleCreateBoard} />
-            <ActivityFeed 
-              items={items.slice(0, 5)}
-              isLoading={isLoading}
-            />
+          {/* Upcoming Tasks */}
+          <div>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-semibold text-[#1e3a5f]">Upcoming Tasks</h2>
+              <Link to={createPageUrl("Tasks")}>
+                <Button variant="ghost" className="text-[#c9a962] hover:text-[#b89952]">
+                  View All
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              {upcomingTasks.length > 0 ? (
+                <div className="divide-y divide-gray-50">
+                  {upcomingTasks.map((task) => (
+                    <div key={task.id} className="p-4 hover:bg-gray-50/50 transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-900 text-sm truncate">{task.title}</h4>
+                          <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-500">
+                            <Calendar className="w-3 h-3" />
+                            <span>{format(new Date(task.due_date), "MMM d, yyyy")}</span>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          task.priority === "urgent" ? "bg-red-100 text-red-600" :
+                          task.priority === "high" ? "bg-orange-100 text-orange-600" :
+                          "bg-gray-100 text-gray-600"
+                        }`}>
+                          {task.priority}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center">
+                  <ClipboardList className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">No upcoming tasks</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
