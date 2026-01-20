@@ -19,7 +19,8 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, X } from "lucide-react";
+import { CalendarIcon, X, Upload, Image as ImageIcon } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 
 export default function ProjectForm({ project, open, onClose, onSubmit }) {
   const [formData, setFormData] = useState(
@@ -34,9 +35,25 @@ export default function ProjectForm({ project, open, onClose, onSubmit }) {
       target_completion: "",
       priority: "medium",
       progress: 0,
+      cover_image: "",
     }
   );
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData({ ...formData, cover_image: file_url });
+    } catch (error) {
+      console.error("Failed to upload image:", error);
+    }
+    setUploadingImage(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -59,6 +76,66 @@ export default function ProjectForm({ project, open, onClose, onSubmit }) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+          {/* Cover Image Upload */}
+          <div>
+            <Label>Project Cover Image</Label>
+            <div className="mt-1.5">
+              {formData.cover_image ? (
+                <div className="relative group">
+                  <img 
+                    src={formData.cover_image} 
+                    alt="Project cover" 
+                    className="w-full h-40 object-cover rounded-lg"
+                  />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => document.getElementById('cover-image-upload').click()}
+                      disabled={uploadingImage}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Change
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setFormData({ ...formData, cover_image: "" })}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('cover-image-upload').click()}
+                  disabled={uploadingImage}
+                  className="w-full h-40 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#1e3a5f] hover:bg-gray-50 transition-colors flex flex-col items-center justify-center gap-2 text-gray-500 hover:text-[#1e3a5f]"
+                >
+                  {uploadingImage ? (
+                    <div className="animate-pulse">Uploading...</div>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-8 h-8" />
+                      <span className="text-sm font-medium">Click to upload cover image</span>
+                    </>
+                  )}
+                </button>
+              )}
+              <input
+                id="cover-image-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <Label>Project Name *</Label>
