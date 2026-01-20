@@ -40,7 +40,7 @@ export default function Dashboard() {
       : 0,
   };
 
-  const recentProjects = projects.slice(0, 3);
+  const recentProjects = projects;
   const upcomingTasks = tasks
     .filter((t) => t.status !== "completed" && t.due_date)
     .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
@@ -102,46 +102,46 @@ export default function Dashboard() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Recent Projects */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-semibold text-[#1e3a5f]">Recent Projects</h2>
-              <Link to={createPageUrl("Projects")}>
-                <Button variant="ghost" className="text-[#c9a962] hover:text-[#b89952]">
-                  View All
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
-              </Link>
-            </div>
-
-            {recentProjects.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {recentProjects.map((project, index) => (
-                  <ProjectCard key={project.id} project={project} index={index} />
-                ))}
-              </div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center"
-              >
-                <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-700 mb-2">No projects yet</h3>
-                <p className="text-gray-500 mb-6">Start by creating your first development project</p>
-                <Link to={createPageUrl("Projects")}>
-                  <Button className="bg-[#1e3a5f] hover:bg-[#152a45]">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Project
-                  </Button>
-                </Link>
-              </motion.div>
-            )}
+        {/* All Projects */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-semibold text-[#1e3a5f]">All Projects</h2>
+            <Link to={createPageUrl("Projects")}>
+              <Button className="bg-[#1e3a5f] hover:bg-[#152a45]">
+                <Plus className="w-4 h-4 mr-2" />
+                New Project
+              </Button>
+            </Link>
           </div>
 
-          {/* Upcoming Tasks */}
-          <div>
+          {recentProjects.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {recentProjects.map((project, index) => (
+                <ProjectCard key={project.id} project={project} index={index} />
+              ))}
+            </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center"
+            >
+              <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-700 mb-2">No projects yet</h3>
+              <p className="text-gray-500 mb-6">Start by creating your first development project</p>
+              <Link to={createPageUrl("Projects")}>
+                <Button className="bg-[#1e3a5f] hover:bg-[#152a45]">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Project
+                </Button>
+              </Link>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Upcoming Tasks */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-3">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-semibold text-[#1e3a5f]">Upcoming Tasks</h2>
               <Link to={createPageUrl("Tasks")}>
