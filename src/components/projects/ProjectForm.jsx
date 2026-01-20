@@ -248,6 +248,9 @@ export default function ProjectForm({ project, open, onClose, onSubmit }) {
                     mode="single"
                     selected={formData.start_date ? new Date(formData.start_date) : undefined}
                     onSelect={(date) => setFormData({ ...formData, start_date: date?.toISOString() })}
+                    captionLayout="dropdown-buttons"
+                    fromYear={2020}
+                    toYear={2035}
                   />
                 </PopoverContent>
               </Popover>
@@ -269,6 +272,9 @@ export default function ProjectForm({ project, open, onClose, onSubmit }) {
                     mode="single"
                     selected={formData.target_completion ? new Date(formData.target_completion) : undefined}
                     onSelect={(date) => setFormData({ ...formData, target_completion: date?.toISOString() })}
+                    captionLayout="dropdown-buttons"
+                    fromYear={2020}
+                    toYear={2035}
                   />
                 </PopoverContent>
               </Popover>
