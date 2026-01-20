@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +44,23 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
       payment_source: "",
     }
   );
+
+  useEffect(() => {
+    if (expense) {
+      setFormData(expense);
+    } else {
+      setFormData({
+        project_id: projectId || "",
+        category: "materials",
+        subcategory: "",
+        payee: "",
+        description: "",
+        date: new Date().toISOString(),
+        amount: "",
+        payment_source: "",
+      });
+    }
+  }, [expense, projectId]);
   const [loading, setLoading] = useState(false);
   const [showNewPayee, setShowNewPayee] = useState(false);
   const [newPayeeName, setNewPayeeName] = useState("");
