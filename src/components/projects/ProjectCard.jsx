@@ -107,7 +107,7 @@ export default function ProjectCard({ project, onEdit, onDelete, index = 0 }) {
             {project.budget && (
               <div className="flex items-center gap-1">
                 <DollarSign className="w-4 h-4" />
-                <span>{(project.budget / 1000000).toFixed(1)}M</span>
+                <span>€{(project.budget / 1000000).toFixed(1)}M</span>
               </div>
             )}
           </div>
