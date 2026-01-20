@@ -206,7 +206,7 @@ export default function ProjectForm({ project, open, onClose, onSubmit }) {
             </div>
 
             <div>
-              <Label>Budget ($)</Label>
+              <Label>Budget (€)</Label>
               <Input
                 type="number"
                 value={formData.budget}

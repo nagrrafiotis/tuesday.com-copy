@@ -346,7 +346,7 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
             </div>
 
             <div>
-              <Label>Amount ($) *</Label>
+              <Label>Amount (€) *</Label>
               <Input
                 type="number"
                 step="0.01"

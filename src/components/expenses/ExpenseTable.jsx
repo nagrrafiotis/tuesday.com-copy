@@ -45,9 +45,9 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("de-DE", {
       style: "currency",
-      currency: "USD",
+      currency: "EUR",
     }).format(amount);
   };
 
@@ -165,7 +165,7 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
                 className="hover:bg-gray-50/50 transition-colors group"
               >
                 <TableCell className="font-medium text-gray-600">
-                  {format(new Date(expense.date), "MMM d, yyyy")}
+                  {format(new Date(expense.date), "d MMM yyyy")}
                 </TableCell>
                 <TableCell>
                   <div className="space-y-1">

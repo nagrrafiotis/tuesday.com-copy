@@ -162,7 +162,7 @@ export default function Dashboard() {
                           <h4 className="font-medium text-gray-900 text-sm truncate">{task.title}</h4>
                           <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-500">
                             <Calendar className="w-3 h-3" />
-                            <span>{format(new Date(task.due_date), "MMM d, yyyy")}</span>
+                            <span>{format(new Date(task.due_date), "d MMM yyyy")}</span>
                           </div>
                         </div>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
