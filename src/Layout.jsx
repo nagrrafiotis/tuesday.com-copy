@@ -76,7 +76,7 @@ export default function Layout({ children, currentPageName }) {
             <div className="w-8 h-8 rounded-lg bg-[#1e3a5f] flex items-center justify-center">
               <Building2 className="w-4 h-4 text-white" />
             </div>
-            <span className="font-semibold text-[#1e3a5f]">DevTrack</span>
+            <span className="font-semibold text-[#1e3a5f]">PRVK</span>
           </div>
           <div className="w-10" />
         </div>
@@ -91,8 +91,8 @@ export default function Layout({ children, currentPageName }) {
               <Building2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-bold text-lg text-[#1e3a5f]">DevTrack</h1>
-              <p className="text-xs text-gray-400">Real Estate Management</p>
+              <h1 className="font-bold text-lg text-[#1e3a5f]">PRVK</h1>
+              <p className="text-xs text-gray-400">Development</p>
             </div>
           </div>
         </div>
@@ -170,7 +170,7 @@ export default function Layout({ children, currentPageName }) {
                   <div className="w-10 h-10 rounded-xl bg-[#1e3a5f] flex items-center justify-center">
                     <Building2 className="w-5 h-5 text-white" />
                   </div>
-                  <span className="font-bold text-lg text-[#1e3a5f]">DevTrack</span>
+                  <span className="font-bold text-lg text-[#1e3a5f]">PRVK</span>
                 </div>
                 <button
                   onClick={() => setSidebarOpen(false)}
