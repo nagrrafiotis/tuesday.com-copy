@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { Board } from "@/entities/Board";
 import { Item } from "@/entities/Item";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BarChart3, TrendingUp, Target, Clock, Folder, Activity, CheckCircle2 } from "lucide-react";
 import { subDays, isAfter, isBefore } from 'date-fns';
 import { motion } from "framer-motion";
+import ExpenseCharts from "@/components/analytics/ExpenseCharts";
 
 export default function AnalyticsPage() {
   const [boards, setBoards] = useState([]);
@@ -15,6 +18,11 @@ export default function AnalyticsPage() {
   const [selectedBoard, setSelectedBoard] = useState('all');
   const [selectedTimeRange, setSelectedTimeRange] = useState('30');
   const [isLoading, setIsLoading] = useState(true);
+
+  const { data: expenses = [] } = useQuery({
+    queryKey: ["expenses"],
+    queryFn: () => base44.entities.Expense.list("-date"),
+  });
 
   useEffect(() => {
     loadData();
@@ -326,6 +334,13 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Expense Charts */}
+        {expenses.length > 0 && (
+          <div className="mb-8">
+            <ExpenseCharts expenses={expenses} />
+          </div>
+        )}
 
         {/* Board Performance */}
         {selectedBoard === 'all' && (
