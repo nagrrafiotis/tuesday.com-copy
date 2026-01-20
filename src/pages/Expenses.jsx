@@ -131,9 +131,9 @@ export default function Expenses() {
           </Button>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="xl:col-span-3 space-y-6">
             {/* Filters */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -141,78 +141,72 @@ export default function Expenses() {
               transition={{ delay: 0.1 }}
               className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4"
             >
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      placeholder="Search by payee or description..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Select value={projectFilter} onValueChange={setProjectFilter}>
-                      <SelectTrigger className="w-44">
-                        <SelectValue placeholder="Project" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Projects</SelectItem>
-                        {projects.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        <SelectItem value="labor">Labor</SelectItem>
-                        <SelectItem value="subcontractor">Subcontractor</SelectItem>
-                        <SelectItem value="materials">Materials</SelectItem>
-                        <SelectItem value="equipment">Equipment</SelectItem>
-                        <SelectItem value="general_expenses">General Expenses</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div className="flex flex-wrap gap-3">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    placeholder="Search by payee or description..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
 
-                <div className="flex gap-3">
-                  <Select value={payeeFilter} onValueChange={setPayeeFilter}>
-                    <SelectTrigger className="w-52">
-                      <SelectValue placeholder="Payee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Payees</SelectItem>
-                      {payees.map((p) => (
-                        <SelectItem key={p.id} value={p.name}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <Select value={projectFilter} onValueChange={setProjectFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Projects</SelectItem>
+                    {projects.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-                  <Select value={paymentSourceFilter} onValueChange={setPaymentSourceFilter}>
-                    <SelectTrigger className="w-52">
-                      <SelectValue placeholder="Payment Source" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Payment Sources</SelectItem>
-                      {paymentSources.map((ps) => (
-                        <SelectItem key={ps.id} value={ps.name}>
-                          {ps.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="labor">Labor</SelectItem>
+                    <SelectItem value="subcontractor">Subcontractor</SelectItem>
+                    <SelectItem value="materials">Materials</SelectItem>
+                    <SelectItem value="equipment">Equipment</SelectItem>
+                    <SelectItem value="general_expenses">General Expenses</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={payeeFilter} onValueChange={setPayeeFilter}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Payee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Payees</SelectItem>
+                    {payees.map((p) => (
+                      <SelectItem key={p.id} value={p.name}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={paymentSourceFilter} onValueChange={setPaymentSourceFilter}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Payment Source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Payment Sources</SelectItem>
+                    {paymentSources.map((ps) => (
+                      <SelectItem key={ps.id} value={ps.name}>
+                        {ps.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </motion.div>
 
@@ -230,7 +224,7 @@ export default function Expenses() {
           </div>
 
           {/* Sidebar Summary */}
-          <div className="lg:col-span-1">
+          <div className="xl:col-span-1">
             <ExpenseSummary
               expenses={projectFilter !== "all" ? filteredExpenses : expenses}
               budget={
