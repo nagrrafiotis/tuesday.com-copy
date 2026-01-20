@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,17 @@ const categoryConfig = {
 };
 
 export default function ExpenseTable({ expenses, projects, onEdit, onDelete, showProject = false }) {
+  const [columnWidths, setColumnWidths] = useState({
+    date: 120,
+    category: 150,
+    project: 150,
+    payee: 150,
+    description: 200,
+    payment: 150,
+    amount: 120,
+  });
+  const [resizing, setResizing] = useState(null);
+
   const getProjectName = (projectId) => {
     const project = projects?.find((p) => p.id === projectId);
     return project?.name || "Unknown";
@@ -39,6 +50,33 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
       currency: "USD",
     }).format(amount);
   };
+
+  const handleMouseDown = (column, e) => {
+    e.preventDefault();
+    setResizing({ column, startX: e.clientX, startWidth: columnWidths[column] });
+  };
+
+  React.useEffect(() => {
+    if (!resizing) return;
+
+    const handleMouseMove = (e) => {
+      const diff = e.clientX - resizing.startX;
+      const newWidth = Math.max(80, resizing.startWidth + diff);
+      setColumnWidths(prev => ({ ...prev, [resizing.column]: newWidth }));
+    };
+
+    const handleMouseUp = () => {
+      setResizing(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizing]);
 
   if (expenses.length === 0) {
     return (
@@ -59,13 +97,57 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
       <Table>
         <TableHeader>
           <TableRow className="bg-gray-50/50">
-            <TableHead>Date</TableHead>
-            <TableHead>Category</TableHead>
-            {showProject && <TableHead>Project</TableHead>}
-            <TableHead>Payee</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead>Payment Source</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
+            <TableHead style={{ width: columnWidths.date }} className="relative group">
+              Date
+              <div
+                onMouseDown={(e) => handleMouseDown('date', e)}
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </TableHead>
+            <TableHead style={{ width: columnWidths.category }} className="relative group">
+              Category
+              <div
+                onMouseDown={(e) => handleMouseDown('category', e)}
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </TableHead>
+            {showProject && (
+              <TableHead style={{ width: columnWidths.project }} className="relative group">
+                Project
+                <div
+                  onMouseDown={(e) => handleMouseDown('project', e)}
+                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+                />
+              </TableHead>
+            )}
+            <TableHead style={{ width: columnWidths.payee }} className="relative group">
+              Payee
+              <div
+                onMouseDown={(e) => handleMouseDown('payee', e)}
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </TableHead>
+            <TableHead style={{ width: columnWidths.description }} className="relative group">
+              Description
+              <div
+                onMouseDown={(e) => handleMouseDown('description', e)}
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </TableHead>
+            <TableHead style={{ width: columnWidths.payment }} className="relative group">
+              Payment Source
+              <div
+                onMouseDown={(e) => handleMouseDown('payment', e)}
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </TableHead>
+            <TableHead style={{ width: columnWidths.amount }} className="text-right relative group">
+              Amount
+              <div
+                onMouseDown={(e) => handleMouseDown('amount', e)}
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
         </TableHeader>
