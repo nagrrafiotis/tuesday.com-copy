@@ -12,6 +12,7 @@ import Income from './pages/Income';
 import ProjectDetails from './pages/ProjectDetails';
 import Projects from './pages/Projects';
 import Tasks from './pages/Tasks';
+import ConstructionNotebook from './pages/ConstructionNotebook';
 import __Layout from './Layout.jsx';
 
 
@@ -30,6 +31,7 @@ export const PAGES = {
     "ProjectDetails": ProjectDetails,
     "Projects": Projects,
     "Tasks": Tasks,
+    "ConstructionNotebook": ConstructionNotebook,
 }
 
 export const pagesConfig = {
