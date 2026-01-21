@@ -118,10 +118,16 @@ export default function ConstructionNotebook() {
       return;
     }
 
+    if (!formData.date) {
+      alert("Please select a date first");
+      return;
+    }
+
     setLoadingWeather(true);
     try {
+      const selectedDate = format(new Date(formData.date), "MMMM d, yyyy");
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Get current weather for ${project.address}. Return temperature, condition (sunny/cloudy/rainy/etc), and a brief description.`,
+        prompt: `Get weather data for ${project.address} on ${selectedDate}. Return temperature, condition (sunny/cloudy/rainy/etc), and a brief description. If this is a past date, provide historical weather data. If this is today or future, provide current or forecasted weather.`,
         add_context_from_internet: true,
         response_json_schema: {
           type: "object",
