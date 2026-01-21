@@ -70,6 +70,11 @@ export default function ProjectDetails() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  const { data: payees = [] } = useQuery({
+    queryKey: ["payees"],
+    queryFn: () => base44.entities.Payee.list(),
+  });
+
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
     onSuccess: () => {
@@ -126,7 +131,8 @@ export default function ProjectDetails() {
       quantity: 1,
       unit: "unit",
       unit_cost: 0,
-      total_cost: 0
+      total_cost: 0,
+      payee: ""
     };
     setBudgetItems([...budgetItems, newItem]);
   };
@@ -436,7 +442,7 @@ export default function ProjectDetails() {
                 <div className="space-y-3">
                   {budgetItems.map((item) => (
                     <div key={item.id} className="bg-gray-50 p-4 rounded-lg border space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-3 gap-3">
                         <div>
                           <label className="text-xs text-gray-500 mb-1 block">Category</label>
                           <Input
@@ -452,6 +458,24 @@ export default function ProjectDetails() {
                             value={item.description}
                             onChange={(e) => updateBudgetItem(item.id, 'description', e.target.value)}
                           />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Payee</label>
+                          <Select
+                            value={item.payee}
+                            onValueChange={(v) => updateBudgetItem(item.id, 'payee', v)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select payee" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {payees.map((payee) => (
+                                <SelectItem key={payee.id} value={payee.name}>
+                                  {payee.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                       <div className="grid grid-cols-5 gap-3 items-end">
@@ -533,6 +557,7 @@ export default function ProjectDetails() {
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payee</th>
                           <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
                           <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Cost</th>
@@ -547,6 +572,9 @@ export default function ProjectDetails() {
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-600">
                               {item.description}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                              {item.payee || "—"}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
                               {item.quantity}
@@ -565,7 +593,7 @@ export default function ProjectDetails() {
                       </tbody>
                       <tfoot className="bg-gray-50 border-t-2 border-gray-300">
                         <tr>
-                          <td colSpan="5" className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                          <td colSpan="6" className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
                             Total Project Budget:
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-lg font-bold text-[#1e3a5f] text-right">
