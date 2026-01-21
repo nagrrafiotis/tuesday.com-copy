@@ -199,7 +199,7 @@ export default function Income() {
             <input
               id="income-import"
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv"
               className="hidden"
               onChange={importFromExcel}
             />

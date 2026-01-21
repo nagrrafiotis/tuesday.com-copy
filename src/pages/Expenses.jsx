@@ -216,7 +216,7 @@ export default function Expenses() {
             <input
               id="expense-import"
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv"
               className="hidden"
               onChange={importFromExcel}
             />
