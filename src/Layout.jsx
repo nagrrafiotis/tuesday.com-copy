@@ -135,21 +135,19 @@ export default function Layout({ children, currentPageName }) {
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-52 flex-col bg-white border-r border-gray-100 z-40">
         {/* Logo */}
         <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowLogoDialog(true)}
-              className="w-10 h-10 rounded-xl flex items-center justify-center hover:opacity-80 transition-opacity group relative overflow-hidden"
-            >
-              {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-xl" />
-              ) : (
-                <Building2 className="w-5 h-5 text-[#1e3a5f]" />
-              )}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Upload className="w-4 h-4 text-white" />
-              </div>
-            </button>
-          </div>
+          <button
+            onClick={() => setShowLogoDialog(true)}
+            className="w-full h-32 rounded-xl flex items-center justify-center hover:opacity-80 transition-opacity group relative overflow-hidden"
+          >
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+            ) : (
+              <Building2 className="w-12 h-12 text-[#1e3a5f]" />
+            )}
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Upload className="w-6 h-6 text-white" />
+            </div>
+          </button>
         </div>
 
         {/* Navigation */}
