@@ -43,6 +43,7 @@ const navItems = [
   { name: "Income", icon: TrendingUp, page: "Income" },
   { name: "Financial Overview", icon: DollarSign, page: "FinancialOverview" },
   { name: "Contacts", icon: Users, page: "Contacts" },
+  { name: "Settings", icon: Settings, page: "Settings" },
 ];
 
 export default function Layout({ children, currentPageName }) {
