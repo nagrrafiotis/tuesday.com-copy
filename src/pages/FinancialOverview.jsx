@@ -10,7 +10,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet, DollarSign } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, DollarSign, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function FinancialOverview() {
   const [projectFilter, setProjectFilter] = useState("all");
@@ -72,6 +73,34 @@ export default function FinancialOverview() {
     };
   });
 
+  const exportToExcel = () => {
+    const csvData = [
+      ["Payment Source", "Income (€)", "Expenses (€)", "Balance (€)"],
+      ...byPaymentSource.map((ps) => [
+        ps.name,
+        ps.income,
+        ps.expense,
+        ps.balance,
+      ]),
+      ["", "", "", ""],
+      ["Summary", "", "", ""],
+      ["Total Income", totalIncome, "", ""],
+      ["Total Expenses", totalExpenses, "", ""],
+      ["Net Profit/Loss", netProfit, "", ""],
+    ];
+
+    const csvContent = csvData.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `financial_overview_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (expensesLoading || incomesLoading) {
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
@@ -96,19 +125,29 @@ export default function FinancialOverview() {
             <h1 className="text-3xl font-bold text-[#1e3a5f]">Financial Overview</h1>
             <p className="text-gray-500 mt-1">Track income, expenses, and balances</p>
           </div>
-          <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by project" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Projects</SelectItem>
-              {projects.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Button
+              onClick={exportToExcel}
+              variant="outline"
+              className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+            <Select value={projectFilter} onValueChange={setProjectFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filter by project" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Projects</SelectItem>
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </motion.div>
 
         {/* Summary Cards */}

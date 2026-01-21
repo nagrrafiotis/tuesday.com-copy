@@ -17,7 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, ClipboardList, Calendar as CalendarIcon, List } from "lucide-react";
+import { Plus, Search, ClipboardList, Calendar as CalendarIcon, List, Download } from "lucide-react";
 import { format, isSameDay } from "date-fns";
 
 const priorityColors = {
@@ -123,6 +123,34 @@ export default function Tasks() {
     return tasksWithDates.some((task) => isSameDay(new Date(task.due_date), date));
   };
 
+  const exportToExcel = () => {
+    const csvData = [
+      ["Title", "Project", "Phase", "Status", "Priority", "Assignee", "Due Date", "Estimated Hours", "Description"],
+      ...filteredTasks.map((t) => [
+        t.title || "",
+        getProjectName(t.project_id),
+        t.phase || "",
+        t.status || "",
+        t.priority || "",
+        t.assignee || "",
+        t.due_date ? new Date(t.due_date).toLocaleDateString("de-DE") : "",
+        t.estimated_hours || "",
+        t.description || "",
+      ]),
+    ];
+
+    const csvContent = csvData.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `tasks_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (tasksLoading) {
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
@@ -147,18 +175,29 @@ export default function Tasks() {
             <h1 className="text-3xl font-bold text-[#1e3a5f]">All Tasks</h1>
             <p className="text-gray-500 mt-1">Manage tasks across all projects</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingTask(null);
-              setSelectedProjectId(projects[0]?.id || null);
-              setShowForm(true);
-            }}
-            className="bg-[#1e3a5f] hover:bg-[#152a45]"
-            disabled={projects.length === 0}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Task
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={exportToExcel}
+              variant="outline"
+              disabled={filteredTasks.length === 0}
+              className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingTask(null);
+                setSelectedProjectId(projects[0]?.id || null);
+                setShowForm(true);
+              }}
+              className="bg-[#1e3a5f] hover:bg-[#152a45]"
+              disabled={projects.length === 0}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Task
+            </Button>
+          </div>
         </motion.div>
 
         {/* Filters & View Toggle */}

@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Filter, LayoutGrid, List, Building2 } from "lucide-react";
+import { Plus, Search, Filter, LayoutGrid, List, Building2, Download } from "lucide-react";
 
 export default function Projects() {
   const [showForm, setShowForm] = useState(false);
@@ -79,6 +79,34 @@ export default function Projects() {
     return matchesSearch && matchesStatus && matchesType;
   });
 
+  const exportToExcel = () => {
+    const csvData = [
+      ["Name", "Type", "Status", "Address", "Budget (€)", "Start Date", "Target Completion", "Progress %", "Priority"],
+      ...filteredProjects.map((p) => [
+        p.name || "",
+        p.property_type || "",
+        p.status || "",
+        p.address || "",
+        p.budget || 0,
+        p.start_date ? new Date(p.start_date).toLocaleDateString("de-DE") : "",
+        p.target_completion ? new Date(p.target_completion).toLocaleDateString("de-DE") : "",
+        p.progress || 0,
+        p.priority || "",
+      ]),
+    ];
+
+    const csvContent = csvData.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `projects_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
@@ -103,16 +131,27 @@ export default function Projects() {
             <h1 className="text-3xl font-bold text-[#1e3a5f]">Projects</h1>
             <p className="text-gray-500 mt-1">Manage your development portfolio</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingProject(null);
-              setShowForm(true);
-            }}
-            className="bg-[#1e3a5f] hover:bg-[#152a45]"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Project
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={exportToExcel}
+              variant="outline"
+              disabled={filteredProjects.length === 0}
+              className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingProject(null);
+                setShowForm(true);
+              }}
+              className="bg-[#1e3a5f] hover:bg-[#152a45]"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Project
+            </Button>
+          </div>
         </motion.div>
 
         {/* Filters */}
