@@ -10,6 +10,7 @@ import ProjectForm from "@/components/projects/ProjectForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -465,11 +466,22 @@ export default function ProjectDetails() {
                         </div>
                         <div>
                           <label className="text-xs text-gray-500 mb-1 block">Unit</label>
-                          <Input
+                          <Select
                             value={item.unit}
-                            onChange={(e) => updateBudgetItem(item.id, 'unit', e.target.value)}
-                            placeholder="unit"
-                          />
+                            onValueChange={(v) => updateBudgetItem(item.id, 'unit', v)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select unit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="m">m</SelectItem>
+                              <SelectItem value="m²">m²</SelectItem>
+                              <SelectItem value="m³">m³</SelectItem>
+                              <SelectItem value="kg">kg</SelectItem>
+                              <SelectItem value="piece">piece</SelectItem>
+                              <SelectItem value="day">day</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
                           <label className="text-xs text-gray-500 mb-1 block">Unit Cost (€)</label>
