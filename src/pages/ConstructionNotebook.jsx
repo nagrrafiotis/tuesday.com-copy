@@ -24,6 +24,11 @@ import {
   AlertCircle,
   X,
   Cloud,
+  Camera,
+  Package,
+  ShieldAlert,
+  Clock,
+  Wrench,
 } from "lucide-react";
 
 export default function ConstructionNotebook() {
@@ -37,12 +42,21 @@ export default function ConstructionNotebook() {
     technicians: [],
     engineers: [],
     subcontractors: [],
+    visitors: [],
+    equipment_used: [],
+    materials_delivered: [],
+    safety_observations: "",
+    photos: [],
     notes: "",
     work_performed: "",
     issues: "",
   });
   const [loadingWeather, setLoadingWeather] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [personInput, setPersonInput] = useState({ technicians: "", engineers: "", subcontractors: "" });
+  const [visitorInput, setVisitorInput] = useState({ name: "", company: "", purpose: "", time: "" });
+  const [equipmentInput, setEquipmentInput] = useState("");
+  const [materialInput, setMaterialInput] = useState({ material: "", quantity: "", supplier: "" });
 
   const queryClient = useQueryClient();
 
@@ -77,11 +91,19 @@ export default function ConstructionNotebook() {
       technicians: [],
       engineers: [],
       subcontractors: [],
+      visitors: [],
+      equipment_used: [],
+      materials_delivered: [],
+      safety_observations: "",
+      photos: [],
       notes: "",
       work_performed: "",
       issues: "",
     });
     setPersonInput({ technicians: "", engineers: "", subcontractors: "" });
+    setVisitorInput({ name: "", company: "", purpose: "", time: "" });
+    setEquipmentInput("");
+    setMaterialInput({ material: "", quantity: "", supplier: "" });
   };
 
   const fetchWeather = async () => {
@@ -131,6 +153,81 @@ export default function ConstructionNotebook() {
     setFormData({
       ...formData,
       [type]: formData[type].filter((_, i) => i !== index),
+    });
+  };
+
+  const addVisitor = () => {
+    if (visitorInput.name.trim()) {
+      setFormData({
+        ...formData,
+        visitors: [...formData.visitors, { ...visitorInput, time: visitorInput.time || format(new Date(), "HH:mm") }],
+      });
+      setVisitorInput({ name: "", company: "", purpose: "", time: "" });
+    }
+  };
+
+  const removeVisitor = (index) => {
+    setFormData({
+      ...formData,
+      visitors: formData.visitors.filter((_, i) => i !== index),
+    });
+  };
+
+  const addEquipment = () => {
+    if (equipmentInput.trim()) {
+      setFormData({
+        ...formData,
+        equipment_used: [...formData.equipment_used, equipmentInput.trim()],
+      });
+      setEquipmentInput("");
+    }
+  };
+
+  const removeEquipment = (index) => {
+    setFormData({
+      ...formData,
+      equipment_used: formData.equipment_used.filter((_, i) => i !== index),
+    });
+  };
+
+  const addMaterial = () => {
+    if (materialInput.material.trim()) {
+      setFormData({
+        ...formData,
+        materials_delivered: [...formData.materials_delivered, { ...materialInput }],
+      });
+      setMaterialInput({ material: "", quantity: "", supplier: "" });
+    }
+  };
+
+  const removeMaterial = (index) => {
+    setFormData({
+      ...formData,
+      materials_delivered: formData.materials_delivered.filter((_, i) => i !== index),
+    });
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData({
+        ...formData,
+        photos: [...formData.photos, file_url],
+      });
+    } catch (error) {
+      alert("Failed to upload photo");
+    }
+    setUploadingPhoto(false);
+  };
+
+  const removePhoto = (index) => {
+    setFormData({
+      ...formData,
+      photos: formData.photos.filter((_, i) => i !== index),
     });
   };
 
@@ -296,6 +393,87 @@ export default function ConstructionNotebook() {
                               <p className="text-sm font-medium text-red-900">Issues</p>
                             </div>
                             <p className="text-sm text-red-700 whitespace-pre-wrap">{note.issues}</p>
+                          </div>
+                        )}
+
+                        {note.visitors?.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Users className="w-4 h-4 text-gray-600" />
+                              <p className="text-sm font-medium text-gray-700">Site Visitors</p>
+                            </div>
+                            <div className="space-y-2">
+                              {note.visitors.map((visitor, i) => (
+                                <div key={i} className="text-sm bg-gray-50 p-2 rounded">
+                                  <span className="font-medium">{visitor.name}</span>
+                                  {visitor.company && <span className="text-gray-600"> - {visitor.company}</span>}
+                                  {visitor.purpose && <span className="text-gray-500"> ({visitor.purpose})</span>}
+                                  {visitor.time && <span className="text-gray-400 ml-2">• {visitor.time}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {note.equipment_used?.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Wrench className="w-4 h-4 text-gray-600" />
+                              <p className="text-sm font-medium text-gray-700">Equipment Used</p>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {note.equipment_used.map((equip, i) => (
+                                <Badge key={i} variant="outline">{equip}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {note.materials_delivered?.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Package className="w-4 h-4 text-gray-600" />
+                              <p className="text-sm font-medium text-gray-700">Materials Delivered</p>
+                            </div>
+                            <div className="space-y-2">
+                              {note.materials_delivered.map((material, i) => (
+                                <div key={i} className="text-sm bg-gray-50 p-2 rounded">
+                                  <span className="font-medium">{material.material}</span>
+                                  {material.quantity && <span className="text-gray-600"> - {material.quantity}</span>}
+                                  {material.supplier && <span className="text-gray-500"> (from {material.supplier})</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {note.safety_observations && (
+                          <div className="p-3 bg-yellow-50 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                              <ShieldAlert className="w-4 h-4 text-yellow-600" />
+                              <p className="text-sm font-medium text-yellow-900">Safety Observations</p>
+                            </div>
+                            <p className="text-sm text-yellow-700 whitespace-pre-wrap">{note.safety_observations}</p>
+                          </div>
+                        )}
+
+                        {note.photos?.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Camera className="w-4 h-4 text-gray-600" />
+                              <p className="text-sm font-medium text-gray-700">Site Photos</p>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                              {note.photos.map((photo, i) => (
+                                <img
+                                  key={i}
+                                  src={photo}
+                                  alt={`Site photo ${i + 1}`}
+                                  className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
+                                  onClick={() => window.open(photo, "_blank")}
+                                />
+                              ))}
+                            </div>
                           </div>
                         )}
 
@@ -475,6 +653,166 @@ export default function ConstructionNotebook() {
                 placeholder="Any issues or problems encountered..."
                 className="mt-1.5 min-h-[80px]"
               />
+            </div>
+
+            <div>
+              <Label>Site Visitors</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1.5">
+                <Input
+                  value={visitorInput.name}
+                  onChange={(e) => setVisitorInput({ ...visitorInput, name: e.target.value })}
+                  placeholder="Name *"
+                />
+                <Input
+                  value={visitorInput.company}
+                  onChange={(e) => setVisitorInput({ ...visitorInput, company: e.target.value })}
+                  placeholder="Company"
+                />
+                <Input
+                  value={visitorInput.purpose}
+                  onChange={(e) => setVisitorInput({ ...visitorInput, purpose: e.target.value })}
+                  placeholder="Purpose of visit"
+                />
+                <div className="flex gap-2">
+                  <Input
+                    type="time"
+                    value={visitorInput.time}
+                    onChange={(e) => setVisitorInput({ ...visitorInput, time: e.target.value })}
+                    placeholder="Time"
+                  />
+                  <Button type="button" onClick={addVisitor} className="whitespace-nowrap">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              {formData.visitors.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {formData.visitors.map((visitor, i) => (
+                    <div key={i} className="flex items-center justify-between bg-gray-50 p-2 rounded text-sm">
+                      <span>
+                        <strong>{visitor.name}</strong>
+                        {visitor.company && ` - ${visitor.company}`}
+                        {visitor.purpose && ` (${visitor.purpose})`}
+                        {visitor.time && ` • ${visitor.time}`}
+                      </span>
+                      <X className="w-4 h-4 cursor-pointer text-gray-400 hover:text-red-600" onClick={() => removeVisitor(i)} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label>Equipment Used</Label>
+              <div className="flex gap-2 mt-1.5">
+                <Input
+                  value={equipmentInput}
+                  onChange={(e) => setEquipmentInput(e.target.value)}
+                  placeholder="e.g., Excavator, Crane, Generator..."
+                  onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addEquipment())}
+                />
+                <Button type="button" onClick={addEquipment}>Add</Button>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.equipment_used.map((equip, i) => (
+                  <Badge key={i} variant="outline" className="gap-1">
+                    {equip}
+                    <X className="w-3 h-3 cursor-pointer" onClick={() => removeEquipment(i)} />
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label>Materials Delivered</Label>
+              <div className="grid grid-cols-3 gap-2 mt-1.5">
+                <Input
+                  value={materialInput.material}
+                  onChange={(e) => setMaterialInput({ ...materialInput, material: e.target.value })}
+                  placeholder="Material *"
+                />
+                <Input
+                  value={materialInput.quantity}
+                  onChange={(e) => setMaterialInput({ ...materialInput, quantity: e.target.value })}
+                  placeholder="Quantity"
+                />
+                <div className="flex gap-2">
+                  <Input
+                    value={materialInput.supplier}
+                    onChange={(e) => setMaterialInput({ ...materialInput, supplier: e.target.value })}
+                    placeholder="Supplier"
+                  />
+                  <Button type="button" onClick={addMaterial} className="whitespace-nowrap">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              {formData.materials_delivered.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {formData.materials_delivered.map((material, i) => (
+                    <div key={i} className="flex items-center justify-between bg-gray-50 p-2 rounded text-sm">
+                      <span>
+                        <strong>{material.material}</strong>
+                        {material.quantity && ` - ${material.quantity}`}
+                        {material.supplier && ` (${material.supplier})`}
+                      </span>
+                      <X className="w-4 h-4 cursor-pointer text-gray-400 hover:text-red-600" onClick={() => removeMaterial(i)} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label>Safety Observations</Label>
+              <Textarea
+                value={formData.safety_observations}
+                onChange={(e) => setFormData({ ...formData, safety_observations: e.target.value })}
+                placeholder="Safety incidents, hazards, near-misses, or observations..."
+                className="mt-1.5 min-h-[80px]"
+              />
+            </div>
+
+            <div>
+              <Label>Site Photos</Label>
+              <div className="mt-1.5">
+                <label htmlFor="photo-upload">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={uploadingPhoto}
+                    onClick={() => document.getElementById("photo-upload").click()}
+                    className="w-full"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    {uploadingPhoto ? "Uploading..." : "Take/Upload Photo"}
+                  </Button>
+                </label>
+                <input
+                  id="photo-upload"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                />
+              </div>
+              {formData.photos.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  {formData.photos.map((photo, i) => (
+                    <div key={i} className="relative group">
+                      <img src={photo} alt={`Photo ${i + 1}`} className="w-full h-24 object-cover rounded" />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(i)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
