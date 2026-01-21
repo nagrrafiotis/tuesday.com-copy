@@ -151,7 +151,6 @@ export default function Layout({ children, currentPageName }) {
             </button>
             <div>
               <h1 className="font-bold text-lg text-[#1e3a5f]">PRVK</h1>
-              <p className="text-xs text-gray-400">Development</p>
             </div>
           </div>
         </div>
