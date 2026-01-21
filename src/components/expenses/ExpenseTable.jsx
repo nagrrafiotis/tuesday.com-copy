@@ -31,6 +31,7 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
   const [columnWidths, setColumnWidths] = useState({
     date: 120,
     category: 150,
+    subcategory: 150,
     project: 150,
     payee: 150,
     description: 200,
@@ -111,6 +112,13 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
+            <TableHead style={{ width: columnWidths.subcategory }} className="relative group">
+              Subcategory
+              <div
+                onMouseDown={(e) => handleMouseDown('subcategory', e)}
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </TableHead>
             {showProject && (
               <TableHead style={{ width: columnWidths.project }} className="relative group">
                 Project
@@ -168,15 +176,13 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
                   {format(new Date(expense.date), "dd/MM/yy")}
                 </TableCell>
                 <TableCell>
-                  <div className="space-y-1">
-                    <Badge className={`${config.color} border-0 gap-1.5`}>
-                      <Icon className="w-3 h-3" />
-                      {config.label}
-                    </Badge>
-                    {expense.subcategory && (
-                      <div className="text-xs text-gray-500">{expense.subcategory}</div>
-                    )}
-                  </div>
+                  <Badge className={`${config.color} border-0 gap-1.5`}>
+                    <Icon className="w-3 h-3" />
+                    {config.label}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-gray-600">
+                  {expense.subcategory || "—"}
                 </TableCell>
                 {showProject && (
                   <TableCell className="text-gray-600">
