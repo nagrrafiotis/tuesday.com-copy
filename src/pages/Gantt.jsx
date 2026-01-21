@@ -100,14 +100,14 @@ export default function Gantt() {
           </CardHeader>
           <CardContent className="overflow-x-auto">
             {/* Timeline Header - Months and Days */}
-            <div className="border-b mb-4">
+            <div className="sticky top-0 bg-white z-10 border-b mb-4">
               <div className="flex">
-                <div className="w-64 shrink-0"></div>
+                <div className="w-64 shrink-0 bg-white"></div>
                 <div className="flex-1 flex">
                   {months.map((month, idx) => {
                     const daysInThisMonth = differenceInDays(month.end, month.start) + 1;
                     return (
-                      <div key={idx} className="flex-1 text-center font-semibold text-sm py-2 border-l border-r">
+                      <div key={idx} className="flex-1 text-center font-semibold text-sm py-2 border-l border-r bg-white">
                         {format(month.start, "MMMM yyyy")}
                       </div>
                     );
@@ -115,12 +115,12 @@ export default function Gantt() {
                 </div>
               </div>
               <div className="flex border-t">
-                <div className="w-64 shrink-0 font-semibold text-sm py-2">Project</div>
+                <div className="w-64 shrink-0 font-semibold text-sm py-2 bg-white">Project</div>
                 <div className="flex-1 flex">
                   {months.map((month, monthIdx) => {
                     const daysInThisMonth = differenceInDays(month.end, month.start) + 1;
                     return (
-                      <div key={monthIdx} className="flex-1 flex border-l">
+                      <div key={monthIdx} className="flex-1 flex border-l bg-white">
                         {Array.from({ length: daysInThisMonth }, (_, i) => (
                           <div
                             key={i}
