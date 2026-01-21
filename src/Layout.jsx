@@ -118,11 +118,11 @@ export default function Layout({ children, currentPageName }) {
             onClick={() => setShowLogoDialog(true)}
             className="flex items-center gap-2"
           >
-            <div className="w-8 h-8 rounded-lg bg-[#1e3a5f] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center">
               {logoUrl ? (
                 <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-lg" />
               ) : (
-                <Building2 className="w-4 h-4 text-white" />
+                <Building2 className="w-4 h-4 text-[#1e3a5f]" />
               )}
             </div>
             <span className="font-semibold text-[#1e3a5f]">PRVK</span>
@@ -138,12 +138,12 @@ export default function Layout({ children, currentPageName }) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowLogoDialog(true)}
-              className="w-10 h-10 rounded-xl bg-[#1e3a5f] flex items-center justify-center hover:bg-[#152a45] transition-colors group relative overflow-hidden"
+              className="w-10 h-10 rounded-xl flex items-center justify-center hover:opacity-80 transition-opacity group relative overflow-hidden"
             >
               {logoUrl ? (
                 <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-xl" />
               ) : (
-                <Building2 className="w-5 h-5 text-white" />
+                <Building2 className="w-5 h-5 text-[#1e3a5f]" />
               )}
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <Upload className="w-4 h-4 text-white" />
@@ -228,12 +228,12 @@ export default function Layout({ children, currentPageName }) {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowLogoDialog(true)}
-                    className="w-10 h-10 rounded-xl bg-[#1e3a5f] flex items-center justify-center hover:bg-[#152a45] transition-colors"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center hover:opacity-80 transition-opacity"
                   >
                     {logoUrl ? (
                       <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-xl" />
                     ) : (
-                      <Building2 className="w-5 h-5 text-white" />
+                      <Building2 className="w-5 h-5 text-[#1e3a5f]" />
                     )}
                   </button>
                   <span className="font-bold text-lg text-[#1e3a5f]">PRVK</span>
