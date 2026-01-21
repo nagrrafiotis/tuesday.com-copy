@@ -37,6 +37,25 @@ export default function TaskForm({ task, projectId, open, onClose, onSubmit, use
   );
   const [loading, setLoading] = useState(false);
 
+  // Update form data when task prop changes
+  React.useEffect(() => {
+    if (task) {
+      setFormData(task);
+    } else {
+      setFormData({
+        title: "",
+        description: "",
+        project_id: projectId,
+        phase: "pre_construction",
+        status: "todo",
+        priority: "medium",
+        assignee: "",
+        due_date: "",
+        estimated_hours: "",
+      });
+    }
+  }, [task, projectId]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
