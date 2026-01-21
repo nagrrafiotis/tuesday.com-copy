@@ -30,14 +30,13 @@ export default function Gantt() {
   });
 
   const rangeStart = startOfMonth(currentMonth);
-  const rangeEnd = endOfMonth(addMonths(currentMonth, 2));
+  const rangeEnd = endOfMonth(addMonths(currentMonth, 11));
   const totalDays = differenceInDays(rangeEnd, rangeStart) + 1;
 
-  const months = [
-    { start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) },
-    { start: startOfMonth(addMonths(currentMonth, 1)), end: endOfMonth(addMonths(currentMonth, 1)) },
-    { start: startOfMonth(addMonths(currentMonth, 2)), end: endOfMonth(addMonths(currentMonth, 2)) },
-  ];
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    start: startOfMonth(addMonths(currentMonth, i)),
+    end: endOfMonth(addMonths(currentMonth, i)),
+  }));
 
   const projectsWithDates = projects.filter((p) => p.start_date && p.target_completion);
 
@@ -78,17 +77,17 @@ export default function Gantt() {
         <div className="flex items-center justify-between mb-6">
           <Button
             variant="outline"
-            onClick={() => setCurrentMonth(addMonths(currentMonth, -3))}
+            onClick={() => setCurrentMonth(addMonths(currentMonth, -12))}
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <h2 className="text-xl font-semibold text-[#1e3a5f] flex items-center gap-2">
             <Calendar className="w-5 h-5" />
-            {format(currentMonth, "MMMM yyyy")} - {format(addMonths(currentMonth, 2), "MMMM yyyy")}
+            {format(currentMonth, "MMMM yyyy")} - {format(addMonths(currentMonth, 11), "MMMM yyyy")}
           </h2>
           <Button
             variant="outline"
-            onClick={() => setCurrentMonth(addMonths(currentMonth, 3))}
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 12))}
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
