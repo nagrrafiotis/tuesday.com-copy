@@ -14,6 +14,13 @@ import {
   ChevronDown,
   User,
   Receipt,
+  TrendingUp,
+  DollarSign,
+  Users,
+  Calendar,
+  BarChart3,
+  Mail,
+  Upload,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -23,22 +30,61 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const navItems = [
-  { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },
+  { name: "Dashboard", icon: LayoutDashboard, page: "Analytics" },
   { name: "Projects", icon: Building2, page: "Projects" },
   { name: "Tasks", icon: ClipboardList, page: "Tasks" },
+  { name: "Gantt", icon: BarChart3, page: "Gantt" },
   { name: "Expenses", icon: Receipt, page: "Expenses" },
+  { name: "Income", icon: TrendingUp, page: "Income" },
+  { name: "Financial Overview", icon: DollarSign, page: "FinancialOverview" },
+  { name: "Contacts", icon: Users, page: "Contacts" },
+  { name: "Gmail", icon: Mail, page: "Gmail" },
 ];
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [logoUrl, setLogoUrl] = useState(null);
+  const [showLogoDialog, setShowLogoDialog] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    base44.auth.me().then((userData) => {
+      setUser(userData);
+      setLogoUrl(userData.logo_url);
+    }).catch(() => {});
   }, []);
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await base44.auth.updateMe({ logo_url: file_url });
+      setLogoUrl(file_url);
+      setShowLogoDialog(false);
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+    }
+    setUploading(false);
+  };
+
+  const handleRemoveLogo = async () => {
+    try {
+      await base44.auth.updateMe({ logo_url: null });
+      setLogoUrl(null);
+      setShowLogoDialog(false);
+    } catch (error) {
+      console.error("Error removing logo:", error);
+    }
+  };
 
   const getInitials = (name) => {
     if (!name) return "U";
@@ -68,27 +114,44 @@ export default function Layout({ children, currentPageName }) {
           >
             <Menu className="w-5 h-5 text-gray-600" />
           </button>
-          <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowLogoDialog(true)}
+            className="flex items-center gap-2"
+          >
             <div className="w-8 h-8 rounded-lg bg-[#1e3a5f] flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-white" />
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-lg" />
+              ) : (
+                <Building2 className="w-4 h-4 text-white" />
+              )}
             </div>
-            <span className="font-semibold text-[#1e3a5f]">DevTrack</span>
-          </div>
+            <span className="font-semibold text-[#1e3a5f]">PRVK</span>
+          </button>
           <div className="w-10" />
         </div>
       </header>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col bg-white border-r border-gray-100 z-40">
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-52 flex-col bg-white border-r border-gray-100 z-40">
         {/* Logo */}
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#1e3a5f] flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-white" />
-            </div>
+            <button
+              onClick={() => setShowLogoDialog(true)}
+              className="w-10 h-10 rounded-xl bg-[#1e3a5f] flex items-center justify-center hover:bg-[#152a45] transition-colors group relative overflow-hidden"
+            >
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-xl" />
+              ) : (
+                <Building2 className="w-5 h-5 text-white" />
+              )}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Upload className="w-4 h-4 text-white" />
+              </div>
+            </button>
             <div>
-              <h1 className="font-bold text-lg text-[#1e3a5f]">DevTrack</h1>
-              <p className="text-xs text-gray-400">Real Estate Management</p>
+              <h1 className="font-bold text-lg text-[#1e3a5f]">PRVK</h1>
+              <p className="text-xs text-gray-400">Development</p>
             </div>
           </div>
         </div>
@@ -163,10 +226,17 @@ export default function Layout({ children, currentPageName }) {
             >
               <div className="p-4 flex items-center justify-between border-b border-gray-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#1e3a5f] flex items-center justify-center">
-                    <Building2 className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="font-bold text-lg text-[#1e3a5f]">DevTrack</span>
+                  <button
+                    onClick={() => setShowLogoDialog(true)}
+                    className="w-10 h-10 rounded-xl bg-[#1e3a5f] flex items-center justify-center hover:bg-[#152a45] transition-colors"
+                  >
+                    {logoUrl ? (
+                      <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-xl" />
+                    ) : (
+                      <Building2 className="w-5 h-5 text-white" />
+                    )}
+                  </button>
+                  <span className="font-bold text-lg text-[#1e3a5f]">PRVK</span>
                 </div>
                 <button
                   onClick={() => setSidebarOpen(false)}
@@ -212,9 +282,61 @@ export default function Layout({ children, currentPageName }) {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className={`lg:ml-64 ${isProjectDetails ? "" : "pt-16 lg:pt-0"}`}>
+      <main className={`lg:ml-52 ${isProjectDetails ? "" : "pt-16 lg:pt-0"}`}>
         {children}
       </main>
+
+      {/* Logo Upload Dialog */}
+      <Dialog open={showLogoDialog} onOpenChange={setShowLogoDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Company Logo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <div className="w-32 h-32 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Building2 className="w-16 h-16 text-gray-400" />
+                )}
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <label htmlFor="logo-upload">
+                <Button
+                  type="button"
+                  className="w-full bg-[#1e3a5f] hover:bg-[#152a45]"
+                  disabled={uploading}
+                  onClick={() => document.getElementById('logo-upload').click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {uploading ? "Uploading..." : logoUrl ? "Change Logo" : "Upload Logo"}
+                </Button>
+              </label>
+              <input
+                id="logo-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleLogoUpload}
+              />
+              
+              {logoUrl && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleRemoveLogo}
+                  className="w-full"
+                >
+                  Remove Logo
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
