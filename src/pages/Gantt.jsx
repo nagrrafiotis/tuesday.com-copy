@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format, differenceInDays, addDays, startOfMonth, endOfMonth } from "date-fns";
+import { format, differenceInDays, addMonths, startOfMonth, endOfMonth } from "date-fns";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -29,9 +29,15 @@ export default function Gantt() {
     queryFn: () => base44.entities.Task.list(),
   });
 
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(currentMonth);
-  const daysInMonth = differenceInDays(monthEnd, monthStart) + 1;
+  const rangeStart = startOfMonth(currentMonth);
+  const rangeEnd = endOfMonth(addMonths(currentMonth, 2));
+  const totalDays = differenceInDays(rangeEnd, rangeStart) + 1;
+
+  const months = [
+    { start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) },
+    { start: startOfMonth(addMonths(currentMonth, 1)), end: endOfMonth(addMonths(currentMonth, 1)) },
+    { start: startOfMonth(addMonths(currentMonth, 2)), end: endOfMonth(addMonths(currentMonth, 2)) },
+  ];
 
   const projectsWithDates = projects.filter((p) => p.start_date && p.target_completion);
 
@@ -42,11 +48,11 @@ export default function Gantt() {
   const calculatePosition = (startDate, endDate) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const daysFromMonthStart = differenceInDays(start, monthStart);
+    const daysFromRangeStart = differenceInDays(start, rangeStart);
     const duration = differenceInDays(end, start) + 1;
 
-    const leftPercent = (daysFromMonthStart / daysInMonth) * 100;
-    const widthPercent = (duration / daysInMonth) * 100;
+    const leftPercent = (daysFromRangeStart / totalDays) * 100;
+    const widthPercent = (duration / totalDays) * 100;
 
     return { left: `${Math.max(0, leftPercent)}%`, width: `${Math.min(100 - leftPercent, widthPercent)}%` };
   };
@@ -72,17 +78,17 @@ export default function Gantt() {
         <div className="flex items-center justify-between mb-6">
           <Button
             variant="outline"
-            onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
+            onClick={() => setCurrentMonth(addMonths(currentMonth, -3))}
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <h2 className="text-xl font-semibold text-[#1e3a5f] flex items-center gap-2">
             <Calendar className="w-5 h-5" />
-            {format(currentMonth, "MMMM yyyy")}
+            {format(currentMonth, "MMMM yyyy")} - {format(addMonths(currentMonth, 2), "MMMM yyyy")}
           </h2>
           <Button
             variant="outline"
-            onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 3))}
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
@@ -93,19 +99,41 @@ export default function Gantt() {
             <CardTitle>Projects Timeline</CardTitle>
           </CardHeader>
           <CardContent className="overflow-x-auto">
-            {/* Timeline Header - Days */}
-            <div className="flex border-b mb-4">
-              <div className="w-64 shrink-0 font-semibold text-sm py-2">Project</div>
-              <div className="flex-1 flex">
-                {Array.from({ length: daysInMonth }, (_, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 text-center text-xs py-2 border-l"
-                    style={{ minWidth: "30px" }}
-                  >
-                    {i + 1}
-                  </div>
-                ))}
+            {/* Timeline Header - Months and Days */}
+            <div className="border-b mb-4">
+              <div className="flex">
+                <div className="w-64 shrink-0"></div>
+                <div className="flex-1 flex">
+                  {months.map((month, idx) => {
+                    const daysInThisMonth = differenceInDays(month.end, month.start) + 1;
+                    return (
+                      <div key={idx} className="flex-1 text-center font-semibold text-sm py-2 border-l border-r">
+                        {format(month.start, "MMMM yyyy")}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="flex border-t">
+                <div className="w-64 shrink-0 font-semibold text-sm py-2">Project</div>
+                <div className="flex-1 flex">
+                  {months.map((month, monthIdx) => {
+                    const daysInThisMonth = differenceInDays(month.end, month.start) + 1;
+                    return (
+                      <div key={monthIdx} className="flex-1 flex border-l">
+                        {Array.from({ length: daysInThisMonth }, (_, i) => (
+                          <div
+                            key={i}
+                            className="flex-1 text-center text-xs py-2 border-l"
+                            style={{ minWidth: "20px" }}
+                          >
+                            {i + 1}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
