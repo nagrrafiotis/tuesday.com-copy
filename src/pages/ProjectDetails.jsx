@@ -22,6 +22,7 @@ import {
   ClipboardList,
   BarChart3,
   Settings,
+  Receipt,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -324,6 +325,71 @@ export default function ProjectDetails() {
             />
           )}
         </motion.div>
+
+        {/* Budget Breakdown Section */}
+        {project.budget_items && project.budget_items.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-8"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-[#1e3a5f]">Budget Breakdown</h2>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Cost</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {project.budget_items.map((item, index) => (
+                      <tr key={item.id || index} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {item.category}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {item.description}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                          {item.quantity}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {item.unit}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                          €{item.unit_cost?.toLocaleString() || 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-[#1e3a5f] text-right">
+                          €{item.total_cost?.toLocaleString() || 0}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-gray-50 border-t-2 border-gray-300">
+                    <tr>
+                      <td colSpan="5" className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                        Total Project Budget:
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-lg font-bold text-[#1e3a5f] text-right">
+                        €{project.budget?.toLocaleString() || 0}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Forms */}
