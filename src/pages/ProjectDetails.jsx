@@ -50,10 +50,13 @@ export default function ProjectDetails() {
       return projects[0];
     },
     enabled: !!projectId,
-    onSuccess: (data) => {
-      setBudgetItems(data?.budget_items || []);
-    },
   });
+
+  React.useEffect(() => {
+    if (project && !editingBudget) {
+      setBudgetItems(project.budget_items || []);
+    }
+  }, [project, editingBudget]);
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["tasks", projectId],
