@@ -149,9 +149,6 @@ export default function Layout({ children, currentPageName }) {
                 <Upload className="w-4 h-4 text-white" />
               </div>
             </button>
-            <div>
-              <h1 className="font-bold text-lg text-[#1e3a5f]">PRVK</h1>
-            </div>
           </div>
         </div>
 
