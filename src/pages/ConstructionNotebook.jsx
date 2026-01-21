@@ -29,10 +29,12 @@ import {
   ShieldAlert,
   Clock,
   Wrench,
+  Pencil,
 } from "lucide-react";
 
 export default function ConstructionNotebook() {
   const [showForm, setShowForm] = useState(false);
+  const [editingNote, setEditingNote] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [formData, setFormData] = useState({
@@ -79,6 +81,17 @@ export default function ConstructionNotebook() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["construction-notes"] });
       setShowForm(false);
+      setEditingNote(null);
+      resetForm();
+    },
+  });
+
+  const updateNoteMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.ConstructionNote.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["construction-notes"] });
+      setShowForm(false);
+      setEditingNote(null);
       resetForm();
     },
   });
@@ -239,7 +252,32 @@ export default function ConstructionNotebook() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    createNoteMutation.mutate(formData);
+    if (editingNote) {
+      updateNoteMutation.mutate({ id: editingNote.id, data: formData });
+    } else {
+      createNoteMutation.mutate(formData);
+    }
+  };
+
+  const handleEdit = (note) => {
+    setEditingNote(note);
+    setFormData({
+      project_id: note.project_id || "",
+      date: note.date || format(new Date(), "yyyy-MM-dd"),
+      weather: note.weather || null,
+      technicians: note.technicians || [],
+      engineers: note.engineers || [],
+      subcontractors: note.subcontractors || [],
+      visitors: note.visitors || [],
+      equipment_used: note.equipment_used || [],
+      materials_delivered: note.materials_delivered || [],
+      safety_observations: note.safety_observations || "",
+      photos: note.photos || [],
+      notes: note.notes || "",
+      work_performed: note.work_performed || "",
+      issues: note.issues || "",
+    });
+    setShowForm(true);
   };
 
   const filteredNotes = selectedDate
@@ -311,18 +349,28 @@ export default function ConstructionNotebook() {
                     <Card>
                       <CardHeader>
                         <div className="flex items-start justify-between">
-                          <div>
+                          <div className="flex-1">
                             <CardTitle className="text-[#1e3a5f]">{project?.name || "Unknown Project"}</CardTitle>
                             <p className="text-sm text-gray-500 mt-1">
                               {format(new Date(note.date), "EEEE, MMMM d, yyyy")}
                             </p>
                           </div>
-                          {note.weather && (
-                            <Badge variant="outline" className="flex items-center gap-2">
-                              <Cloud className="w-4 h-4" />
-                              {note.weather.temperature} • {note.weather.condition}
-                            </Badge>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {note.weather && (
+                              <Badge variant="outline" className="flex items-center gap-2">
+                                <Cloud className="w-4 h-4" />
+                                {note.weather.temperature} • {note.weather.condition}
+                              </Badge>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(note)}
+                              className="text-gray-600 hover:text-[#1e3a5f]"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
@@ -506,10 +554,18 @@ export default function ConstructionNotebook() {
         </div>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => {
+        setShowForm(open);
+        if (!open) {
+          setEditingNote(null);
+          resetForm();
+        }
+      }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-[#1e3a5f]">New Construction Note</DialogTitle>
+            <DialogTitle className="text-xl font-semibold text-[#1e3a5f]">
+              {editingNote ? "Edit Construction Note" : "New Construction Note"}
+            </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-5 mt-4">
@@ -832,11 +888,15 @@ export default function ConstructionNotebook() {
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+              <Button type="button" variant="outline" onClick={() => {
+                setShowForm(false);
+                setEditingNote(null);
+                resetForm();
+              }}>
                 Cancel
               </Button>
               <Button type="submit" className="bg-[#1e3a5f] hover:bg-[#152a45]">
-                Save Entry
+                {editingNote ? "Update Entry" : "Save Entry"}
               </Button>
             </div>
           </form>
