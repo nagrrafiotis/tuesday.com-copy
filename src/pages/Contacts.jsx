@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Mail, Phone, Building2, Users, Package, Wrench, Handshake, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Mail, Phone, Building2, Users, Package, Wrench, Handshake, MoreHorizontal, Pencil, Trash2, Upload } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -41,6 +41,7 @@ export default function Contacts() {
   const [editingContact, setEditingContact] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [uploading, setUploading] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -72,6 +73,46 @@ export default function Contacts() {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
     },
   });
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    
+    const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+      file_url,
+      json_schema: {
+        type: "object",
+        properties: {
+          contacts: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                email: { type: "string" },
+                phone: { type: "string" },
+                company: { type: "string" },
+                position: { type: "string" },
+                category: { type: "string" },
+                notes: { type: "string" }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (result.status === "success" && result.output?.contacts) {
+      await base44.entities.Contact.bulkCreate(result.output.contacts);
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    }
+    
+    setUploading(false);
+    e.target.value = "";
+  };
 
   const filteredContacts = contacts.filter((contact) => {
     const matchesSearch =
@@ -122,6 +163,25 @@ export default function Contacts() {
               </Button>
             ))}
           </div>
+          <label htmlFor="csv-upload">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={uploading}
+              onClick={() => document.getElementById('csv-upload').click()}
+              className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {uploading ? "Uploading..." : "Import CSV"}
+            </Button>
+          </label>
+          <input
+            id="csv-upload"
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
           <Button
             onClick={() => {
               setEditingContact(null);
