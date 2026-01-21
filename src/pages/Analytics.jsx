@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart3, TrendingUp, Target, Clock, Folder, Activity, CheckCircle2 } from "lucide-react";
-import { subDays, isAfter, isBefore } from 'date-fns';
+import { Calendar } from "@/components/ui/calendar";
+import { BarChart3, TrendingUp, Target, Clock, Folder, Activity, CheckCircle2, Calendar as CalendarIcon, ClipboardList } from "lucide-react";
+import { subDays, isAfter, isBefore, format, isSameDay, startOfDay } from 'date-fns';
 import { motion } from "framer-motion";
 import ExpenseCharts from "@/components/analytics/ExpenseCharts";
 
@@ -18,10 +19,21 @@ export default function AnalyticsPage() {
   const [selectedBoard, setSelectedBoard] = useState('all');
   const [selectedTimeRange, setSelectedTimeRange] = useState('30');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const { data: expenses = [] } = useQuery({
     queryKey: ["expenses"],
     queryFn: () => base44.entities.Expense.list("-date"),
+  });
+
+  const { data: tasks = [] } = useQuery({
+    queryKey: ["tasks"],
+    queryFn: () => base44.entities.Task.list("-due_date"),
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: () => base44.entities.Project.list("-created_date"),
   });
 
   useEffect(() => {
@@ -113,6 +125,52 @@ export default function AnalyticsPage() {
     priorityDistribution[priority] = (priorityDistribution[priority] || 0) + 1;
   });
 
+  // Task analytics
+  const totalTasksFromEntity = tasks.length;
+  const completedTasksFromEntity = tasks.filter(t => t.status === 'completed').length;
+  const pendingTasksFromEntity = tasks.filter(t => t.status !== 'completed').length;
+  const overdueTasksFromEntity = tasks.filter(t => {
+    if (!t.due_date || t.status === 'completed') return false;
+    return isBefore(new Date(t.due_date), new Date());
+  }).length;
+
+  // Tasks by status
+  const taskStatusDistribution = {
+    'To Do': tasks.filter(t => t.status === 'todo').length,
+    'In Progress': tasks.filter(t => t.status === 'in_progress').length,
+    'Review': tasks.filter(t => t.status === 'review').length,
+    'Completed': tasks.filter(t => t.status === 'completed').length,
+  };
+
+  // Calendar data
+  const tasksWithDates = tasks.filter(t => t.due_date);
+  const selectedDayTasks = tasksWithDates.filter(task =>
+    isSameDay(new Date(task.due_date), selectedDate)
+  );
+
+  const dayHasTasks = (date) => {
+    return tasksWithDates.some(task => isSameDay(new Date(task.due_date), date));
+  };
+
+  const getProjectName = (projectId) => {
+    const project = projects.find(p => p.id === projectId);
+    return project?.name || "Unknown Project";
+  };
+
+  const priorityColors = {
+    low: "bg-blue-100 text-blue-700",
+    medium: "bg-yellow-100 text-yellow-700",
+    high: "bg-orange-100 text-orange-700",
+    urgent: "bg-red-100 text-red-700",
+  };
+
+  const statusColors = {
+    todo: "bg-gray-100 text-gray-700",
+    in_progress: "bg-blue-100 text-blue-700",
+    review: "bg-purple-100 text-purple-700",
+    completed: "bg-green-100 text-green-700",
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 bg-[#F5F6F8] min-h-screen">
@@ -170,7 +228,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -179,13 +237,13 @@ export default function AnalyticsPage() {
             <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Target className="w-5 h-5" />
+                  <ClipboardList className="w-5 h-5" />
                   Total Tasks
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{totalTasks}</div>
-                <p className="text-blue-100 text-sm">Active tasks tracked</p>
+                <div className="text-3xl font-bold">{totalTasksFromEntity}</div>
+                <p className="text-blue-100 text-sm">{pendingTasksFromEntity} pending</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -199,12 +257,14 @@ export default function AnalyticsPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5" />
-                  Completion Rate
+                  Completed
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{completionRate}%</div>
-                <Progress value={completionRate} className="mt-2 bg-green-300" />
+                <div className="text-3xl font-bold">{completedTasksFromEntity}</div>
+                <p className="text-green-100 text-sm">
+                  {totalTasksFromEntity > 0 ? Math.round((completedTasksFromEntity / totalTasksFromEntity) * 100) : 0}% completion rate
+                </p>
               </CardContent>
             </Card>
           </motion.div>
@@ -218,11 +278,11 @@ export default function AnalyticsPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Clock className="w-5 h-5" />
-                  Overdue Tasks
+                  Overdue
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{overdueTasks}</div>
+                <div className="text-3xl font-bold">{overdueTasksFromEntity}</div>
                 <p className="text-red-100 text-sm">Need attention</p>
               </CardContent>
             </Card>
@@ -237,32 +297,57 @@ export default function AnalyticsPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Folder className="w-5 h-5" />
-                  Active Boards
+                  Active Projects
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{projects.filter(p => p.status === 'in_progress').length}</div>
+                <p className="text-purple-100 text-sm">{projects.length} total</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  Boards
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{filteredBoards.length}</div>
-                <p className="text-purple-100 text-sm">Boards in use</p>
+                <p className="text-indigo-100 text-sm">Boards in use</p>
               </CardContent>
             </Card>
           </motion.div>
         </div>
 
-        {/* Charts and detailed analytics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Status Distribution */}
+        {/* Task Status and Calendar */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Task Status Distribution */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-blue-500" />
-                Task Status Distribution
+                Task Status
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {Object.entries(statusDistribution).map(([status, count]) => {
-                  const percentage = totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0;
-                  const color = getStatusColor(status);
+                {Object.entries(taskStatusDistribution).map(([status, count]) => {
+                  const percentage = totalTasksFromEntity > 0 ? Math.round((count / totalTasksFromEntity) * 100) : 0;
+                  const colorMap = {
+                    'To Do': '#9CA3AF',
+                    'In Progress': '#3B82F6',
+                    'Review': '#8B5CF6',
+                    'Completed': '#10B981'
+                  };
+                  const color = colorMap[status];
                   
                   return (
                     <div key={status} className="flex items-center justify-between">
@@ -292,44 +377,63 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          {/* Priority Distribution */}
-          <Card>
+          {/* Calendar */}
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-orange-500" />
-                Priority Distribution
+                <CalendarIcon className="w-5 h-5 text-purple-500" />
+                Task Calendar - {format(selectedDate, "MMMM yyyy")}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {Object.entries(priorityDistribution).map(([priority, count]) => {
-                  const percentage = totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0;
-                  const color = getPriorityColor(priority);
-                  
-                  return (
-                    <div key={priority} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: color }}
-                        />
-                        <span className="text-sm font-medium">{priority}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full transition-all duration-500"
-                            style={{ 
-                              width: `${percentage}%`,
-                              backgroundColor: color 
-                            }}
-                          />
+            <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  className="rounded-md border w-full"
+                  modifiers={{
+                    hasTasks: (date) => dayHasTasks(date),
+                  }}
+                  modifiersStyles={{
+                    hasTasks: {
+                      fontWeight: "bold",
+                      backgroundColor: "#1e3a5f",
+                      color: "white",
+                    },
+                  }}
+                />
+              </div>
+              
+              <div>
+                <h3 className="font-semibold mb-3 text-sm">
+                  Tasks for {format(selectedDate, "dd MMM yyyy")}
+                </h3>
+                {selectedDayTasks.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No tasks scheduled for this day</p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {selectedDayTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="p-3 border rounded-lg hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h4 className="font-semibold text-sm line-clamp-2">{task.title}</h4>
+                          <Badge className={priorityColors[task.priority]}>
+                            {task.priority}
+                          </Badge>
                         </div>
-                        <span className="text-sm text-gray-600 w-12">{count}</span>
+                        <Badge className={statusColors[task.status]} variant="outline">
+                          {task.status.replace("_", " ")}
+                        </Badge>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {getProjectName(task.project_id)}
+                        </p>
                       </div>
-                    </div>
-                  );
-                })}
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
