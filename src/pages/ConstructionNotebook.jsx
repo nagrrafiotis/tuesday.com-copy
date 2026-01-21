@@ -30,6 +30,7 @@ import {
   Clock,
   Wrench,
   Pencil,
+  Download,
 } from "lucide-react";
 
 export default function ConstructionNotebook() {
@@ -284,6 +285,37 @@ export default function ConstructionNotebook() {
     ? notes.filter((note) => note.date === format(selectedDate, "yyyy-MM-dd"))
     : notes;
 
+  const exportToExcel = () => {
+    const csvData = [
+      ["Date", "Project", "Weather", "Work Performed", "Issues", "Safety Observations", "Technicians", "Engineers", "Subcontractors"],
+      ...filteredNotes.map((note) => {
+        const project = projects.find((p) => p.id === note.project_id);
+        return [
+          format(new Date(note.date), "dd/MM/yyyy"),
+          project?.name || "Unknown",
+          note.weather ? `${note.weather.temperature} ${note.weather.condition}` : "",
+          note.work_performed || "",
+          note.issues || "",
+          note.safety_observations || "",
+          note.technicians?.join(", ") || "",
+          note.engineers?.join(", ") || "",
+          note.subcontractors?.join(", ") || "",
+        ];
+      }),
+    ];
+
+    const csvContent = csvData.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `construction_notebook_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen bg-[#fafafa] p-6">
       <div className="max-w-[1600px] mx-auto">
@@ -292,10 +324,21 @@ export default function ConstructionNotebook() {
             <h1 className="text-3xl font-bold text-[#1e3a5f]">Construction Notebook</h1>
             <p className="text-gray-500 mt-1">Daily site logs and observations</p>
           </div>
-          <Button onClick={() => setShowForm(true)} className="bg-[#1e3a5f] hover:bg-[#152a45]">
-            <Plus className="w-4 h-4 mr-2" />
-            New Entry
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={exportToExcel}
+              variant="outline"
+              disabled={filteredNotes.length === 0}
+              className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+            <Button onClick={() => setShowForm(true)} className="bg-[#1e3a5f] hover:bg-[#152a45]">
+              <Plus className="w-4 h-4 mr-2" />
+              New Entry
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">

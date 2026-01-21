@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Settings as SettingsIcon } from "lucide-react";
+import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const DEFAULT_LISTS = {
@@ -145,6 +145,71 @@ export default function Settings() {
     }
   };
 
+  const exportBackup = async () => {
+    const projects = await base44.entities.Project.list();
+    const tasks = await base44.entities.Task.list();
+    const expenses = await base44.entities.Expense.list();
+    const incomes = await base44.entities.Income.list();
+    const contacts = await base44.entities.Contact.list();
+    const notes = await base44.entities.ConstructionNote.list();
+
+    const backup = {
+      exported_at: new Date().toISOString(),
+      projects,
+      tasks,
+      expenses,
+      incomes,
+      contacts,
+      notes,
+      payees,
+      subcategories,
+      payment_sources: paymentSources,
+      dropdown_lists: lists,
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `backup_${new Date().toISOString().split("T")[0]}.json`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const importBackup = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const backup = JSON.parse(e.target.result);
+        
+        if (window.confirm("This will restore data from the backup. Existing data will remain. Continue?")) {
+          const promises = [];
+          if (backup.projects) promises.push(...backup.projects.map(p => base44.entities.Project.create(p).catch(() => {})));
+          if (backup.tasks) promises.push(...backup.tasks.map(t => base44.entities.Task.create(t).catch(() => {})));
+          if (backup.expenses) promises.push(...backup.expenses.map(e => base44.entities.Expense.create(e).catch(() => {})));
+          if (backup.incomes) promises.push(...backup.incomes.map(i => base44.entities.Income.create(i).catch(() => {})));
+          if (backup.contacts) promises.push(...backup.contacts.map(c => base44.entities.Contact.create(c).catch(() => {})));
+          if (backup.notes) promises.push(...backup.notes.map(n => base44.entities.ConstructionNote.create(n).catch(() => {})));
+          if (backup.payees) promises.push(...backup.payees.map(p => base44.entities.Payee.create(p).catch(() => {})));
+          if (backup.subcategories) promises.push(...backup.subcategories.map(s => base44.entities.Subcategory.create(s).catch(() => {})));
+          if (backup.payment_sources) promises.push(...backup.payment_sources.map(ps => base44.entities.PaymentSource.create(ps).catch(() => {})));
+          
+          await Promise.all(promises);
+          queryClient.invalidateQueries();
+          alert("Backup restored successfully!");
+        }
+      } catch (error) {
+        alert("Failed to restore backup. Please check the file format.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -160,6 +225,49 @@ export default function Settings() {
           <SettingsIcon className="w-8 h-8 text-[#1e3a5f]" />
           <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
         </div>
+
+        {/* Backup & Restore */}
+        <Card className="bg-white shadow-sm mb-8">
+          <CardHeader className="border-b border-gray-100">
+            <div className="flex items-center gap-3">
+              <Database className="w-6 h-6 text-[#1e3a5f]" />
+              <div>
+                <CardTitle className="text-xl text-[#1e3a5f]">Backup & Restore</CardTitle>
+                <p className="text-sm text-gray-500 mt-1">Export your data for safekeeping or import from a backup</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="flex gap-3">
+              <Button
+                onClick={exportBackup}
+                className="bg-[#1e3a5f] hover:bg-[#152a45]"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Full Backup
+              </Button>
+              
+              <label htmlFor="backup-upload">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
+                  onClick={() => document.getElementById('backup-upload').click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Restore from Backup
+                </Button>
+              </label>
+              <input
+                id="backup-upload"
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={importBackup}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Expense & Income Lists */}
         <div className="mb-8">
