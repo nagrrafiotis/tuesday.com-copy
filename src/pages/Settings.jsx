@@ -155,7 +155,7 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-[#fafafa] p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-[1600px] mx-auto">
         <div className="flex items-center gap-3 mb-8">
           <SettingsIcon className="w-8 h-8 text-[#1e3a5f]" />
           <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
