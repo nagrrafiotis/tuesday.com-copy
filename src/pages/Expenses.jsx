@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Download, Receipt } from "lucide-react";
+import { Plus, Search, Download, Receipt, Upload } from "lucide-react";
 
 export default function Expenses() {
   const [showForm, setShowForm] = useState(false);
@@ -125,6 +125,58 @@ export default function Expenses() {
     document.body.removeChild(link);
   };
 
+  const importFromExcel = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url,
+        json_schema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              date: { type: "string" },
+              project: { type: "string" },
+              category: { type: "string" },
+              subcategory: { type: "string" },
+              payee: { type: "string" },
+              description: { type: "string" },
+              amount: { type: "number" },
+              payment_source: { type: "string" }
+            }
+          }
+        }
+      });
+
+      if (result.status === "success" && result.output) {
+        const expensesToCreate = result.output.map(row => {
+          const project = projects.find(p => p.name === row.project);
+          return {
+            date: row.date,
+            project_id: project?.id || projects[0]?.id,
+            category: row.category,
+            subcategory: row.subcategory,
+            payee: row.payee,
+            description: row.description,
+            amount: row.amount,
+            payment_source: row.payment_source
+          };
+        });
+
+        await Promise.all(expensesToCreate.map(exp => createMutation.mutateAsync(exp)));
+        alert(`Successfully imported ${expensesToCreate.length} expenses`);
+      } else {
+        alert("Failed to extract data from file");
+      }
+    } catch (error) {
+      alert("Error importing file. Please check the format.");
+    }
+  };
+
   if (expensesLoading) {
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
@@ -150,6 +202,24 @@ export default function Expenses() {
             <p className="text-gray-500 mt-1">Track and manage project costs</p>
           </div>
           <div className="flex gap-2">
+            <label htmlFor="expense-import">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
+                onClick={() => document.getElementById('expense-import').click()}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import
+              </Button>
+            </label>
+            <input
+              id="expense-import"
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="hidden"
+              onChange={importFromExcel}
+            />
             <Button
               onClick={exportToExcel}
               variant="outline"
@@ -157,7 +227,7 @@ export default function Expenses() {
               className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
             >
               <Download className="w-4 h-4 mr-2" />
-              Export to Excel
+              Export
             </Button>
             <Button
               onClick={() => {
