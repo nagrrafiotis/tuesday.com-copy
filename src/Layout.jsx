@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const navItems = [
-  { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },
+  { name: "Dashboard", icon: LayoutDashboard, page: "Analytics" },
   { name: "Projects", icon: Building2, page: "Projects" },
   { name: "Tasks", icon: ClipboardList, page: "Tasks" },
   { name: "Gantt", icon: BarChart3, page: "Gantt" },
