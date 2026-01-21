@@ -23,6 +23,7 @@ import {
   BarChart3,
   Settings,
   Receipt,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -36,6 +37,8 @@ export default function ProjectDetails() {
   const [activeTab, setActiveTab] = useState("board");
   const [imagePosition, setImagePosition] = useState({ x: 50, y: 50 });
   const [isDragging, setIsDragging] = useState(false);
+  const [editingBudget, setEditingBudget] = useState(false);
+  const [budgetItems, setBudgetItems] = useState([]);
 
   const queryClient = useQueryClient();
 
@@ -46,6 +49,9 @@ export default function ProjectDetails() {
       return projects[0];
     },
     enabled: !!projectId,
+    onSuccess: (data) => {
+      setBudgetItems(data?.budget_items || []);
+    },
   });
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
@@ -105,6 +111,46 @@ export default function ProjectDetails() {
     if (window.confirm(`Delete task "${task.title}"?`)) {
       await deleteTaskMutation.mutateAsync(task.id);
     }
+  };
+
+  const addBudgetItem = () => {
+    const newItem = {
+      id: Date.now().toString(),
+      category: "",
+      description: "",
+      quantity: 1,
+      unit: "unit",
+      unit_cost: 0,
+      total_cost: 0
+    };
+    setBudgetItems([...budgetItems, newItem]);
+  };
+
+  const updateBudgetItem = (id, field, value) => {
+    const updatedItems = budgetItems.map(item => {
+      if (item.id === id) {
+        const updated = { ...item, [field]: value };
+        if (field === 'quantity' || field === 'unit_cost') {
+          updated.total_cost = (updated.quantity || 0) * (updated.unit_cost || 0);
+        }
+        return updated;
+      }
+      return item;
+    });
+    setBudgetItems(updatedItems);
+  };
+
+  const removeBudgetItem = (id) => {
+    setBudgetItems(budgetItems.filter(item => item.id !== id));
+  };
+
+  const saveBudget = async () => {
+    const totalBudget = budgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
+    await updateProjectMutation.mutateAsync({
+      budget_items: budgetItems,
+      budget: totalBudget
+    });
+    setEditingBudget(false);
   };
 
   const statusColors = {
@@ -327,69 +373,210 @@ export default function ProjectDetails() {
         </motion.div>
 
         {/* Budget Breakdown Section */}
-        {project.budget_items && project.budget_items.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mt-8"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-[#1e3a5f]">Budget Breakdown</h2>
-            </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-8"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-[#1e3a5f]">Budget Breakdown</h2>
+            {!editingBudget ? (
+              <Button
+                onClick={() => {
+                  setBudgetItems(project?.budget_items || []);
+                  setEditingBudget(true);
+                }}
+                className="bg-[#1e3a5f] hover:bg-[#152a45]"
+              >
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Budget
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setBudgetItems(project?.budget_items || []);
+                    setEditingBudget(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={saveBudget}
+                  className="bg-[#1e3a5f] hover:bg-[#152a45]"
+                >
+                  Save Budget
+                </Button>
+              </div>
+            )}
+          </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Cost</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {project.budget_items.map((item, index) => (
-                      <tr key={item.id || index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {item.category}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {item.description}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                          {item.quantity}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {item.unit}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                          €{item.unit_cost?.toLocaleString() || 0}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-[#1e3a5f] text-right">
-                          €{item.total_cost?.toLocaleString() || 0}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="bg-gray-50 border-t-2 border-gray-300">
-                    <tr>
-                      <td colSpan="5" className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
-                        Total Project Budget:
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-lg font-bold text-[#1e3a5f] text-right">
-                        €{project.budget?.toLocaleString() || 0}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+          {editingBudget ? (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-medium text-gray-700">Budget Line Items</span>
+                <Button
+                  size="sm"
+                  onClick={addBudgetItem}
+                  className="bg-[#1e3a5f] hover:bg-[#152a45]"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Item
+                </Button>
+              </div>
+
+              {budgetItems.length > 0 ? (
+                <div className="space-y-3">
+                  {budgetItems.map((item) => (
+                    <div key={item.id} className="bg-gray-50 p-4 rounded-lg border space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Category</label>
+                          <Input
+                            placeholder="Category"
+                            value={item.category}
+                            onChange={(e) => updateBudgetItem(item.id, 'category', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Description</label>
+                          <Input
+                            placeholder="Description"
+                            value={item.description}
+                            onChange={(e) => updateBudgetItem(item.id, 'description', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-5 gap-3 items-end">
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Quantity</label>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateBudgetItem(item.id, 'quantity', Number(e.target.value))}
+                            min="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Unit</label>
+                          <Input
+                            value={item.unit}
+                            onChange={(e) => updateBudgetItem(item.id, 'unit', e.target.value)}
+                            placeholder="unit"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Unit Cost (€)</label>
+                          <Input
+                            type="number"
+                            value={item.unit_cost}
+                            onChange={(e) => updateBudgetItem(item.id, 'unit_cost', Number(e.target.value))}
+                            min="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Total</label>
+                          <div className="text-lg font-semibold text-[#1e3a5f] py-2">
+                            €{item.total_cost?.toLocaleString() || 0}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeBudgetItem(item.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-8">
+                  No budget items yet. Click "Add Item" to start building your budget.
+                </p>
+              )}
+
+              <div className="border-t pt-4 mt-4 flex justify-between items-center">
+                <span className="font-semibold text-gray-700">Total Budget:</span>
+                <span className="text-2xl font-bold text-[#1e3a5f]">
+                  €{budgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0).toLocaleString()}
+                </span>
               </div>
             </div>
-          </motion.div>
-        )}
+          ) : (
+            <>
+              {project?.budget_items && project.budget_items.length > 0 ? (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Cost</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {project.budget_items.map((item, index) => (
+                          <tr key={item.id || index} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {item.category}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-600">
+                              {item.description}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                              {item.quantity}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                              {item.unit}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                              €{item.unit_cost?.toLocaleString() || 0}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-[#1e3a5f] text-right">
+                              €{item.total_cost?.toLocaleString() || 0}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-gray-50 border-t-2 border-gray-300">
+                        <tr>
+                          <td colSpan="5" className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                            Total Project Budget:
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-lg font-bold text-[#1e3a5f] text-right">
+                            €{project.budget?.toLocaleString() || 0}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+                  <Receipt className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 mb-4">No budget breakdown yet</p>
+                  <Button
+                    onClick={() => setEditingBudget(true)}
+                    variant="outline"
+                    className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Budget
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </motion.div>
       </div>
 
       {/* Forms */}
