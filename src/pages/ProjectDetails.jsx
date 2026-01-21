@@ -8,6 +8,7 @@ import TaskBoard from "@/components/tasks/TaskBoard";
 import TaskForm from "@/components/tasks/TaskForm";
 import ProjectForm from "@/components/projects/ProjectForm";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
