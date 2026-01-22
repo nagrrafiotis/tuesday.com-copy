@@ -210,6 +210,122 @@ export default function Settings() {
     reader.readAsText(file);
   };
 
+  const importPayees = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url,
+        json_schema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              category: { type: "string" }
+            }
+          }
+        }
+      });
+
+      if (result.status === "success" && result.output) {
+        await Promise.all(result.output.map(row => 
+          createPayeeMutation.mutateAsync({ 
+            name: row.name, 
+            category: row.category || "materials" 
+          }).catch(() => {})
+        ));
+        alert(`Successfully imported ${result.output.length} payees`);
+      } else {
+        alert("Failed to extract data from file");
+      }
+    } catch (error) {
+      alert("Error importing file. Please check the format.");
+    }
+  };
+
+  const importSubcategories = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url,
+        json_schema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              parent_category: { type: "string" }
+            }
+          }
+        }
+      });
+
+      if (result.status === "success" && result.output) {
+        const categoryMap = {
+          'labor': 'labor',
+          'subcontractor': 'subcontractor',
+          'materials': 'materials',
+          'equipment': 'equipment',
+          'general_expenses': 'general_expenses',
+          'general expenses': 'general_expenses',
+          'general': 'general_expenses'
+        };
+
+        await Promise.all(result.output.map(row => {
+          const categoryLower = row.parent_category?.toLowerCase().trim();
+          const category = categoryMap[categoryLower] || 'general_expenses';
+          return createSubcategoryMutation.mutateAsync({ 
+            name: row.name, 
+            parent_category: category
+          }).catch(() => {});
+        }));
+        alert(`Successfully imported ${result.output.length} subcategories`);
+      } else {
+        alert("Failed to extract data from file");
+      }
+    } catch (error) {
+      alert("Error importing file. Please check the format.");
+    }
+  };
+
+  const importPaymentSources = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url,
+        json_schema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" }
+            }
+          }
+        }
+      });
+
+      if (result.status === "success" && result.output) {
+        await Promise.all(result.output.map(row => 
+          createPaymentSourceMutation.mutateAsync({ name: row.name }).catch(() => {})
+        ));
+        alert(`Successfully imported ${result.output.length} payment sources`);
+      } else {
+        alert("Failed to extract data from file");
+      }
+    } catch (error) {
+      alert("Error importing file. Please check the format.");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -276,7 +392,28 @@ export default function Settings() {
             {/* Payees */}
             <Card className="bg-white shadow-sm">
               <CardHeader className="border-b border-gray-100">
-                <CardTitle className="text-lg text-[#1e3a5f]">Payees / Vendors</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg text-[#1e3a5f]">Payees / Vendors</CardTitle>
+                  <label htmlFor="payees-import">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
+                      onClick={() => document.getElementById('payees-import').click()}
+                    >
+                      <Upload className="w-4 h-4 mr-1" />
+                      Import
+                    </Button>
+                  </label>
+                  <input
+                    id="payees-import"
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={importPayees}
+                  />
+                </div>
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
@@ -329,7 +466,28 @@ export default function Settings() {
             {/* Subcategories */}
             <Card className="bg-white shadow-sm">
               <CardHeader className="border-b border-gray-100">
-                <CardTitle className="text-lg text-[#1e3a5f]">Expense Subcategories</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg text-[#1e3a5f]">Expense Subcategories</CardTitle>
+                  <label htmlFor="subcategories-import">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
+                      onClick={() => document.getElementById('subcategories-import').click()}
+                    >
+                      <Upload className="w-4 h-4 mr-1" />
+                      Import
+                    </Button>
+                  </label>
+                  <input
+                    id="subcategories-import"
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={importSubcategories}
+                  />
+                </div>
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
@@ -402,7 +560,28 @@ export default function Settings() {
             {/* Payment Sources */}
             <Card className="bg-white shadow-sm">
               <CardHeader className="border-b border-gray-100">
-                <CardTitle className="text-lg text-[#1e3a5f]">Payment Sources</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg text-[#1e3a5f]">Payment Sources</CardTitle>
+                  <label htmlFor="payment-sources-import">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
+                      onClick={() => document.getElementById('payment-sources-import').click()}
+                    >
+                      <Upload className="w-4 h-4 mr-1" />
+                      Import
+                    </Button>
+                  </label>
+                  <input
+                    id="payment-sources-import"
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={importPaymentSources}
+                  />
+                </div>
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
