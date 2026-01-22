@@ -175,12 +175,25 @@ export default function Expenses() {
       });
 
       if (result.status === "success" && result.output) {
+        const categoryMap = {
+          'labor': 'labor',
+          'subcontractor': 'subcontractor',
+          'materials': 'materials',
+          'equipment': 'equipment',
+          'general_expenses': 'general_expenses',
+          'general expenses': 'general_expenses',
+          'general': 'general_expenses'
+        };
+
         const expensesToCreate = result.output.map(row => {
           const project = projects.find(p => p.name === row.project);
+          const categoryLower = row.category?.toLowerCase().trim();
+          const category = categoryMap[categoryLower] || 'general_expenses';
+          
           return {
             date: row.date,
             project_id: project?.id || projects[0]?.id,
-            category: row.category,
+            category: category,
             subcategory: row.subcategory,
             payee: row.payee,
             description: row.description,

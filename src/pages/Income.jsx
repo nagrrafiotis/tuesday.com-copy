@@ -159,12 +159,22 @@ export default function Income() {
       });
 
       if (result.status === "success" && result.output) {
+        const categoryMap = {
+          'sales': 'sales',
+          'investment': 'investment',
+          'rental': 'rental',
+          'other': 'other'
+        };
+
         const incomesToCreate = result.output.map(row => {
           const project = projects.find(p => p.name === row.project);
+          const categoryLower = row.category?.toLowerCase().trim();
+          const category = categoryMap[categoryLower] || 'other';
+          
           return {
             date: row.date,
             project_id: project?.id || projects[0]?.id,
-            category: row.category,
+            category: category,
             source: row.source,
             description: row.description,
             amount: row.amount,
