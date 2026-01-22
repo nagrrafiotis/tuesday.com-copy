@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Download, Receipt, Upload } from "lucide-react";
+import { Plus, Search, Download, Receipt, Upload, Trash2 } from "lucide-react";
 
 export default function Expenses() {
   const [showForm, setShowForm] = useState(false);
@@ -24,6 +24,7 @@ export default function Expenses() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [payeeFilter, setPayeeFilter] = useState("all");
   const [paymentSourceFilter, setPaymentSourceFilter] = useState("all");
+  const [selectedExpenses, setSelectedExpenses] = useState([]);
 
   const queryClient = useQueryClient();
 
@@ -81,6 +82,27 @@ export default function Expenses() {
     if (window.confirm(`Delete this expense from ${expense.payee}?`)) {
       await deleteMutation.mutateAsync(expense.id);
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (window.confirm(`Delete ${selectedExpenses.length} selected expenses?`)) {
+      await Promise.all(selectedExpenses.map(id => deleteMutation.mutateAsync(id)));
+      setSelectedExpenses([]);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedExpenses.length === filteredExpenses.length) {
+      setSelectedExpenses([]);
+    } else {
+      setSelectedExpenses(filteredExpenses.map(e => e.id));
+    }
+  };
+
+  const toggleSelectExpense = (id) => {
+    setSelectedExpenses(prev => 
+      prev.includes(id) ? prev.filter(expId => expId !== id) : [...prev, id]
+    );
   };
 
   const filteredExpenses = expenses.filter((e) => {
@@ -322,11 +344,34 @@ export default function Expenses() {
               </div>
             </motion.div>
 
+            {/* Bulk Actions */}
+            {selectedExpenses.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-[#1e3a5f] text-white rounded-xl p-4 flex items-center justify-between"
+              >
+                <span className="font-medium">{selectedExpenses.length} selected</span>
+                <Button
+                  onClick={handleBulkDelete}
+                  variant="destructive"
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected
+                </Button>
+              </motion.div>
+            )}
+
             {/* Expense Table */}
             <ExpenseTable
               expenses={filteredExpenses}
               projects={projects}
               showProject={projectFilter === "all"}
+              selectedExpenses={selectedExpenses}
+              onSelectAll={toggleSelectAll}
+              onSelectExpense={toggleSelectExpense}
               onEdit={(expense) => {
                 setEditingExpense(expense);
                 setShowForm(true);

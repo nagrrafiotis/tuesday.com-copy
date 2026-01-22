@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { MoreHorizontal, Users, Wrench, Package, Truck, Receipt } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const categoryConfig = {
   labor: { label: "Labor", icon: Users, color: "bg-blue-100 text-blue-700" },
@@ -27,7 +28,7 @@ const categoryConfig = {
   general_expenses: { label: "General", icon: Receipt, color: "bg-gray-100 text-gray-700" },
 };
 
-export default function ExpenseTable({ expenses, projects, onEdit, onDelete, showProject = false }) {
+export default function ExpenseTable({ expenses, projects, onEdit, onDelete, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense }) {
   const [columnWidths, setColumnWidths] = useState({
     date: 120,
     category: 150,
@@ -98,6 +99,12 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
       <Table>
         <TableHeader>
           <TableRow className="bg-gray-50/50">
+            <TableHead className="w-12">
+              <Checkbox
+                checked={selectedExpenses.length === expenses.length && expenses.length > 0}
+                onCheckedChange={onSelectAll}
+              />
+            </TableHead>
             <TableHead style={{ width: columnWidths.date }} className="relative group">
               Date
               <div
@@ -172,6 +179,12 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
                 transition={{ delay: index * 0.03 }}
                 className="hover:bg-gray-50/50 transition-colors group"
               >
+                <TableCell>
+                  <Checkbox
+                    checked={selectedExpenses.includes(expense.id)}
+                    onCheckedChange={() => onSelectExpense(expense.id)}
+                  />
+                </TableCell>
                 <TableCell className="font-medium text-gray-600">
                   {format(new Date(expense.date), "dd/MM/yy")}
                 </TableCell>

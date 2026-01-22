@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Download, Upload } from "lucide-react";
+import { Plus, Search, Download, Upload, Trash2 } from "lucide-react";
 
 export default function Income() {
   const [showForm, setShowForm] = useState(false);
@@ -22,6 +22,7 @@ export default function Income() {
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [selectedIncomes, setSelectedIncomes] = useState([]);
 
   const queryClient = useQueryClient();
 
@@ -69,6 +70,27 @@ export default function Income() {
     if (window.confirm(`Delete this income from ${income.source}?`)) {
       await deleteMutation.mutateAsync(income.id);
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (window.confirm(`Delete ${selectedIncomes.length} selected income records?`)) {
+      await Promise.all(selectedIncomes.map(id => deleteMutation.mutateAsync(id)));
+      setSelectedIncomes([]);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIncomes.length === filteredIncomes.length) {
+      setSelectedIncomes([]);
+    } else {
+      setSelectedIncomes(filteredIncomes.map(i => i.id));
+    }
+  };
+
+  const toggleSelectIncome = (id) => {
+    setSelectedIncomes(prev => 
+      prev.includes(id) ? prev.filter(incId => incId !== id) : [...prev, id]
+    );
   };
 
   const filteredIncomes = incomes.filter((i) => {
@@ -276,11 +298,34 @@ export default function Income() {
               </div>
             </motion.div>
 
+            {/* Bulk Actions */}
+            {selectedIncomes.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-[#1e3a5f] text-white rounded-xl p-4 flex items-center justify-between"
+              >
+                <span className="font-medium">{selectedIncomes.length} selected</span>
+                <Button
+                  onClick={handleBulkDelete}
+                  variant="destructive"
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected
+                </Button>
+              </motion.div>
+            )}
+
             {/* Income Table */}
             <IncomeTable
               incomes={filteredIncomes}
               projects={projects}
               showProject={projectFilter === "all"}
+              selectedIncomes={selectedIncomes}
+              onSelectAll={toggleSelectAll}
+              onSelectIncome={toggleSelectIncome}
               onEdit={(income) => {
                 setEditingIncome(income);
                 setShowForm(true);
