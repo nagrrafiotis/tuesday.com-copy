@@ -107,35 +107,37 @@ export default function Contacts() {
     if (!file) return;
 
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    
-    const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url,
-      json_schema: {
-        type: "object",
-        properties: {
-          contacts: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                name: { type: "string" },
-                email: { type: "string" },
-                phone: { type: "string" },
-                company: { type: "string" },
-                position: { type: "string" },
-                category: { type: "string" },
-                notes: { type: "string" }
-              }
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url,
+        json_schema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              email: { type: "string" },
+              phone: { type: "string" },
+              company: { type: "string" },
+              position: { type: "string" },
+              category: { type: "string" },
+              notes: { type: "string" }
             }
           }
         }
-      }
-    });
+      });
 
-    if (result.status === "success" && result.output?.contacts) {
-      await base44.entities.Contact.bulkCreate(result.output.contacts);
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      if (result.status === "success" && result.output) {
+        await base44.entities.Contact.bulkCreate(result.output);
+        queryClient.invalidateQueries({ queryKey: ["contacts"] });
+        alert(`Successfully imported ${result.output.length} contacts`);
+      } else {
+        alert("Failed to extract contacts from file");
+      }
+    } catch (error) {
+      alert("Error importing file. Please check the format.");
     }
     
     setUploading(false);
