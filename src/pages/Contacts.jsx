@@ -113,26 +113,31 @@ export default function Contacts() {
       const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url,
         json_schema: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              name: { type: "string" },
-              email: { type: "string" },
-              phone: { type: "string" },
-              company: { type: "string" },
-              position: { type: "string" },
-              category: { type: "string" },
-              notes: { type: "string" }
+          type: "object",
+          properties: {
+            data: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  email: { type: "string" },
+                  phone: { type: "string" },
+                  company: { type: "string" },
+                  position: { type: "string" },
+                  category: { type: "string" },
+                  notes: { type: "string" }
+                }
+              }
             }
           }
         }
       });
 
-      if (result.status === "success" && result.output) {
-        await base44.entities.Contact.bulkCreate(result.output);
+      if (result.status === "success" && result.output?.data) {
+        await base44.entities.Contact.bulkCreate(result.output.data);
         queryClient.invalidateQueries({ queryKey: ["contacts"] });
-        alert(`Successfully imported ${result.output.length} contacts`);
+        alert(`Successfully imported ${result.output.data.length} contacts`);
       } else {
         alert("Failed to extract contacts from file");
       }
