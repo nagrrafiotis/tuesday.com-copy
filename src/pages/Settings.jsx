@@ -44,6 +44,11 @@ export default function Settings() {
     queryFn: () => base44.entities.Payee.list("name"),
   });
 
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => base44.entities.Contact.list("name"),
+  });
+
   const { data: subcategories = [] } = useQuery({
     queryKey: ["subcategories"],
     queryFn: () => base44.entities.Subcategory.list("name"),
@@ -417,22 +422,33 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
-                  {payees.map((payee) => (
-                    <div
-                      key={payee.id}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
-                    >
-                      <span className="text-sm text-gray-700">{payee.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deletePayeeMutation.mutate(payee.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
+                  {payees.map((payee) => {
+                    const contact = contacts.find(c => c.id === payee.contact_id);
+                    return (
+                      <div
+                        key={payee.id}
+                        className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
                       >
-                        <Trash2 className="w-3 h-3 text-red-500" />
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="flex-1">
+                          <span className="text-sm text-gray-700">{payee.name}</span>
+                          {contact && (
+                            <div className="text-xs text-gray-500">
+                              {contact.phone && `${contact.phone} • `}
+                              {contact.company}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deletePayeeMutation.mutate(payee.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-500" />
+                        </Button>
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="flex gap-2">
                   <Input

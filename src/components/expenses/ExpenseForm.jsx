@@ -64,6 +64,7 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
   const [loading, setLoading] = useState(false);
   const [showNewPayee, setShowNewPayee] = useState(false);
   const [newPayeeName, setNewPayeeName] = useState("");
+  const [newPayeeContactId, setNewPayeeContactId] = useState("");
   const [showNewSubcategory, setShowNewSubcategory] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [showNewPaymentSource, setShowNewPaymentSource] = useState(false);
@@ -74,6 +75,12 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
   const { data: payees = [] } = useQuery({
     queryKey: ["payees"],
     queryFn: () => base44.entities.Payee.list("name"),
+    enabled: open,
+  });
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => base44.entities.Contact.list("name"),
     enabled: open,
   });
   
@@ -276,11 +283,22 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
                     <SelectValue placeholder="Select payee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {payees.map((p) => (
-                      <SelectItem key={p.id} value={p.name}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
+                    {payees.map((p) => {
+                      const contact = contacts.find(c => c.id === p.contact_id);
+                      return (
+                        <SelectItem key={p.id} value={p.name}>
+                          <div>
+                            <div>{p.name}</div>
+                            {contact && (
+                              <div className="text-xs text-gray-500">
+                                {contact.phone && `${contact.phone} • `}
+                                {contact.company}
+                              </div>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 <Button
@@ -293,41 +311,55 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
                 </Button>
               </div>
             ) : (
-              <div className="flex gap-2 mt-1.5">
+              <div className="space-y-2 mt-1.5">
                 <Input
                   value={newPayeeName}
                   onChange={(e) => setNewPayeeName(e.target.value)}
                   placeholder="New payee name"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (newPayeeName.trim()) {
-                        createPayeeMutation.mutate({ name: newPayeeName, category: formData.category });
-                      }
-                    }
-                  }}
                 />
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (newPayeeName.trim()) {
-                      createPayeeMutation.mutate({ name: newPayeeName, category: formData.category });
-                    }
-                  }}
-                  disabled={!newPayeeName.trim() || createPayeeMutation.isPending}
+                <Select
+                  value={newPayeeContactId}
+                  onValueChange={(v) => setNewPayeeContactId(v)}
                 >
-                  Add
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setShowNewPayee(false);
-                    setNewPayeeName("");
-                  }}
-                >
-                  Cancel
-                </Button>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Link to contact (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contacts.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name} {c.company && `(${c.company})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (newPayeeName.trim()) {
+                        createPayeeMutation.mutate({ 
+                          name: newPayeeName, 
+                          category: formData.category,
+                          contact_id: newPayeeContactId || undefined
+                        });
+                      }
+                    }}
+                    disabled={!newPayeeName.trim() || createPayeeMutation.isPending}
+                  >
+                    Add
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowNewPayee(false);
+                      setNewPayeeName("");
+                      setNewPayeeContactId("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
             )}
           </div>
