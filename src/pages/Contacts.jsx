@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Mail, Phone, Building2, Users, Package, Wrench, Handshake, MoreHorizontal, Pencil, Trash2, Upload } from "lucide-react";
+import { Plus, Search, Mail, Phone, Building2, Users, Package, Wrench, Handshake, MoreHorizontal, Pencil, Trash2, Upload, Download } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -73,6 +73,34 @@ export default function Contacts() {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
     },
   });
+
+  const exportToCSV = () => {
+    const headers = ["Name", "Email", "Phone", "Company", "Position", "Category", "Notes"];
+    const rows = filteredContacts.map(c => [
+      c.name,
+      c.email || "",
+      c.phone || "",
+      c.company || "",
+      c.position || "",
+      c.category || "",
+      c.notes || ""
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `contacts_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -163,6 +191,14 @@ export default function Contacts() {
               </Button>
             ))}
           </div>
+          <Button
+            onClick={exportToCSV}
+            variant="outline"
+            className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
           <label htmlFor="csv-upload">
             <Button
               type="button"
