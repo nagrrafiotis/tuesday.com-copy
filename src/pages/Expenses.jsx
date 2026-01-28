@@ -48,6 +48,11 @@ export default function Expenses() {
     queryFn: () => base44.entities.PaymentSource.list("name"),
   });
 
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => base44.entities.Contact.list("name"),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Expense.create(data),
     onSuccess: () => {
@@ -381,6 +386,8 @@ export default function Expenses() {
             <ExpenseTable
               expenses={filteredExpenses}
               projects={projects}
+              payees={payees}
+              contacts={contacts}
               showProject={projectFilter === "all"}
               selectedExpenses={selectedExpenses}
               onSelectAll={toggleSelectAll}
