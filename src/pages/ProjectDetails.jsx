@@ -75,6 +75,12 @@ export default function ProjectDetails() {
     queryFn: () => base44.entities.Payee.list(),
   });
 
+  const { data: expenses = [] } = useQuery({
+    queryKey: ["expenses", projectId],
+    queryFn: () => base44.entities.Expense.filter({ project_id: projectId }),
+    enabled: !!projectId,
+  });
+
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
     onSuccess: () => {
@@ -196,6 +202,10 @@ export default function ProjectDetails() {
     inProgress: tasks.filter((t) => t.status === "in_progress").length,
     todo: tasks.filter((t) => t.status === "todo").length,
   };
+
+  const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+  const budgetRemaining = (project.budget || 0) - totalExpenses;
+  const budgetUsedPercent = project.budget ? (totalExpenses / project.budget) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
@@ -383,11 +393,120 @@ export default function ProjectDetails() {
           )}
         </motion.div>
 
+        {/* Budget vs Expenses Section */}
+        {project.budget && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-8 mb-8"
+          >
+            <h2 className="text-xl font-semibold text-[#1e3a5f] mb-6">Budget vs Expenses</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Budget Overview Chart */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-4">Financial Overview</h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600">Total Budget</span>
+                      <span className="font-semibold text-[#1e3a5f]">€{project.budget?.toLocaleString() || 0}</span>
+                    </div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600">Total Expenses</span>
+                      <span className="font-semibold text-red-600">€{totalExpenses.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm mb-4">
+                      <span className="text-gray-600">Remaining</span>
+                      <span className={`font-semibold ${budgetRemaining >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        €{budgetRemaining.toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <div className="relative pt-1">
+                      <div className="flex mb-2 items-center justify-between">
+                        <div>
+                          <span className={`text-xs font-semibold inline-block ${budgetUsedPercent > 100 ? 'text-red-600' : budgetUsedPercent > 80 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                            {budgetUsedPercent.toFixed(1)}% Used
+                          </span>
+                        </div>
+                      </div>
+                      <div className="overflow-hidden h-3 text-xs flex rounded-full bg-gray-100">
+                        <div 
+                          style={{ width: `${Math.min(budgetUsedPercent, 100)}%` }} 
+                          className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center transition-all duration-500 ${
+                            budgetUsedPercent > 100 ? 'bg-red-500' : budgetUsedPercent > 80 ? 'bg-amber-500' : 'bg-emerald-500'
+                          }`}
+                        />
+                      </div>
+                      {budgetUsedPercent > 100 && (
+                        <p className="text-xs text-red-600 mt-2">
+                          ⚠️ Over budget by €{Math.abs(budgetRemaining).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Visual Comparison */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-4">Budget Comparison</h3>
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-sm text-gray-600">Budget</span>
+                      <span className="text-sm font-medium">€{(project.budget / 1000).toFixed(0)}K</span>
+                    </div>
+                    <div className="h-12 bg-[#1e3a5f]/10 rounded-lg relative overflow-hidden">
+                      <div 
+                        className="h-full bg-[#1e3a5f] rounded-lg transition-all duration-500"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-sm text-gray-600">Expenses</span>
+                      <span className="text-sm font-medium">€{(totalExpenses / 1000).toFixed(0)}K</span>
+                    </div>
+                    <div className="h-12 bg-red-50 rounded-lg relative overflow-hidden">
+                      <div 
+                        className={`h-full rounded-lg transition-all duration-500 ${
+                          budgetUsedPercent > 100 ? 'bg-red-500' : budgetUsedPercent > 80 ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${Math.min((totalExpenses / project.budget) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {budgetRemaining >= 0 ? (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                      <p className="text-sm text-emerald-800 font-medium">✓ Under Budget</p>
+                      <p className="text-xs text-emerald-600 mt-1">
+                        You have €{budgetRemaining.toLocaleString()} remaining
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <p className="text-sm text-red-800 font-medium">⚠️ Over Budget</p>
+                      <p className="text-xs text-red-600 mt-1">
+                        Exceeded by €{Math.abs(budgetRemaining).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Budget Breakdown Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.4 }}
           className="mt-8"
         >
           <div className="flex items-center justify-between mb-6">
