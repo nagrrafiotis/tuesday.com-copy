@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   ArrowLeft,
   MapPin,
@@ -206,6 +207,28 @@ export default function ProjectDetails() {
   const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
   const budgetRemaining = (project.budget || 0) - totalExpenses;
   const budgetUsedPercent = project.budget ? (totalExpenses / project.budget) * 100 : 0;
+
+  // Group expenses by subcategory
+  const expensesBySubcategory = expenses.reduce((acc, expense) => {
+    const key = expense.subcategory || expense.category || "Other";
+    acc[key] = (acc[key] || 0) + (expense.amount || 0);
+    return acc;
+  }, {});
+
+  // Group budget by category/description
+  const budgetByCategory = (project.budget_items || []).reduce((acc, item) => {
+    const key = item.category || item.description || "Other";
+    acc[key] = (acc[key] || 0) + (item.total_cost || 0);
+    return acc;
+  }, {});
+
+  // Create chart data combining both
+  const allCategories = [...new Set([...Object.keys(budgetByCategory), ...Object.keys(expensesBySubcategory)])];
+  const categoryChartData = allCategories.map(category => ({
+    name: category,
+    budget: budgetByCategory[category] || 0,
+    expenses: expensesBySubcategory[category] || 0,
+  })).sort((a, b) => b.budget - a.budget);
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
@@ -499,6 +522,40 @@ export default function ProjectDetails() {
                 </div>
               </div>
             </div>
+
+            {/* Category Comparison Chart */}
+            {categoryChartData.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-6">Budget vs Expenses by Category</h3>
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={categoryChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={100}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `€${(value / 1000).toFixed(0)}K`}
+                    />
+                    <Tooltip 
+                      formatter={(value) => `€${value.toLocaleString()}`}
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="budget" fill="#1e3a5f" name="Budget" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="expenses" fill="#ef4444" name="Expenses" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </motion.div>
         )}
 
