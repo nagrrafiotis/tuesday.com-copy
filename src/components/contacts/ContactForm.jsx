@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export default function ContactForm({ contact, open, onClose, onSubmit }) {
+function ContactForm({ contact, open, onClose, onSubmit }) {
   const [formData, setFormData] = useState(
     contact || {
       name: "",
@@ -167,3 +167,5 @@ export default function ContactForm({ contact, open, onClose, onSubmit }) {
     </Dialog>
   );
 }
+
+export default ContactForm;
