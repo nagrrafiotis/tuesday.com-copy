@@ -71,9 +71,9 @@ export default function ProjectDetails() {
     queryFn: () => base44.entities.User.list(),
   });
 
-  const { data: payees = [] } = useQuery({
-    queryKey: ["payees"],
-    queryFn: () => base44.entities.Payee.list(),
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => base44.entities.Contact.list(),
   });
 
   const { data: subcategories = [] } = useQuery({
@@ -679,9 +679,9 @@ export default function ProjectDetails() {
                              <SelectValue placeholder="Select payee" />
                            </SelectTrigger>
                            <SelectContent>
-                             {payees.map((payee) => (
-                               <SelectItem key={payee.id} value={payee.name}>
-                                 {payee.name}
+                             {contacts.map((contact) => (
+                               <SelectItem key={contact.id} value={contact.name}>
+                                 {contact.name}
                                </SelectItem>
                              ))}
                            </SelectContent>

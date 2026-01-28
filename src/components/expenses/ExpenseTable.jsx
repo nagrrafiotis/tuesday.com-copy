@@ -28,7 +28,7 @@ const categoryConfig = {
   general_expenses: { label: "General", icon: Receipt, color: "bg-gray-100 text-gray-700" },
 };
 
-export default function ExpenseTable({ expenses, projects, payees = [], contacts = [], onEdit, onDelete, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense }) {
+export default function ExpenseTable({ expenses, projects, contacts = [], onEdit, onDelete, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense }) {
   const [columnWidths, setColumnWidths] = useState({
     date: 120,
     category: 150,
@@ -206,9 +206,8 @@ export default function ExpenseTable({ expenses, projects, payees = [], contacts
                   <div>
                     <div>{expense.payee}</div>
                     {(() => {
-                      const payee = payees.find(p => p.name === expense.payee);
-                      const contact = payee && contacts.find(c => c.id === payee.contact_id);
-                      return contact ? (
+                      const contact = contacts.find(c => c.name === expense.payee);
+                      return contact && (contact.phone || contact.company) ? (
                         <div className="text-xs text-gray-500">
                           {contact.phone && `${contact.phone} • `}
                           {contact.company}

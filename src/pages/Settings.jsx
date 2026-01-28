@@ -39,11 +39,6 @@ export default function Settings() {
     queryFn: () => base44.entities.DropdownList.list(),
   });
 
-  const { data: payees = [] } = useQuery({
-    queryKey: ["payees"],
-    queryFn: () => base44.entities.Payee.list("name"),
-  });
-
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => base44.entities.Contact.list("name"),
@@ -73,22 +68,9 @@ export default function Settings() {
     },
   });
 
-  const createPayeeMutation = useMutation({
-    mutationFn: (data) => base44.entities.Payee.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payees"] });
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
-    },
-  });
-
   const createContactMutation = useMutation({
     mutationFn: (data) => base44.entities.Contact.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["contacts"] }),
-  });
-
-  const deletePayeeMutation = useMutation({
-    mutationFn: (id) => base44.entities.Payee.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["payees"] }),
   });
 
   const createSubcategoryMutation = useMutation({
@@ -174,7 +156,6 @@ export default function Settings() {
       incomes,
       contacts,
       notes,
-      payees,
       subcategories,
       payment_sources: paymentSources,
       dropdown_lists: lists,
@@ -208,7 +189,6 @@ export default function Settings() {
           if (backup.incomes) promises.push(...backup.incomes.map(i => base44.entities.Income.create(i).catch(() => {})));
           if (backup.contacts) promises.push(...backup.contacts.map(c => base44.entities.Contact.create(c).catch(() => {})));
           if (backup.notes) promises.push(...backup.notes.map(n => base44.entities.ConstructionNote.create(n).catch(() => {})));
-          if (backup.payees) promises.push(...backup.payees.map(p => base44.entities.Payee.create(p).catch(() => {})));
           if (backup.subcategories) promises.push(...backup.subcategories.map(s => base44.entities.Subcategory.create(s).catch(() => {})));
           if (backup.payment_sources) promises.push(...backup.payment_sources.map(ps => base44.entities.PaymentSource.create(ps).catch(() => {})));
           
@@ -223,68 +203,7 @@ export default function Settings() {
     reader.readAsText(file);
   };
 
-  const importPayees = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
 
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url,
-        json_schema: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              name: { type: "string" },
-              category: { type: "string" },
-              phone: { type: "string" },
-              company: { type: "string" }
-            }
-          }
-        }
-      });
-
-      if (result.status === "success" && result.output) {
-        const results = await Promise.all(result.output.map(async (row) => {
-          try {
-            // Check if contact already exists by name
-            const existingContact = contacts.find(c => c.name === row.name);
-            let contactId = existingContact?.id;
-            
-            // Create contact if it doesn't exist and has additional info
-            if (!existingContact && (row.phone || row.company)) {
-              const newContact = await createContactMutation.mutateAsync({
-                name: row.name,
-                phone: row.phone || "",
-                company: row.company || "",
-                category: "supplier"
-              });
-              contactId = newContact.id;
-            }
-            
-            // Create payee linked to contact
-            await createPayeeMutation.mutateAsync({ 
-              name: row.name, 
-              category: row.category || "materials",
-              contact_id: contactId
-            });
-            
-            return true;
-          } catch (error) {
-            return false;
-          }
-        }));
-        
-        const successCount = results.filter(r => r).length;
-        alert(`Successfully imported ${successCount} payees and created linked contacts`);
-      } else {
-        alert("Failed to extract data from file");
-      }
-    } catch (error) {
-      alert("Error importing file. Please check the format.");
-    }
-  };
 
   const importSubcategories = async (event) => {
     const file = event.target.files?.[0];
@@ -428,91 +347,7 @@ export default function Settings() {
         {/* Expense & Income Lists */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Expense & Income Management</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Payees */}
-            <Card className="bg-white shadow-sm">
-              <CardHeader className="border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg text-[#1e3a5f]">Payees / Vendors</CardTitle>
-                  <label htmlFor="payees-import">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
-                      onClick={() => document.getElementById('payees-import').click()}
-                    >
-                      <Upload className="w-4 h-4 mr-1" />
-                      Import
-                    </Button>
-                  </label>
-                  <input
-                    id="payees-import"
-                    type="file"
-                    accept=".csv"
-                    className="hidden"
-                    onChange={importPayees}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
-                  {payees.map((payee) => {
-                    const contact = contacts.find(c => c.id === payee.contact_id);
-                    return (
-                      <div
-                        key={payee.id}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
-                      >
-                        <div className="flex-1">
-                          <span className="text-sm text-gray-700">{payee.name}</span>
-                          {contact && (
-                            <div className="text-xs text-gray-500">
-                              {contact.phone && `${contact.phone} • `}
-                              {contact.company}
-                            </div>
-                          )}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deletePayeeMutation.mutate(payee.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
-                        >
-                          <Trash2 className="w-3 h-3 text-red-500" />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Add new payee..."
-                    value={newItems.payees || ""}
-                    onChange={(e) => setNewItems({ ...newItems, payees: e.target.value })}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && newItems.payees?.trim()) {
-                        createPayeeMutation.mutate({ name: newItems.payees, category: "materials" });
-                        setNewItems({ ...newItems, payees: "" });
-                      }
-                    }}
-                    className="text-sm"
-                  />
-                  <Button
-                    onClick={() => {
-                      if (newItems.payees?.trim()) {
-                        createPayeeMutation.mutate({ name: newItems.payees, category: "materials" });
-                        setNewItems({ ...newItems, payees: "" });
-                      }
-                    }}
-                    size="icon"
-                    className="bg-[#1e3a5f] hover:bg-[#152a45] shrink-0"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
             {/* Subcategories */}
             <Card className="bg-white shadow-sm">

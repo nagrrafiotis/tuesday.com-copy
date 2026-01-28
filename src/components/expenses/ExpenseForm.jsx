@@ -62,9 +62,8 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
     }
   }, [expense, projectId]);
   const [loading, setLoading] = useState(false);
-  const [showNewPayee, setShowNewPayee] = useState(false);
-  const [newPayeeName, setNewPayeeName] = useState("");
-  const [newPayeeContactId, setNewPayeeContactId] = useState("");
+  const [showNewContact, setShowNewContact] = useState(false);
+  const [newContactName, setNewContactName] = useState("");
   const [showNewSubcategory, setShowNewSubcategory] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [showNewPaymentSource, setShowNewPaymentSource] = useState(false);
@@ -72,12 +71,6 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
   
   const queryClient = useQueryClient();
   
-  const { data: payees = [] } = useQuery({
-    queryKey: ["payees"],
-    queryFn: () => base44.entities.Payee.list("name"),
-    enabled: open,
-  });
-
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => base44.entities.Contact.list("name"),
@@ -96,13 +89,13 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
     enabled: open,
   });
   
-  const createPayeeMutation = useMutation({
-    mutationFn: (data) => base44.entities.Payee.create(data),
-    onSuccess: (newPayee) => {
-      queryClient.invalidateQueries({ queryKey: ["payees"] });
-      setFormData({ ...formData, payee: newPayee.name });
-      setShowNewPayee(false);
-      setNewPayeeName("");
+  const createContactMutation = useMutation({
+    mutationFn: (data) => base44.entities.Contact.create(data),
+    onSuccess: (newContact) => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      setFormData({ ...formData, payee: newContact.name });
+      setShowNewContact(false);
+      setNewContactName("");
     },
   });
   
@@ -273,7 +266,7 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
 
           <div>
             <Label>Payee / Vendor *</Label>
-            {!showNewPayee ? (
+            {!showNewContact ? (
               <div className="flex gap-2 mt-1.5">
                 <Select
                   value={formData.payee}
@@ -283,28 +276,25 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
                     <SelectValue placeholder="Select payee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {payees.map((p) => {
-                      const contact = contacts.find(c => c.id === p.contact_id);
-                      return (
-                        <SelectItem key={p.id} value={p.name}>
-                          <div>
-                            <div>{p.name}</div>
-                            {contact && (
-                              <div className="text-xs text-gray-500">
-                                {contact.phone && `${contact.phone} • `}
-                                {contact.company}
-                              </div>
-                            )}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
+                    {contacts.map((c) => (
+                      <SelectItem key={c.id} value={c.name}>
+                        <div>
+                          <div>{c.name}</div>
+                          {(c.phone || c.company) && (
+                            <div className="text-xs text-gray-500">
+                              {c.phone && `${c.phone} • `}
+                              {c.company}
+                            </div>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowNewPayee(true)}
+                  onClick={() => setShowNewContact(true)}
                   className="shrink-0"
                 >
                   <Plus className="w-4 h-4" />
@@ -313,38 +303,22 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
             ) : (
               <div className="space-y-2 mt-1.5">
                 <Input
-                  value={newPayeeName}
-                  onChange={(e) => setNewPayeeName(e.target.value)}
-                  placeholder="New payee name"
+                  value={newContactName}
+                  onChange={(e) => setNewContactName(e.target.value)}
+                  placeholder="Contact name"
                 />
-                <Select
-                  value={newPayeeContactId}
-                  onValueChange={(v) => setNewPayeeContactId(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Link to contact (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contacts.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name} {c.company && `(${c.company})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <div className="flex gap-2">
                   <Button
                     type="button"
                     onClick={() => {
-                      if (newPayeeName.trim()) {
-                        createPayeeMutation.mutate({ 
-                          name: newPayeeName, 
-                          category: formData.category,
-                          contact_id: newPayeeContactId || undefined
+                      if (newContactName.trim()) {
+                        createContactMutation.mutate({ 
+                          name: newContactName,
+                          category: "supplier"
                         });
                       }
                     }}
-                    disabled={!newPayeeName.trim() || createPayeeMutation.isPending}
+                    disabled={!newContactName.trim() || createContactMutation.isPending}
                   >
                     Add
                   </Button>
@@ -352,9 +326,8 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
                     type="button"
                     variant="outline"
                     onClick={() => {
-                      setShowNewPayee(false);
-                      setNewPayeeName("");
-                      setNewPayeeContactId("");
+                      setShowNewContact(false);
+                      setNewContactName("");
                     }}
                   >
                     Cancel

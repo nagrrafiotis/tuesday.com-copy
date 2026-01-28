@@ -38,19 +38,14 @@ export default function Expenses() {
     queryFn: () => base44.entities.Project.list("-created_date"),
   });
 
-  const { data: payees = [] } = useQuery({
-    queryKey: ["payees"],
-    queryFn: () => base44.entities.Payee.list("name"),
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => base44.entities.Contact.list("name"),
   });
 
   const { data: paymentSources = [] } = useQuery({
     queryKey: ["paymentSources"],
     queryFn: () => base44.entities.PaymentSource.list("name"),
-  });
-
-  const { data: contacts = [] } = useQuery({
-    queryKey: ["contacts"],
-    queryFn: () => base44.entities.Contact.list("name"),
   });
 
   const createMutation = useMutation({
@@ -338,9 +333,9 @@ export default function Expenses() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Payees</SelectItem>
-                    {payees.map((p) => (
-                      <SelectItem key={p.id} value={p.name}>
-                        {p.name}
+                    {contacts.map((c) => (
+                      <SelectItem key={c.id} value={c.name}>
+                        {c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -386,7 +381,6 @@ export default function Expenses() {
             <ExpenseTable
               expenses={filteredExpenses}
               projects={projects}
-              payees={payees}
               contacts={contacts}
               showProject={projectFilter === "all"}
               selectedExpenses={selectedExpenses}
