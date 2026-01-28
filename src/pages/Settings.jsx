@@ -75,7 +75,15 @@ export default function Settings() {
 
   const createPayeeMutation = useMutation({
     mutationFn: (data) => base44.entities.Payee.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["payees"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payees"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    },
+  });
+
+  const createContactMutation = useMutation({
+    mutationFn: (data) => base44.entities.Contact.create(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["contacts"] }),
   });
 
   const deletePayeeMutation = useMutation({
@@ -229,20 +237,47 @@ export default function Settings() {
             type: "object",
             properties: {
               name: { type: "string" },
-              category: { type: "string" }
+              category: { type: "string" },
+              phone: { type: "string" },
+              company: { type: "string" }
             }
           }
         }
       });
 
       if (result.status === "success" && result.output) {
-        await Promise.all(result.output.map(row => 
-          createPayeeMutation.mutateAsync({ 
-            name: row.name, 
-            category: row.category || "materials" 
-          }).catch(() => {})
-        ));
-        alert(`Successfully imported ${result.output.length} payees`);
+        const results = await Promise.all(result.output.map(async (row) => {
+          try {
+            // Check if contact already exists by name
+            const existingContact = contacts.find(c => c.name === row.name);
+            let contactId = existingContact?.id;
+            
+            // Create contact if it doesn't exist and has additional info
+            if (!existingContact && (row.phone || row.company)) {
+              const newContact = await createContactMutation.mutateAsync({
+                name: row.name,
+                phone: row.phone || "",
+                company: row.company || "",
+                category: "supplier"
+              });
+              contactId = newContact.id;
+            }
+            
+            // Create payee linked to contact
+            await createPayeeMutation.mutateAsync({ 
+              name: row.name, 
+              category: row.category || "materials",
+              contact_id: contactId
+            });
+            
+            return true;
+          } catch (error) {
+            return false;
+          }
+        }));
+        
+        const successCount = results.filter(r => r).length;
+        alert(`Successfully imported ${successCount} payees and created linked contacts`);
       } else {
         alert("Failed to extract data from file");
       }
