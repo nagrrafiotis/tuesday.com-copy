@@ -108,41 +108,42 @@ export default function Contacts() {
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
       
-      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url,
-        json_schema: {
-          type: "object",
-          properties: {
-            data: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  name: { type: "string" },
-                  email: { type: "string" },
-                  phone: { type: "string" },
-                  company: { type: "string" },
-                  position: { type: "string" },
-                  category: { type: "string" },
-                  notes: { type: "string" }
-                }
-              }
-            }
-          }
-        }
-      });
+      if (lines.length < 2) {
+        alert("CSV file must have a header row and at least one data row");
+        setUploading(false);
+        return;
+      }
 
-      if (result.status === "success" && result.output?.data) {
-        await base44.entities.Contact.bulkCreate(result.output.data);
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const contacts = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const contact = {};
+        
+        headers.forEach((header, index) => {
+          if (values[index]) {
+            contact[header] = values[index];
+          }
+        });
+
+        if (contact.name) {
+          contacts.push(contact);
+        }
+      }
+
+      if (contacts.length > 0) {
+        await base44.entities.Contact.bulkCreate(contacts);
         queryClient.invalidateQueries({ queryKey: ["contacts"] });
-        alert(`Successfully imported ${result.output.data.length} contacts`);
+        alert(`Successfully imported ${contacts.length} contacts`);
       } else {
-        alert("Failed to extract contacts from file");
+        alert("No valid contacts found in file");
       }
     } catch (error) {
-      alert("Error importing file. Please check the format.");
+      alert("Error importing file. Please check the CSV format.");
     }
     
     setUploading(false);
