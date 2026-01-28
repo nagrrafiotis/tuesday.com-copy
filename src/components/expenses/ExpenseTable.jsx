@@ -28,7 +28,7 @@ const categoryConfig = {
   general_expenses: { label: "General", icon: Receipt, color: "bg-gray-100 text-gray-700" },
 };
 
-export default function ExpenseTable({ expenses, projects, onEdit, onDelete, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense }) {
+export default function ExpenseTable({ expenses, projects, payees = [], contacts = [], onEdit, onDelete, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense }) {
   const [columnWidths, setColumnWidths] = useState({
     date: 120,
     category: 150,
@@ -202,7 +202,21 @@ export default function ExpenseTable({ expenses, projects, onEdit, onDelete, sho
                     {getProjectName(expense.project_id)}
                   </TableCell>
                 )}
-                <TableCell className="font-medium text-gray-900">{expense.payee}</TableCell>
+                <TableCell className="font-medium text-gray-900">
+                  <div>
+                    <div>{expense.payee}</div>
+                    {(() => {
+                      const payee = payees.find(p => p.name === expense.payee);
+                      const contact = payee && contacts.find(c => c.id === payee.contact_id);
+                      return contact ? (
+                        <div className="text-xs text-gray-500">
+                          {contact.phone && `${contact.phone} • `}
+                          {contact.company}
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
+                </TableCell>
                 <TableCell className="text-gray-500 max-w-xs truncate">
                   {expense.description || "—"}
                 </TableCell>
