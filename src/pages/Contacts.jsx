@@ -241,7 +241,7 @@ export default function Contacts() {
         {/* Contacts Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredContacts.map((contact) => {
-            const CategoryIcon = categoryIcons[contact.category];
+            const CategoryIcon = categoryIcons[contact.category] || Building2;
             return (
               <Card key={contact.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
