@@ -630,13 +630,21 @@ export default function ProjectDetails() {
               {budgetItems.length > 0 ? (
                 <div className="space-y-3">
                   {budgetItems.map((item, index) => {
-                    const [isExpanded, setIsExpanded] = React.useState(false);
+                    const isExpanded = expandedItems.has(item.id);
                     
                     return (
                       <div key={item.id} className="bg-gray-50 rounded-lg border">
                         <button
                           type="button"
-                          onClick={() => setIsExpanded(!isExpanded)}
+                          onClick={() => {
+                            const newExpanded = new Set(expandedItems);
+                            if (isExpanded) {
+                              newExpanded.delete(item.id);
+                            } else {
+                              newExpanded.add(item.id);
+                            }
+                            setExpandedItems(newExpanded);
+                          }}
                           className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 rounded-lg transition-colors"
                         >
                           <div className="flex items-center gap-3 text-left">
