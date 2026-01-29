@@ -628,147 +628,178 @@ export default function ProjectDetails() {
 
               {budgetItems.length > 0 ? (
                 <div className="space-y-3">
-                  {budgetItems.map((item) => (
-                   <div key={item.id} className="bg-gray-50 p-4 rounded-lg border space-y-3">
-                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                       <div>
-                         <label className="text-xs text-gray-500 mb-1 block">Category</label>
-                         <Select
-                           value={item.category}
-                           onValueChange={(v) => updateBudgetItem(item.id, 'category', v)}
-                         >
-                           <SelectTrigger>
-                             <SelectValue placeholder="Select category" />
-                           </SelectTrigger>
-                           <SelectContent>
-                             <SelectItem value="labor">Labor</SelectItem>
-                             <SelectItem value="subcontractor">Subcontractor</SelectItem>
-                             <SelectItem value="materials">Materials</SelectItem>
-                             <SelectItem value="equipment">Equipment</SelectItem>
-                             <SelectItem value="general_expenses">General Expenses</SelectItem>
-                           </SelectContent>
-                         </Select>
-                       </div>
-                       <div>
-                         <label className="text-xs text-gray-500 mb-1 block">Subcategory</label>
-                         <Select
-                           value={item.subcategory}
-                           onValueChange={(v) => updateBudgetItem(item.id, 'subcategory', v)}
-                         >
-                           <SelectTrigger>
-                             <SelectValue placeholder="Select subcategory" />
-                           </SelectTrigger>
-                           <SelectContent>
-                             {subcategories
-                               .filter(s => s.parent_category === item.category)
-                               .map((subcat) => (
-                                 <SelectItem key={subcat.id} value={subcat.name}>
-                                   {subcat.name}
-                                 </SelectItem>
-                               ))}
-                           </SelectContent>
-                         </Select>
-                       </div>
-                       <div>
-                         <label className="text-xs text-gray-500 mb-1 block">Payee</label>
-                         <Select
-                           value={item.payee}
-                           onValueChange={(v) => updateBudgetItem(item.id, 'payee', v)}
-                         >
-                           <SelectTrigger>
-                             <SelectValue placeholder="Select payee" />
-                           </SelectTrigger>
-                           <SelectContent>
-                             {contacts.map((contact) => (
-                               <SelectItem key={contact.id} value={contact.name}>
-                                 {contact.name}
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                       </div>
-                       <div>
-                         <label className="text-xs text-gray-500 mb-1 block">Payment Source</label>
-                         <Select
-                           value={item.payment_source}
-                           onValueChange={(v) => updateBudgetItem(item.id, 'payment_source', v)}
-                         >
-                           <SelectTrigger>
-                             <SelectValue placeholder="Select source" />
-                           </SelectTrigger>
-                           <SelectContent>
-                             {paymentSources.map((ps) => (
-                               <SelectItem key={ps.id} value={ps.name}>
-                                 {ps.name}
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                       </div>
-                     </div>
-                     <div>
-                       <label className="text-xs text-gray-500 mb-1 block">Description</label>
-                       <Input
-                         placeholder="Description"
-                         value={item.description}
-                         onChange={(e) => updateBudgetItem(item.id, 'description', e.target.value)}
-                       />
-                     </div>
-                     <div className="grid grid-cols-5 gap-3 items-end">
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Quantity</label>
-                          <Input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => updateBudgetItem(item.id, 'quantity', Number(e.target.value))}
-                            min="0"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Unit</label>
-                          <Select
-                            value={item.unit}
-                            onValueChange={(v) => updateBudgetItem(item.id, 'unit', v)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select unit" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="m">m</SelectItem>
-                              <SelectItem value="m²">m²</SelectItem>
-                              <SelectItem value="m³">m³</SelectItem>
-                              <SelectItem value="kg">kg</SelectItem>
-                              <SelectItem value="piece">piece</SelectItem>
-                              <SelectItem value="day">day</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Unit Cost (€)</label>
-                          <Input
-                            type="number"
-                            value={item.unit_cost}
-                            onChange={(e) => updateBudgetItem(item.id, 'unit_cost', Number(e.target.value))}
-                            min="0"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Total</label>
-                          <div className="text-lg font-semibold text-[#1e3a5f] py-2">
-                            €{item.total_cost?.toLocaleString() || 0}
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeBudgetItem(item.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  {budgetItems.map((item, index) => {
+                    const [isExpanded, setIsExpanded] = React.useState(false);
+                    
+                    return (
+                      <div key={item.id} className="bg-gray-50 rounded-lg border">
+                        <button
+                          type="button"
+                          onClick={() => setIsExpanded(!isExpanded)}
+                          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 rounded-lg transition-colors"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                          <div className="flex items-center gap-3 text-left">
+                            <span className="text-sm font-medium text-gray-900">
+                              {item.description || `Budget Item ${index + 1}`}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {item.category} {item.subcategory && `• ${item.subcategory}`}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm font-semibold text-[#1e3a5f]">
+                              €{item.total_cost?.toLocaleString() || 0}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeBudgetItem(item.id);
+                              }}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="px-4 pb-4 space-y-3">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                              <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Category</label>
+                                <Select
+                                  value={item.category}
+                                  onValueChange={(v) => updateBudgetItem(item.id, 'category', v)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select category" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="labor">Labor</SelectItem>
+                                    <SelectItem value="subcontractor">Subcontractor</SelectItem>
+                                    <SelectItem value="materials">Materials</SelectItem>
+                                    <SelectItem value="equipment">Equipment</SelectItem>
+                                    <SelectItem value="general_expenses">General Expenses</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Subcategory</label>
+                                <Select
+                                  value={item.subcategory}
+                                  onValueChange={(v) => updateBudgetItem(item.id, 'subcategory', v)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select subcategory" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {subcategories
+                                      .filter(s => s.parent_category === item.category)
+                                      .map((subcat) => (
+                                        <SelectItem key={subcat.id} value={subcat.name}>
+                                          {subcat.name}
+                                        </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Payee</label>
+                                <Select
+                                  value={item.payee}
+                                  onValueChange={(v) => updateBudgetItem(item.id, 'payee', v)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select payee" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {contacts.map((contact) => (
+                                      <SelectItem key={contact.id} value={contact.name}>
+                                        {contact.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Payment Source</label>
+                                <Select
+                                  value={item.payment_source}
+                                  onValueChange={(v) => updateBudgetItem(item.id, 'payment_source', v)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select source" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {paymentSources.map((ps) => (
+                                      <SelectItem key={ps.id} value={ps.name}>
+                                        {ps.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-xs text-gray-500 mb-1 block">Description</label>
+                              <Input
+                                placeholder="Description"
+                                value={item.description}
+                                onChange={(e) => updateBudgetItem(item.id, 'description', e.target.value)}
+                              />
+                            </div>
+                            <div className="grid grid-cols-4 gap-3">
+                              <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Quantity</label>
+                                <Input
+                                  type="number"
+                                  value={item.quantity}
+                                  onChange={(e) => updateBudgetItem(item.id, 'quantity', Number(e.target.value))}
+                                  min="0"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Unit</label>
+                                <Select
+                                  value={item.unit}
+                                  onValueChange={(v) => updateBudgetItem(item.id, 'unit', v)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select unit" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="m">m</SelectItem>
+                                    <SelectItem value="m²">m²</SelectItem>
+                                    <SelectItem value="m³">m³</SelectItem>
+                                    <SelectItem value="kg">kg</SelectItem>
+                                    <SelectItem value="piece">piece</SelectItem>
+                                    <SelectItem value="day">day</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Unit Cost (€)</label>
+                                <Input
+                                  type="number"
+                                  value={item.unit_cost}
+                                  onChange={(e) => updateBudgetItem(item.id, 'unit_cost', Number(e.target.value))}
+                                  min="0"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Total</label>
+                                <div className="text-lg font-semibold text-[#1e3a5f] py-2">
+                                  €{item.total_cost?.toLocaleString() || 0}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-sm text-gray-500 text-center py-8">
