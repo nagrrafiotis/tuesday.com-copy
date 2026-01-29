@@ -43,8 +43,9 @@ export default function IncomeTable({ incomes, projects, contacts = [], onEdit, 
   const incomeCategories = dropdownLists.find(l => l.list_name === "income_categories")?.options || ["sales", "investment", "rental", "other"];
 
   const getCategoryConfig = (category) => {
-    const index = incomeCategories.indexOf(category);
-    const color = index >= 0 ? categoryColors[index % categoryColors.length] : categoryColors[categoryColors.length - 1];
+    const incomeList = dropdownLists.find(l => l.list_name === "income_categories");
+    const customColor = incomeList?.colors?.[category];
+    const color = customColor || categoryColors[incomeCategories.indexOf(category) % categoryColors.length] || categoryColors[categoryColors.length - 1];
     const label = category.charAt(0).toUpperCase() + category.slice(1);
     return { label, color };
   };

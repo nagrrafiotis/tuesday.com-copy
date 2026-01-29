@@ -4,8 +4,25 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X } from "lucide-react";
+import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X, Palette } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+const COLOR_OPTIONS = [
+  { value: "bg-emerald-100 text-emerald-700", label: "Emerald" },
+  { value: "bg-blue-100 text-blue-700", label: "Blue" },
+  { value: "bg-purple-100 text-purple-700", label: "Purple" },
+  { value: "bg-amber-100 text-amber-700", label: "Amber" },
+  { value: "bg-pink-100 text-pink-700", label: "Pink" },
+  { value: "bg-indigo-100 text-indigo-700", label: "Indigo" },
+  { value: "bg-rose-100 text-rose-700", label: "Rose" },
+  { value: "bg-cyan-100 text-cyan-700", label: "Cyan" },
+  { value: "bg-orange-100 text-orange-700", label: "Orange" },
+  { value: "bg-teal-100 text-teal-700", label: "Teal" },
+  { value: "bg-violet-100 text-violet-700", label: "Violet" },
+  { value: "bg-lime-100 text-lime-700", label: "Lime" },
+  { value: "bg-gray-100 text-gray-700", label: "Gray" },
+];
 
 const DEFAULT_LISTS = {
   units: ["m", "m²", "m³", "kg", "piece", "day"],
@@ -38,6 +55,7 @@ export default function Settings() {
   const [editingItem, setEditingItem] = useState({ listName: null, index: null, value: "" });
   const [editingSubcategory, setEditingSubcategory] = useState(null);
   const [editingPaymentSource, setEditingPaymentSource] = useState(null);
+  const [colorPopover, setColorPopover] = useState({ listName: null, option: null });
 
   const { data: lists = [], isLoading } = useQuery({
     queryKey: ["dropdown-lists"],
@@ -163,6 +181,32 @@ export default function Settings() {
       });
     }
     setEditingItem({ listName: null, index: null, value: "" });
+  };
+
+  const updateColor = async (listName, option, color) => {
+    const existingList = lists.find((l) => l.list_name === listName);
+    const currentColors = existingList?.colors || {};
+    const updatedColors = { ...currentColors, [option]: color };
+
+    if (existingList) {
+      await updateMutation.mutateAsync({
+        id: existingList.id,
+        data: { colors: updatedColors },
+      });
+    } else {
+      const currentOptions = DEFAULT_LISTS[listName] || [];
+      await createMutation.mutateAsync({
+        list_name: listName,
+        options: currentOptions,
+        colors: updatedColors,
+      });
+    }
+    setColorPopover({ listName: null, option: null });
+  };
+
+  const getOptionColor = (listName, option) => {
+    const existingList = lists.find((l) => l.list_name === listName);
+    return existingList?.colors?.[option] || "bg-gray-100 text-gray-700";
   };
 
   const exportBackup = async () => {
@@ -694,8 +738,41 @@ export default function Settings() {
                           </>
                         ) : (
                           <>
-                            <span className="text-sm text-gray-700">{option}</span>
+                            <div className="flex items-center gap-2 flex-1">
+                              {listName === "income_categories" && (
+                                <div className={`w-4 h-4 rounded ${getOptionColor(listName, option)} border`} />
+                              )}
+                              <span className="text-sm text-gray-700">{option}</span>
+                            </div>
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {listName === "income_categories" && (
+                                <Popover 
+                                  open={colorPopover.listName === listName && colorPopover.option === option}
+                                  onOpenChange={(open) => setColorPopover(open ? { listName, option } : { listName: null, option: null })}
+                                >
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                    >
+                                      <Palette className="w-3 h-3 text-[#1e3a5f]" />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-48 p-2">
+                                    <div className="grid grid-cols-3 gap-2">
+                                      {COLOR_OPTIONS.map((color) => (
+                                        <button
+                                          key={color.value}
+                                          onClick={() => updateColor(listName, option, color.value)}
+                                          className={`w-full h-8 rounded ${color.value} hover:opacity-80 transition-opacity border`}
+                                          title={color.label}
+                                        />
+                                      ))}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="icon"
