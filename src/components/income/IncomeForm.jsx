@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -31,6 +31,22 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
     }
   );
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (income) {
+      setFormData(income);
+    } else {
+      setFormData({
+        project_id: "",
+        source: "",
+        description: "",
+        date: new Date().toISOString().split("T")[0],
+        amount: "",
+        payment_source: "",
+        category: "sales",
+      });
+    }
+  }, [income, open]);
 
   const { data: paymentSources = [] } = useQuery({
     queryKey: ["paymentSources"],
