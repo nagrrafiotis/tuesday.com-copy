@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
 import ExpenseTable from "@/components/expenses/ExpenseTable";
 import ExpenseSummary from "@/components/expenses/ExpenseSummary";
-import ContactCard from "@/components/contacts/ContactCard";
+import ContactCard from "@/components/contacts/ContactCard.jsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import IncomeForm from "@/components/income/IncomeForm";
 import IncomeTable from "@/components/income/IncomeTable";
 import IncomeSummary from "@/components/income/IncomeSummary";
-import ContactCard from "@/components/contacts/ContactCard";
+import ContactCard from "@/components/contacts/ContactCard.jsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
