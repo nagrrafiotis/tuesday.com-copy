@@ -27,7 +27,7 @@ const categoryConfig = {
   other: { label: "Other", color: "bg-gray-100 text-gray-700" },
 };
 
-export default function IncomeTable({ incomes, projects, onEdit, onDelete, showProject = false, selectedIncomes = [], onSelectAll, onSelectIncome }) {
+export default function IncomeTable({ incomes, projects, contacts = [], onEdit, onDelete, showProject = false, selectedIncomes = [], onSelectAll, onSelectIncome, onViewContact }) {
   const getProjectName = (projectId) => {
     const project = projects?.find((p) => p.id === projectId);
     return project?.name || "Unknown";
@@ -102,7 +102,21 @@ export default function IncomeTable({ incomes, projects, onEdit, onDelete, showP
                 {showProject && (
                   <TableCell className="text-gray-600">{getProjectName(income.project_id)}</TableCell>
                 )}
-                <TableCell className="font-medium text-gray-900">{income.source}</TableCell>
+                <TableCell className="font-medium text-gray-900">
+                  {(() => {
+                    const contact = contacts.find(c => c.name === income.source);
+                    return contact ? (
+                      <button
+                        onClick={() => onViewContact?.(contact)}
+                        className="text-left hover:text-[#1e3a5f] underline decoration-dotted underline-offset-2 transition-colors"
+                      >
+                        {income.source}
+                      </button>
+                    ) : (
+                      <span>{income.source}</span>
+                    );
+                  })()}
+                </TableCell>
                 <TableCell className="text-gray-500 max-w-xs truncate">
                   {income.description || "—"}
                 </TableCell>

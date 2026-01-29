@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
 import ExpenseTable from "@/components/expenses/ExpenseTable";
 import ExpenseSummary from "@/components/expenses/ExpenseSummary";
+import ContactCard from "@/components/contacts/ContactCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,6 +27,7 @@ export default function Expenses() {
   const [payeeFilter, setPayeeFilter] = useState("all");
   const [paymentSourceFilter, setPaymentSourceFilter] = useState("all");
   const [selectedExpenses, setSelectedExpenses] = useState([]);
+  const [viewingContact, setViewingContact] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -383,6 +385,7 @@ export default function Expenses() {
                 setShowForm(true);
               }}
               onDelete={handleDelete}
+              onViewContact={(contact) => setViewingContact(contact)}
             />
           </div>
 
@@ -410,6 +413,13 @@ export default function Expenses() {
           setEditingExpense(null);
         }}
         onSubmit={handleSubmit}
+      />
+
+      {/* Contact Card */}
+      <ContactCard
+        contact={viewingContact}
+        open={!!viewingContact}
+        onClose={() => setViewingContact(null)}
       />
     </div>
   );

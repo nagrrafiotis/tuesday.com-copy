@@ -28,7 +28,7 @@ const categoryConfig = {
   general_expenses: { label: "General", icon: Receipt, color: "bg-gray-100 text-gray-700" },
 };
 
-export default function ExpenseTable({ expenses, projects, contacts = [], onEdit, onDelete, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense }) {
+export default function ExpenseTable({ expenses, projects, contacts = [], onEdit, onDelete, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense, onViewContact }) {
   const [columnWidths, setColumnWidths] = useState({
     date: 120,
     category: 150,
@@ -204,12 +204,25 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                 )}
                 <TableCell className="font-medium text-gray-900">
                   <div>
-                    <div>{expense.payee}</div>
                     {(() => {
                       const contact = contacts.find(c => c.name === expense.payee);
-                      return contact && (contact.phone || contact.company) ? (
+                      return contact ? (
+                        <button
+                          onClick={() => onViewContact?.(contact)}
+                          className="text-left hover:text-[#1e3a5f] underline decoration-dotted underline-offset-2 transition-colors"
+                        >
+                          {expense.payee}
+                        </button>
+                      ) : (
+                        <span>{expense.payee}</span>
+                      );
+                    })()}
+                    {(() => {
+                      const contact = contacts.find(c => c.name === expense.payee);
+                      const phones = contact?.phones?.filter(p => p) || [];
+                      return contact && (phones.length > 0 || contact.company) ? (
                         <div className="text-xs text-gray-500">
-                          {contact.phone && `${contact.phone} • `}
+                          {phones[0] && `${phones[0]} • `}
                           {contact.company}
                         </div>
                       ) : null;

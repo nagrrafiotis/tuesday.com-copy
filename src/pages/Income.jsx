@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import IncomeForm from "@/components/income/IncomeForm";
 import IncomeTable from "@/components/income/IncomeTable";
 import IncomeSummary from "@/components/income/IncomeSummary";
+import ContactCard from "@/components/contacts/ContactCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,6 +25,7 @@ export default function Income() {
   const [projectFilter, setProjectFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [selectedIncomes, setSelectedIncomes] = useState([]);
+  const [viewingContact, setViewingContact] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -35,6 +37,11 @@ export default function Income() {
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list("-created_date"),
+  });
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => base44.entities.Contact.list("name"),
   });
 
   const createMutation = useMutation({
@@ -330,6 +337,7 @@ export default function Income() {
             <IncomeTable
               incomes={filteredIncomes}
               projects={projects}
+              contacts={contacts}
               showProject={projectFilter === "all"}
               selectedIncomes={selectedIncomes}
               onSelectAll={toggleSelectAll}
@@ -339,6 +347,7 @@ export default function Income() {
                 setShowForm(true);
               }}
               onDelete={handleDelete}
+              onViewContact={(contact) => setViewingContact(contact)}
             />
           </div>
 
@@ -359,6 +368,13 @@ export default function Income() {
           setEditingIncome(null);
         }}
         onSubmit={handleSubmit}
+      />
+
+      {/* Contact Card */}
+      <ContactCard
+        contact={viewingContact}
+        open={!!viewingContact}
+        onClose={() => setViewingContact(null)}
       />
     </div>
   );
