@@ -6,6 +6,7 @@ import ExpenseForm from "@/components/expenses/ExpenseForm";
 import ExpenseTable from "@/components/expenses/ExpenseTable";
 import ExpenseSummary from "@/components/expenses/ExpenseSummary";
 import ContactCard from "@/components/contacts/ContactCard.jsx";
+import ContactForm from "@/components/contacts/ContactForm.jsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,6 +29,7 @@ export default function Expenses() {
   const [paymentSourceFilter, setPaymentSourceFilter] = useState("all");
   const [selectedExpenses, setSelectedExpenses] = useState([]);
   const [viewingContact, setViewingContact] = useState(null);
+  const [editingContact, setEditingContact] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -44,6 +46,14 @@ export default function Expenses() {
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => base44.entities.Contact.list("name"),
+  });
+
+  const updateContactMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Contact.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      setEditingContact(null);
+    },
   });
 
   const { data: paymentSources = [] } = useQuery({
@@ -420,6 +430,15 @@ export default function Expenses() {
         contact={viewingContact}
         open={!!viewingContact}
         onClose={() => setViewingContact(null)}
+        onEdit={(contact) => setEditingContact(contact)}
+      />
+
+      {/* Contact Form */}
+      <ContactForm
+        contact={editingContact}
+        open={!!editingContact}
+        onClose={() => setEditingContact(null)}
+        onSubmit={(data) => updateContactMutation.mutate({ id: editingContact.id, data })}
       />
     </div>
   );

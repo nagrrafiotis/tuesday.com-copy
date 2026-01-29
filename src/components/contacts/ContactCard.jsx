@@ -6,7 +6,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, Building2, Briefcase, FileText, User, Package, Wrench, Handshake, CircleDot } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Mail, Phone, Building2, Briefcase, FileText, User, Package, Wrench, Handshake, CircleDot, Pencil } from "lucide-react";
 
 const categoryIcons = {
   client: User,
@@ -24,7 +25,7 @@ const categoryColors = {
   other: "bg-gray-100 text-gray-700",
 };
 
-export default function ContactCard({ contact, open, onClose }) {
+export default function ContactCard({ contact, open, onClose, onEdit }) {
   if (!contact) return null;
 
   const CategoryIcon = categoryIcons[contact.category] || CircleDot;
@@ -33,17 +34,30 @@ export default function ContactCard({ contact, open, onClose }) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-[#1e3a5f]/10 flex items-center justify-center">
-              <User className="w-6 h-6 text-[#1e3a5f]" />
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-[#1e3a5f]/10 flex items-center justify-center">
+                <User className="w-6 h-6 text-[#1e3a5f]" />
+              </div>
+              <div>
+                <div className="text-xl font-semibold">{contact.name}</div>
+                <Badge className={`${categoryColors[contact.category]} border-0 gap-1.5 mt-1`}>
+                  <CategoryIcon className="w-3 h-3" />
+                  {contact.category}
+                </Badge>
+              </div>
             </div>
-            <div>
-              <div className="text-xl font-semibold">{contact.name}</div>
-              <Badge className={`${categoryColors[contact.category]} border-0 gap-1.5 mt-1`}>
-                <CategoryIcon className="w-3 h-3" />
-                {contact.category}
-              </Badge>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                onEdit?.(contact);
+                onClose();
+              }}
+              className="shrink-0"
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
           </DialogTitle>
         </DialogHeader>
 
