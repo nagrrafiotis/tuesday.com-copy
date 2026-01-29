@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Plus, Search, Download, Receipt, Upload, Trash2 } from "lucide-react";
 
 export default function Expenses() {
@@ -299,19 +300,16 @@ export default function Expenses() {
                   />
                 </div>
 
-                <Select value={projectFilter} onValueChange={setProjectFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Projects</SelectItem>
-                    {projects.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={projectFilter}
+                  onValueChange={setProjectFilter}
+                  placeholder="Project"
+                  triggerClassName="w-[180px]"
+                  items={[
+                    { value: "all", label: "All Projects" },
+                    ...projects.map(p => ({ value: p.id, label: p.name }))
+                  ]}
+                />
 
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                   <SelectTrigger className="w-[160px]">
@@ -327,33 +325,27 @@ export default function Expenses() {
                   </SelectContent>
                 </Select>
 
-                <Select value={payeeFilter} onValueChange={setPayeeFilter}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Payee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Payees</SelectItem>
-                    {contacts.map((c) => (
-                      <SelectItem key={c.id} value={c.name}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={payeeFilter}
+                  onValueChange={setPayeeFilter}
+                  placeholder="Payee"
+                  triggerClassName="w-[160px]"
+                  items={[
+                    { value: "all", label: "All Payees" },
+                    ...contacts.map(c => ({ value: c.name, label: c.name }))
+                  ]}
+                />
 
-                <Select value={paymentSourceFilter} onValueChange={setPaymentSourceFilter}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Payment Source" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Payment Sources</SelectItem>
-                    {paymentSources.map((ps) => (
-                      <SelectItem key={ps.id} value={ps.name}>
-                        {ps.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={paymentSourceFilter}
+                  onValueChange={setPaymentSourceFilter}
+                  placeholder="Payment Source"
+                  triggerClassName="w-[160px]"
+                  items={[
+                    { value: "all", label: "All Payment Sources" },
+                    ...paymentSources.map(ps => ({ value: ps.name, label: ps.name }))
+                  ]}
+                />
               </div>
             </motion.div>
 
