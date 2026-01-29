@@ -248,6 +248,15 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               </motion.tr>
             );
           })}
+          <TableRow className="bg-gray-50 border-t-2 border-gray-200">
+            <TableCell colSpan={showProject ? 8 : 7} className="text-right font-bold text-gray-900">
+              Total
+            </TableCell>
+            <TableCell className="text-right font-bold text-[#1e3a5f] text-lg">
+              {formatCurrency(expenses.reduce((sum, e) => sum + (e.amount || 0), 0))}
+            </TableCell>
+            <TableCell />
+          </TableRow>
         </TableBody>
       </Table>
     </motion.div>
