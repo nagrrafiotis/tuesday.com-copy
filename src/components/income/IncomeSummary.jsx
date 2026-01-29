@@ -1,15 +1,33 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, DollarSign } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 
-const categoryConfig = {
-  sales: { label: "Sales", color: "bg-emerald-500" },
-  investment: { label: "Investment", color: "bg-blue-500" },
-  rental: { label: "Rental", color: "bg-purple-500" },
-  other: { label: "Other", color: "bg-gray-500" },
+const colorToBg = {
+  "bg-emerald-100 text-emerald-700": "bg-emerald-500",
+  "bg-blue-100 text-blue-700": "bg-blue-500",
+  "bg-purple-100 text-purple-700": "bg-purple-500",
+  "bg-amber-100 text-amber-700": "bg-amber-500",
+  "bg-pink-100 text-pink-700": "bg-pink-500",
+  "bg-indigo-100 text-indigo-700": "bg-indigo-500",
+  "bg-rose-100 text-rose-700": "bg-rose-500",
+  "bg-cyan-100 text-cyan-700": "bg-cyan-500",
+  "bg-orange-100 text-orange-700": "bg-orange-500",
+  "bg-teal-100 text-teal-700": "bg-teal-500",
+  "bg-violet-100 text-violet-700": "bg-violet-500",
+  "bg-lime-100 text-lime-700": "bg-lime-500",
+  "bg-gray-100 text-gray-700": "bg-gray-500",
 };
 
 export default function IncomeSummary({ incomes }) {
+  const { data: dropdownLists = [] } = useQuery({
+    queryKey: ["dropdown-lists"],
+    queryFn: () => base44.entities.DropdownList.list(),
+  });
+
+  const incomeList = dropdownLists.find(l => l.list_name === "income_categories");
+  const incomeCategories = incomeList?.options || ["sales", "investment", "rental", "other"];
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("de-DE", {
       style: "currency",
@@ -20,12 +38,16 @@ export default function IncomeSummary({ incomes }) {
 
   const totalIncome = incomes.reduce((sum, i) => sum + (i.amount || 0), 0);
 
-  const byCategory = Object.keys(categoryConfig).map((key) => {
-    const categoryIncomes = incomes.filter((i) => i.category === key);
+  const byCategory = incomeCategories.map((category) => {
+    const categoryIncomes = incomes.filter((i) => i.category === category);
     const total = categoryIncomes.reduce((sum, i) => sum + (i.amount || 0), 0);
+    const customColor = incomeList?.colors?.[category];
+    const bgColor = customColor ? colorToBg[customColor] || "bg-gray-500" : "bg-gray-500";
+    
     return {
-      key,
-      ...categoryConfig[key],
+      key: category,
+      label: category.charAt(0).toUpperCase() + category.slice(1),
+      color: bgColor,
       total,
       count: categoryIncomes.length,
       percentage: totalIncome > 0 ? (total / totalIncome) * 100 : 0,
