@@ -203,31 +203,19 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                   </TableCell>
                 )}
                 <TableCell className="font-medium text-gray-900">
-                  <div>
-                    {(() => {
-                      const contact = contacts.find(c => c.name === expense.payee);
-                      return contact ? (
-                        <button
-                          onClick={() => onViewContact?.(contact)}
-                          className="text-left hover:text-[#1e3a5f] underline decoration-dotted underline-offset-2 transition-colors"
-                        >
-                          {expense.payee}
-                        </button>
-                      ) : (
-                        <span>{expense.payee}</span>
-                      );
-                    })()}
-                    {(() => {
-                      const contact = contacts.find(c => c.name === expense.payee);
-                      const phones = contact?.phones?.filter(p => p) || [];
-                      return contact && (phones.length > 0 || contact.company) ? (
-                        <div className="text-xs text-gray-500">
-                          {phones[0] && `${phones[0]} • `}
-                          {contact.company}
-                        </div>
-                      ) : null;
-                    })()}
-                  </div>
+                  {(() => {
+                    const contact = contacts.find(c => c.name === expense.payee);
+                    return contact ? (
+                      <button
+                        onClick={() => onViewContact?.(contact)}
+                        className="text-left hover:text-[#1e3a5f] underline decoration-dotted underline-offset-2 transition-colors"
+                      >
+                        {expense.payee}
+                      </button>
+                    ) : (
+                      <span>{expense.payee}</span>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell className="text-gray-500 max-w-xs truncate">
                   {expense.description || "—"}
