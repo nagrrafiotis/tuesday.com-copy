@@ -402,7 +402,7 @@ export default function Expenses() {
           {/* Sidebar Summary */}
           <div className="xl:col-span-1">
             <ExpenseSummary
-              expenses={projectFilter !== "all" ? filteredExpenses : expenses}
+              expenses={filteredExpenses}
               budget={
                 projectFilter !== "all"
                   ? projects.find((p) => p.id === projectFilter)?.budget
