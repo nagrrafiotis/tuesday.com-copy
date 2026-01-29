@@ -34,7 +34,12 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
 
   useEffect(() => {
     if (income) {
-      setFormData(income);
+      setFormData({
+        ...income,
+        amount: income.amount || "",
+        payment_source: income.payment_source || "",
+        category: income.category || "sales",
+      });
     } else {
       setFormData({
         project_id: "",
