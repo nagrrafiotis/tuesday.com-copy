@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Mail, Phone, Building2, Users, Package, Wrench, Handshake, MoreHorizontal, Pencil, Trash2, Upload, Download } from "lucide-react";
+import { Plus, Search, Mail, Phone, Building2, Users, Package, Wrench, Handshake, MoreHorizontal, Pencil, Trash2, Upload, Download, Grid3x3, List } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import ContactForm from "../components/contacts/ContactForm";
 
 const categoryIcons = {
@@ -42,6 +43,8 @@ export default function Contacts() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [uploading, setUploading] = useState(false);
+  const [viewMode, setViewMode] = useState("grid");
+  const [selectedContacts, setSelectedContacts] = useState([]);
 
   const queryClient = useQueryClient();
 
@@ -182,6 +185,20 @@ export default function Contacts() {
     return matchesSearch && matchesCategory;
   });
 
+  const toggleSelectAll = () => {
+    if (selectedContacts.length === filteredContacts.length) {
+      setSelectedContacts([]);
+    } else {
+      setSelectedContacts(filteredContacts.map(c => c.id));
+    }
+  };
+
+  const toggleSelectContact = (id) => {
+    setSelectedContacts(prev => 
+      prev.includes(id) ? prev.filter(cid => cid !== id) : [...prev, id]
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -209,6 +226,24 @@ export default function Contacts() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === "grid" ? "default" : "outline"}
+              onClick={() => setViewMode("grid")}
+              size="icon"
+              className={viewMode === "grid" ? "bg-[#1e3a5f]" : ""}
+            >
+              <Grid3x3 className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "outline"}
+              onClick={() => setViewMode("list")}
+              size="icon"
+              className={viewMode === "list" ? "bg-[#1e3a5f]" : ""}
+            >
+              <List className="w-4 h-4" />
+            </Button>
           </div>
           <div className="flex gap-2">
             {["all", "client", "supplier", "contractor", "partner", "other"].map((cat) => (
@@ -261,15 +296,54 @@ export default function Contacts() {
           </Button>
         </div>
 
-        {/* Contacts Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Selection Actions */}
+        {selectedContacts.length > 0 && (
+          <div className="mb-4 p-4 bg-[#1e3a5f] text-white rounded-lg flex items-center justify-between">
+            <span>{selectedContacts.length} contact{selectedContacts.length > 1 ? 's' : ''} selected</span>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (confirm(`Delete ${selectedContacts.length} selected contacts?`)) {
+                  Promise.all(selectedContacts.map(id => deleteMutation.mutateAsync(id)))
+                    .then(() => setSelectedContacts([]));
+                }
+              }}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Selected
+            </Button>
+          </div>
+        )}
+
+        {/* Select All */}
+        {filteredContacts.length > 0 && (
+          <div className="mb-4 flex items-center gap-2">
+            <Checkbox
+              checked={selectedContacts.length === filteredContacts.length && filteredContacts.length > 0}
+              onCheckedChange={toggleSelectAll}
+              id="select-all"
+            />
+            <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+              Select All ({filteredContacts.length})
+            </label>
+          </div>
+        )}
+
+        {/* Contacts Grid/List */}
+        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
           {filteredContacts.map((contact) => {
             const CategoryIcon = categoryIcons[contact.category] || Building2;
+            const isSelected = selectedContacts.includes(contact.id);
             return (
-              <Card key={contact.id} className="hover:shadow-lg transition-shadow">
+              <Card key={contact.id} className={`hover:shadow-lg transition-shadow ${isSelected ? 'ring-2 ring-[#1e3a5f]' : ''}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelectContact(contact.id)}
+                      />
                       <div className="w-12 h-12 rounded-full bg-[#1e3a5f] flex items-center justify-center text-white font-semibold text-lg">
                         {contact.name.charAt(0).toUpperCase()}
                       </div>
