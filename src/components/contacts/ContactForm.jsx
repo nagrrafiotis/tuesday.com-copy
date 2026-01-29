@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Plus, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -21,8 +22,8 @@ function ContactForm({ contact, open, onClose, onSubmit }) {
   const [formData, setFormData] = useState(
     contact || {
       name: "",
-      email: "",
-      phone: "",
+      emails: [""],
+      phones: [""],
       company: "",
       position: "",
       category: "other",
@@ -32,12 +33,16 @@ function ContactForm({ contact, open, onClose, onSubmit }) {
 
   useEffect(() => {
     if (contact) {
-      setFormData(contact);
+      setFormData({
+        ...contact,
+        emails: contact.emails?.length > 0 ? contact.emails : [""],
+        phones: contact.phones?.length > 0 ? contact.phones : [""],
+      });
     } else {
       setFormData({
         name: "",
-        email: "",
-        phone: "",
+        emails: [""],
+        phones: [""],
         company: "",
         position: "",
         category: "other",
@@ -46,12 +51,45 @@ function ContactForm({ contact, open, onClose, onSubmit }) {
     }
   }, [contact]);
 
+  const addEmail = () => {
+    setFormData({ ...formData, emails: [...formData.emails, ""] });
+  };
+
+  const removeEmail = (index) => {
+    setFormData({ ...formData, emails: formData.emails.filter((_, i) => i !== index) });
+  };
+
+  const updateEmail = (index, value) => {
+    const newEmails = [...formData.emails];
+    newEmails[index] = value;
+    setFormData({ ...formData, emails: newEmails });
+  };
+
+  const addPhone = () => {
+    setFormData({ ...formData, phones: [...formData.phones, ""] });
+  };
+
+  const removePhone = (index) => {
+    setFormData({ ...formData, phones: formData.phones.filter((_, i) => i !== index) });
+  };
+
+  const updatePhone = (index, value) => {
+    const newPhones = [...formData.phones];
+    newPhones[index] = value;
+    setFormData({ ...formData, phones: newPhones });
+  };
+
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await onSubmit(formData);
+    const cleanedData = {
+      ...formData,
+      emails: formData.emails.filter(e => e.trim()),
+      phones: formData.phones.filter(p => p.trim()),
+    };
+    await onSubmit(cleanedData);
     setLoading(false);
   };
 
@@ -76,26 +114,67 @@ function ContactForm({ contact, open, onClose, onSubmit }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@example.com"
-                className="mt-1.5"
-              />
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label>Emails</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={addEmail}>
+                <Plus className="w-4 h-4 mr-1" />
+                Add Email
+              </Button>
             </div>
-            <div>
-              <Label>Phone</Label>
-              <Input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+1234567890"
-                className="mt-1.5"
-              />
+            <div className="space-y-2">
+              {formData.emails.map((email, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => updateEmail(index, e.target.value)}
+                    placeholder="email@example.com"
+                  />
+                  {formData.emails.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeEmail(index)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label>Phones</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={addPhone}>
+                <Plus className="w-4 h-4 mr-1" />
+                Add Phone
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {formData.phones.map((phone, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => updatePhone(index, e.target.value)}
+                    placeholder="+1234567890"
+                  />
+                  {formData.phones.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removePhone(index)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 

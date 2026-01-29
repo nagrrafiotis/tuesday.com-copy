@@ -78,11 +78,11 @@ export default function Contacts() {
   });
 
   const exportToCSV = () => {
-    const headers = ["Name", "Email", "Phone", "Company", "Position", "Category", "Notes"];
+    const headers = ["Name", "Emails", "Phones", "Company", "Position", "Category", "Notes"];
     const rows = filteredContacts.map(c => [
       c.name,
-      c.email || "",
-      c.phone || "",
+      c.emails?.join("; ") || "",
+      c.phones?.join("; ") || "",
       c.company || "",
       c.position || "",
       c.category || "",
@@ -152,7 +152,13 @@ export default function Contacts() {
         
         headers.forEach((header, index) => {
           if (values[index]) {
-            contact[header] = values[index];
+            if (header === 'emails' || header === 'email') {
+              contact.emails = values[index].split(';').map(e => e.trim()).filter(e => e);
+            } else if (header === 'phones' || header === 'phone') {
+              contact.phones = values[index].split(';').map(p => p.trim()).filter(p => p);
+            } else {
+              contact[header] = values[index];
+            }
           }
         });
 
@@ -179,7 +185,7 @@ export default function Contacts() {
   const filteredContacts = contacts.filter((contact) => {
     const matchesSearch =
       contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.emails?.some(e => e.toLowerCase().includes(searchTerm.toLowerCase())) ||
       contact.company?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === "all" || contact.category === categoryFilter;
     return matchesSearch && matchesCategory;
@@ -393,22 +399,22 @@ export default function Contacts() {
                         {contact.company}
                       </div>
                     )}
-                    {contact.email && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                    {contact.emails?.filter(e => e).map((email, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm text-gray-600">
                         <Mail className="w-4 h-4" />
-                        <a href={`mailto:${contact.email}`} className="hover:text-[#1e3a5f]">
-                          {contact.email}
+                        <a href={`mailto:${email}`} className="hover:text-[#1e3a5f]">
+                          {email}
                         </a>
                       </div>
-                    )}
-                    {contact.phone && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                    ))}
+                    {contact.phones?.filter(p => p).map((phone, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm text-gray-600">
                         <Phone className="w-4 h-4" />
-                        <a href={`tel:${contact.phone}`} className="hover:text-[#1e3a5f]">
-                          {contact.phone}
+                        <a href={`tel:${phone}`} className="hover:text-[#1e3a5f]">
+                          {phone}
                         </a>
                       </div>
-                    )}
+                    ))}
                     {contact.notes && (
                       <p className="text-sm text-gray-500 mt-2 line-clamp-2">{contact.notes}</p>
                     )}
