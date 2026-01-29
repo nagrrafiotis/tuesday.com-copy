@@ -19,15 +19,35 @@ import {
 import { format } from "date-fns";
 import { MoreHorizontal, TrendingUp, DollarSign } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 
-const categoryConfig = {
-  sales: { label: "Sales", color: "bg-emerald-100 text-emerald-700" },
-  investment: { label: "Investment", color: "bg-blue-100 text-blue-700" },
-  rental: { label: "Rental", color: "bg-purple-100 text-purple-700" },
-  other: { label: "Other", color: "bg-gray-100 text-gray-700" },
-};
+const categoryColors = [
+  "bg-emerald-100 text-emerald-700",
+  "bg-blue-100 text-blue-700",
+  "bg-purple-100 text-purple-700",
+  "bg-amber-100 text-amber-700",
+  "bg-pink-100 text-pink-700",
+  "bg-indigo-100 text-indigo-700",
+  "bg-rose-100 text-rose-700",
+  "bg-cyan-100 text-cyan-700",
+  "bg-gray-100 text-gray-700"
+];
 
 export default function IncomeTable({ incomes, projects, contacts = [], onEdit, onDelete, showProject = false, selectedIncomes = [], onSelectAll, onSelectIncome, onViewContact }) {
+  const { data: dropdownLists = [] } = useQuery({
+    queryKey: ["dropdown-lists"],
+    queryFn: () => base44.entities.DropdownList.list(),
+  });
+
+  const incomeCategories = dropdownLists.find(l => l.list_name === "income_categories")?.options || ["sales", "investment", "rental", "other"];
+
+  const getCategoryConfig = (category) => {
+    const index = incomeCategories.indexOf(category);
+    const color = index >= 0 ? categoryColors[index % categoryColors.length] : categoryColors[categoryColors.length - 1];
+    const label = category.charAt(0).toUpperCase() + category.slice(1);
+    return { label, color };
+  };
   const getProjectName = (projectId) => {
     const project = projects?.find((p) => p.id === projectId);
     return project?.name || "Unknown";
@@ -77,7 +97,7 @@ export default function IncomeTable({ incomes, projects, contacts = [], onEdit, 
         </TableHeader>
         <TableBody>
           {incomes.map((income, index) => {
-            const config = categoryConfig[income.category] || categoryConfig.other;
+            const config = getCategoryConfig(income.category);
 
             return (
               <motion.tr
