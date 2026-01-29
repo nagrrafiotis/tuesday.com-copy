@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database } from "lucide-react";
+import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const DEFAULT_LISTS = {
@@ -35,6 +35,9 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const [newItems, setNewItems] = useState({});
   const [newSubcategory, setNewSubcategory] = useState({ name: "", category: "labor" });
+  const [editingItem, setEditingItem] = useState({ listName: null, index: null, value: "" });
+  const [editingSubcategory, setEditingSubcategory] = useState(null);
+  const [editingPaymentSource, setEditingPaymentSource] = useState(null);
 
   const { data: lists = [], isLoading } = useQuery({
     queryKey: ["dropdown-lists"],
@@ -140,6 +143,26 @@ export default function Settings() {
         options: updatedOptions,
       });
     }
+  };
+
+  const editOption = async (listName, oldValue, newValue) => {
+    if (!newValue.trim()) return;
+    const existingList = lists.find((l) => l.list_name === listName);
+    const currentOptions = existingList?.options || DEFAULT_LISTS[listName] || [];
+    const updatedOptions = currentOptions.map((opt) => opt === oldValue ? newValue : opt);
+
+    if (existingList) {
+      await updateMutation.mutateAsync({
+        id: existingList.id,
+        data: { options: updatedOptions },
+      });
+    } else {
+      await createMutation.mutateAsync({
+        list_name: listName,
+        options: updatedOptions,
+      });
+    }
+    setEditingItem({ listName: null, index: null, value: "" });
   };
 
   const exportBackup = async () => {
@@ -379,25 +402,74 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
-                  {subcategories.map((subcat) => (
-                    <div
-                      key={subcat.id}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
-                    >
-                      <div>
-                        <span className="text-sm text-gray-700">{subcat.name}</span>
-                        <span className="text-xs text-gray-400 ml-2">({subcat.parent_category})</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteSubcategoryMutation.mutate(subcat.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
-                      >
-                        <Trash2 className="w-3 h-3 text-red-500" />
-                      </Button>
-                    </div>
-                  ))}
+                {subcategories.map((subcat) => (
+                  <div
+                    key={subcat.id}
+                    className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
+                  >
+                    {editingSubcategory?.id === subcat.id ? (
+                      <>
+                        <Input
+                          value={editingSubcategory.name}
+                          onChange={(e) => setEditingSubcategory({ ...editingSubcategory, name: e.target.value })}
+                          className="text-sm h-7 flex-1"
+                          autoFocus
+                        />
+                        <div className="flex gap-1 ml-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={async () => {
+                              await createSubcategoryMutation.mutateAsync({ 
+                                id: subcat.id,
+                                name: editingSubcategory.name,
+                                parent_category: editingSubcategory.parent_category
+                              });
+                              await deleteSubcategoryMutation.mutateAsync(subcat.id);
+                              setEditingSubcategory(null);
+                            }}
+                            className="h-6 w-6"
+                          >
+                            <Check className="w-3 h-3 text-green-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEditingSubcategory(null)}
+                            className="h-6 w-6"
+                          >
+                            <X className="w-3 h-3 text-gray-500" />
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <span className="text-sm text-gray-700">{subcat.name}</span>
+                          <span className="text-xs text-gray-400 ml-2">({subcat.parent_category})</span>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEditingSubcategory(subcat)}
+                            className="h-6 w-6"
+                          >
+                            <Pencil className="w-3 h-3 text-[#1e3a5f]" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deleteSubcategoryMutation.mutate(subcat.id)}
+                            className="h-6 w-6"
+                          >
+                            <Trash2 className="w-3 h-3 text-red-500" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
                 </div>
                 <div className="space-y-2">
                   <Select
@@ -478,15 +550,60 @@ export default function Settings() {
                       key={ps.id}
                       className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
                     >
-                      <span className="text-sm text-gray-700">{ps.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deletePaymentSourceMutation.mutate(ps.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
-                      >
-                        <Trash2 className="w-3 h-3 text-red-500" />
-                      </Button>
+                      {editingPaymentSource?.id === ps.id ? (
+                        <>
+                          <Input
+                            value={editingPaymentSource.name}
+                            onChange={(e) => setEditingPaymentSource({ ...editingPaymentSource, name: e.target.value })}
+                            className="text-sm h-7 flex-1"
+                            autoFocus
+                          />
+                          <div className="flex gap-1 ml-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={async () => {
+                                await createPaymentSourceMutation.mutateAsync({ name: editingPaymentSource.name });
+                                await deletePaymentSourceMutation.mutateAsync(ps.id);
+                                setEditingPaymentSource(null);
+                              }}
+                              className="h-6 w-6"
+                            >
+                              <Check className="w-3 h-3 text-green-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditingPaymentSource(null)}
+                              className="h-6 w-6"
+                            >
+                              <X className="w-3 h-3 text-gray-500" />
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-sm text-gray-700">{ps.name}</span>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditingPaymentSource(ps)}
+                              className="h-6 w-6"
+                            >
+                              <Pencil className="w-3 h-3 text-[#1e3a5f]" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deletePaymentSourceMutation.mutate(ps.id)}
+                              className="h-6 w-6"
+                            >
+                              <Trash2 className="w-3 h-3 text-red-500" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -541,15 +658,63 @@ export default function Settings() {
                         key={idx}
                         className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
                       >
-                        <span className="text-sm text-gray-700">{option}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeOption(listName, option)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
-                        >
-                          <Trash2 className="w-3 h-3 text-red-500" />
-                        </Button>
+                        {editingItem.listName === listName && editingItem.index === idx ? (
+                          <>
+                            <Input
+                              value={editingItem.value}
+                              onChange={(e) => setEditingItem({ ...editingItem, value: e.target.value })}
+                              className="text-sm h-7 flex-1"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  editOption(listName, option, editingItem.value);
+                                } else if (e.key === "Escape") {
+                                  setEditingItem({ listName: null, index: null, value: "" });
+                                }
+                              }}
+                            />
+                            <div className="flex gap-1 ml-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => editOption(listName, option, editingItem.value)}
+                                className="h-6 w-6"
+                              >
+                                <Check className="w-3 h-3 text-green-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setEditingItem({ listName: null, index: null, value: "" })}
+                                className="h-6 w-6"
+                              >
+                                <X className="w-3 h-3 text-gray-500" />
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-sm text-gray-700">{option}</span>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setEditingItem({ listName, index: idx, value: option })}
+                                className="h-6 w-6"
+                              >
+                                <Pencil className="w-3 h-3 text-[#1e3a5f]" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeOption(listName, option)}
+                                className="h-6 w-6"
+                              >
+                                <Trash2 className="w-3 h-3 text-red-500" />
+                              </Button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
