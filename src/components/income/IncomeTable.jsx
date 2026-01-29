@@ -167,6 +167,15 @@ export default function IncomeTable({ incomes, projects, contacts = [], onEdit, 
               </motion.tr>
             );
           })}
+          <TableRow className="bg-gray-50 border-t-2 border-gray-200">
+            <TableCell colSpan={showProject ? 7 : 6} className="text-right font-bold text-gray-900">
+              Total
+            </TableCell>
+            <TableCell className="text-right font-bold text-emerald-600 text-lg">
+              {formatCurrency(incomes.reduce((sum, i) => sum + (i.amount || 0), 0))}
+            </TableCell>
+            <TableCell />
+          </TableRow>
         </TableBody>
       </Table>
     </motion.div>
