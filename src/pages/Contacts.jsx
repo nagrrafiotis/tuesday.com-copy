@@ -399,7 +399,7 @@ export default function Contacts() {
                         {contact.company}
                       </div>
                     )}
-                    {contact.emails?.filter(e => e).map((email, idx) => (
+                    {(contact.emails || []).filter(e => e).map((email, idx) => (
                       <div key={idx} className="flex items-center gap-2 text-sm text-gray-600">
                         <Mail className="w-4 h-4" />
                         <a href={`mailto:${email}`} className="hover:text-[#1e3a5f]">
@@ -407,7 +407,7 @@ export default function Contacts() {
                         </a>
                       </div>
                     ))}
-                    {contact.phones?.filter(p => p).map((phone, idx) => (
+                    {(contact.phones || []).filter(p => p).map((phone, idx) => (
                       <div key={idx} className="flex items-center gap-2 text-sm text-gray-600">
                         <Phone className="w-4 h-4" />
                         <a href={`tel:${phone}`} className="hover:text-[#1e3a5f]">
