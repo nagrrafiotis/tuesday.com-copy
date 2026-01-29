@@ -42,6 +42,7 @@ export default function ProjectDetails() {
   const [isDragging, setIsDragging] = useState(false);
   const [editingBudget, setEditingBudget] = useState(false);
   const [budgetItems, setBudgetItems] = useState([]);
+  const [expandedItems, setExpandedItems] = useState(new Set());
 
   const queryClient = useQueryClient();
 
