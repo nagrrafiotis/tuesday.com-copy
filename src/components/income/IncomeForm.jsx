@@ -54,6 +54,14 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
     enabled: open,
   });
 
+  const { data: dropdownLists = [] } = useQuery({
+    queryKey: ["dropdown-lists"],
+    queryFn: () => base44.entities.DropdownList.list(),
+    enabled: open,
+  });
+
+  const incomeCategories = dropdownLists.find(l => l.list_name === "income_categories")?.options || ["sales", "investment", "rental", "other"];
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
@@ -103,10 +111,11 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sales">Sales</SelectItem>
-                  <SelectItem value="investment">Investment</SelectItem>
-                  <SelectItem value="rental">Rental</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  {incomeCategories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
