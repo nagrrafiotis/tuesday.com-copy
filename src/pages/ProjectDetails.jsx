@@ -188,6 +188,14 @@ export default function ProjectDetails() {
     setEditingBudget(false);
   };
 
+  const categoryConfig = {
+    labor: { label: "Labor", icon: Users, color: "bg-blue-100 text-blue-700" },
+    subcontractor: { label: "Subcontractor", icon: Wrench, color: "bg-purple-100 text-purple-700" },
+    materials: { label: "Materials", icon: Package, color: "bg-amber-100 text-amber-700" },
+    equipment: { label: "Equipment", icon: Truck, color: "bg-emerald-100 text-emerald-700" },
+    general_expenses: { label: "General", icon: Receipt, color: "bg-gray-100 text-gray-700" },
+  };
+
   const statusColors = {
     planning: "bg-blue-100 text-blue-700",
     in_progress: "bg-amber-100 text-amber-700",
