@@ -826,64 +826,82 @@ export default function ProjectDetails() {
           ) : (
             <>
               {project?.budget_items && project.budget_items.length > 0 ? (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subcategory</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payee</th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Cost</th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {project.budget_items.map((item, index) => (
-                          <tr key={item.id || index} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {item.category}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50/50">
+                        <TableHead>Category</TableHead>
+                        <TableHead>Subcategory</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Payee</TableHead>
+                        <TableHead>Payment Source</TableHead>
+                        <TableHead className="text-right">Quantity</TableHead>
+                        <TableHead>Unit</TableHead>
+                        <TableHead className="text-right">Unit Cost</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {project.budget_items.map((item, index) => {
+                        const config = categoryConfig[item.category] || categoryConfig.general_expenses;
+                        const Icon = config.icon;
+                        
+                        return (
+                          <motion.tr
+                            key={item.id || index}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.03 }}
+                            className="hover:bg-gray-50/50 transition-colors"
+                          >
+                            <TableCell>
+                              <Badge className={`${config.color} border-0 gap-1.5`}>
+                                <Icon className="w-3 h-3" />
+                                {config.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-gray-600">
                               {item.subcategory || "—"}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-600">
-                              {item.description}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            </TableCell>
+                            <TableCell className="text-gray-500 max-w-xs truncate">
+                              {item.description || "—"}
+                            </TableCell>
+                            <TableCell className="font-medium text-gray-900">
                               {item.payee || "—"}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {item.payment_source || "—"}
+                            </TableCell>
+                            <TableCell className="text-right text-gray-900">
                               {item.quantity}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            </TableCell>
+                            <TableCell className="text-gray-600">
                               {item.unit}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                            </TableCell>
+                            <TableCell className="text-right text-gray-900">
                               €{item.unit_cost?.toLocaleString() || 0}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-[#1e3a5f] text-right">
+                            </TableCell>
+                            <TableCell className="text-right font-semibold text-[#1e3a5f]">
                               €{item.total_cost?.toLocaleString() || 0}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot className="bg-gray-50 border-t-2 border-gray-300">
-                        <tr>
-                          <td colSpan="7" className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
-                            Total Project Budget:
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-lg font-bold text-[#1e3a5f] text-right">
-                            €{project.budget?.toLocaleString() || 0}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
+                            </TableCell>
+                          </motion.tr>
+                        );
+                      })}
+                      <TableRow className="bg-gray-50 border-t-2 border-gray-200">
+                        <TableCell colSpan={8} className="text-right font-bold text-gray-900">
+                          Total Project Budget
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-[#1e3a5f] text-lg">
+                          €{project.budget?.toLocaleString() || 0}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </motion.div>
               ) : (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
                   <Receipt className="w-12 h-12 text-gray-300 mx-auto mb-3" />
