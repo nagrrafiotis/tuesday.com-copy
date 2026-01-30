@@ -27,6 +27,10 @@ import {
   Settings,
   Receipt,
   Trash2,
+  Users,
+  Wrench,
+  Package,
+  Truck,
 } from "lucide-react";
 import { format } from "date-fns";
 
