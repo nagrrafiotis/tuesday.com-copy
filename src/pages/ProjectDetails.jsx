@@ -229,12 +229,12 @@ export default function ProjectDetails() {
     land: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&q=80",
   };
 
-  if (projectLoading || !project) {
+  if (authChecking || projectLoading || !project) {
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-[#1e3a5f]/20"></div>
-          <p className="text-gray-500">Loading project...</p>
+          <p className="text-gray-500">{authChecking ? "Authenticating..." : "Loading project..."}</p>
         </div>
       </div>
     );
