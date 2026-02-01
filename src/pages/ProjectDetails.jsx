@@ -33,8 +33,26 @@ import {
   Truck,
 } from "lucide-react";
 import { format } from "date-fns";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function ProjectDetails() {
+  const [user, setUser] = React.useState(null);
+  const [authChecking, setAuthChecking] = React.useState(true);
+
+  React.useEffect(() => {
+    base44.auth.me()
+      .then(setUser)
+      .catch(() => base44.auth.redirectToLogin(window.location.href))
+      .finally(() => setAuthChecking(false));
+  }, []);
+
   const urlParams = new URLSearchParams(window.location.search);
   const projectId = urlParams.get("id");
 
