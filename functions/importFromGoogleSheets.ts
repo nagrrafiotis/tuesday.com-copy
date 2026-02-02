@@ -55,28 +55,37 @@ Deno.serve(async (req) => {
       paymentSources: 0
     };
 
-    // Import Subcategories
+    // Import Subcategories in batch
     const subcategoriesData = subcategoriesRange.values || [];
+    const newSubcategories = [];
     for (const row of subcategoriesData) {
       const name = row[0]?.trim();
       if (name && !existingSubcategories.find(s => s.name === name)) {
-        await base44.entities.Subcategory.create({ name });
-        imported.subcategories++;
+        newSubcategories.push({ name });
       }
     }
+    if (newSubcategories.length > 0) {
+      await base44.entities.Subcategory.bulkCreate(newSubcategories);
+      imported.subcategories = newSubcategories.length;
+    }
 
-    // Import Payment Sources
+    // Import Payment Sources in batch
     const paymentSourcesData = paymentSourcesRange.values || [];
+    const newPaymentSources = [];
     for (const row of paymentSourcesData) {
       const name = row[0]?.trim();
       if (name && !existingPaymentSources.find(ps => ps.name === name)) {
-        await base44.entities.PaymentSource.create({ name });
-        imported.paymentSources++;
+        newPaymentSources.push({ name });
       }
     }
+    if (newPaymentSources.length > 0) {
+      await base44.entities.PaymentSource.bulkCreate(newPaymentSources);
+      imported.paymentSources = newPaymentSources.length;
+    }
 
-    // Import Expenses
+    // Import Expenses in batch
     const expensesData = expensesRange.values || [];
+    const newExpenses = [];
     for (const row of expensesData) {
       const [date, projectName, category, subcategory, payee, description, amount, paymentSource] = row;
       
@@ -94,7 +103,7 @@ Deno.serve(async (req) => {
       );
 
       if (!exists) {
-        await base44.entities.Expense.create({
+        newExpenses.push({
           date,
           project_id: project.id,
           category: category || 'general_expenses',
@@ -104,12 +113,16 @@ Deno.serve(async (req) => {
           amount: parseFloat(amount) || 0,
           payment_source: paymentSource || ''
         });
-        imported.expenses++;
       }
     }
+    if (newExpenses.length > 0) {
+      await base44.entities.Expense.bulkCreate(newExpenses);
+      imported.expenses = newExpenses.length;
+    }
 
-    // Import Income
+    // Import Income in batch
     const incomeData = incomeRange.values || [];
+    const newIncome = [];
     for (const row of incomeData) {
       const [date, projectName, category, source, description, amount, paymentSource] = row;
       
@@ -127,7 +140,7 @@ Deno.serve(async (req) => {
       );
 
       if (!exists) {
-        await base44.entities.Income.create({
+        newIncome.push({
           date,
           project_id: project.id,
           category: category || 'other',
@@ -136,8 +149,11 @@ Deno.serve(async (req) => {
           amount: parseFloat(amount) || 0,
           payment_source: paymentSource || ''
         });
-        imported.income++;
       }
+    }
+    if (newIncome.length > 0) {
+      await base44.entities.Income.bulkCreate(newIncome);
+      imported.income = newIncome.length;
     }
 
     return Response.json({
