@@ -119,9 +119,7 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
     },
   });
   
-  const filteredSubcategories = subcategories.filter(
-    (s) => s.parent_category === formData.category
-  );
+  const filteredSubcategories = subcategories;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -226,8 +224,7 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
                         e.preventDefault();
                         if (newSubcategoryName.trim()) {
                           createSubcategoryMutation.mutate({ 
-                            name: newSubcategoryName, 
-                            parent_category: formData.category 
+                            name: newSubcategoryName
                           });
                         }
                       }
@@ -239,8 +236,7 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
                     onClick={() => {
                       if (newSubcategoryName.trim()) {
                         createSubcategoryMutation.mutate({ 
-                          name: newSubcategoryName, 
-                          parent_category: formData.category 
+                          name: newSubcategoryName
                         });
                       }
                     }}
