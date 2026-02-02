@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X, Palette, RefreshCw, Clock } from "lucide-react";
+import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X, Palette, RefreshCw, Clock, Settings } from "lucide-react";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -58,6 +58,10 @@ export default function Settings() {
   const [editingSubcategory, setEditingSubcategory] = useState(null);
   const [editingPaymentSource, setEditingPaymentSource] = useState(null);
   const [colorPopover, setColorPopover] = useState({ listName: null, option: null });
+  const [newPhase, setNewPhase] = useState({ name: "", order: 1 });
+  const [editingPhase, setEditingPhase] = useState(null);
+  const [phaseColorPopover, setPhaseColorPopover] = useState(null);
+  const [assigningPhase, setAssigningPhase] = useState(null);
 
   const { data: lists = [], isLoading } = useQuery({
     queryKey: ["dropdown-lists"],
@@ -77,6 +81,11 @@ export default function Settings() {
   const { data: paymentSources = [] } = useQuery({
     queryKey: ["paymentSources"],
     queryFn: () => base44.entities.PaymentSource.list("name"),
+  });
+
+  const { data: phases = [] } = useQuery({
+    queryKey: ["phases"],
+    queryFn: () => base44.entities.ProjectPhase.list("order"),
   });
 
   const { data: googleAccount, refetch: refetchGoogleAccount } = useQuery({
@@ -129,6 +138,26 @@ export default function Settings() {
   const deletePaymentSourceMutation = useMutation({
     mutationFn: (id) => base44.entities.PaymentSource.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["paymentSources"] }),
+  });
+
+  const createPhaseMutation = useMutation({
+    mutationFn: (data) => base44.entities.ProjectPhase.create(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["phases"] }),
+  });
+
+  const updatePhaseMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.ProjectPhase.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["phases"] }),
+  });
+
+  const deletePhaseMutation = useMutation({
+    mutationFn: (id) => base44.entities.ProjectPhase.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["phases"] }),
+  });
+
+  const updateSubcategoryMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Subcategory.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subcategories"] }),
   });
 
   const getListOptions = (listName) => {
@@ -552,6 +581,152 @@ export default function Settings() {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Expense & Income Management</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+            {/* Project Phases */}
+            <Card className="bg-white shadow-sm">
+              <CardHeader className="border-b border-gray-100">
+                <CardTitle className="text-lg text-[#1e3a5f]">Project Phases</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
+                  {phases.map((phase) => (
+                    <div
+                      key={phase.id}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
+                    >
+                      {editingPhase?.id === phase.id ? (
+                        <>
+                          <div className="flex gap-2 flex-1">
+                            <Input
+                              value={editingPhase.name}
+                              onChange={(e) => setEditingPhase({ ...editingPhase, name: e.target.value })}
+                              className="text-sm h-7 flex-1"
+                              autoFocus
+                            />
+                            <Input
+                              type="number"
+                              value={editingPhase.order}
+                              onChange={(e) => setEditingPhase({ ...editingPhase, order: parseInt(e.target.value) })}
+                              className="text-sm h-7 w-16"
+                              placeholder="Order"
+                            />
+                          </div>
+                          <div className="flex gap-1 ml-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={async () => {
+                                await updatePhaseMutation.mutateAsync({ 
+                                  id: phase.id, 
+                                  data: { name: editingPhase.name, order: editingPhase.order, color: editingPhase.color }
+                                });
+                                setEditingPhase(null);
+                              }}
+                              className="h-6 w-6"
+                            >
+                              <Check className="w-3 h-3 text-green-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditingPhase(null)}
+                              className="h-6 w-6"
+                            >
+                              <X className="w-3 h-3 text-gray-500" />
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 flex-1">
+                            <div className={`w-4 h-4 rounded ${phase.color} border`} />
+                            <span className="text-sm text-gray-700">{phase.name}</span>
+                            <span className="text-xs text-gray-400">#{phase.order}</span>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Popover 
+                              open={phaseColorPopover === phase.id}
+                              onOpenChange={(open) => setPhaseColorPopover(open ? phase.id : null)}
+                            >
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                >
+                                  <Palette className="w-3 h-3 text-[#1e3a5f]" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-48 p-2">
+                                <div className="grid grid-cols-3 gap-2">
+                                  {COLOR_OPTIONS.map((color) => (
+                                    <button
+                                      key={color.value}
+                                      onClick={() => {
+                                        updatePhaseMutation.mutate({
+                                          id: phase.id,
+                                          data: { ...phase, color: color.value }
+                                        });
+                                        setPhaseColorPopover(null);
+                                      }}
+                                      className={`w-full h-8 rounded ${color.value} hover:opacity-80 transition-opacity border`}
+                                      title={color.label}
+                                    />
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditingPhase(phase)}
+                              className="h-6 w-6"
+                            >
+                              <Pencil className="w-3 h-3 text-[#1e3a5f]" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deletePhaseMutation.mutate(phase.id)}
+                              className="h-6 w-6"
+                            >
+                              <Trash2 className="w-3 h-3 text-red-500" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Phase name..."
+                    value={newPhase.name}
+                    onChange={(e) => setNewPhase({ ...newPhase, name: e.target.value })}
+                    className="text-sm flex-1"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Order"
+                    value={newPhase.order}
+                    onChange={(e) => setNewPhase({ ...newPhase, order: parseInt(e.target.value) || 1 })}
+                    className="text-sm w-20"
+                  />
+                  <Button
+                    onClick={() => {
+                      if (newPhase.name.trim()) {
+                        createPhaseMutation.mutate(newPhase);
+                        setNewPhase({ name: "", order: (phases.length || 0) + 1 });
+                      }
+                    }}
+                    size="icon"
+                    className="bg-[#1e3a5f] hover:bg-[#152a45] shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Subcategories */}
             <Card className="bg-white shadow-sm">
               <CardHeader className="border-b border-gray-100">
@@ -604,7 +779,9 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
-                {subcategories.map((subcat) => (
+                {subcategories.map((subcat) => {
+                  const phase = phases.find(p => p.id === subcat.phase_id);
+                  return (
                   <div
                     key={subcat.id}
                     className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
@@ -622,10 +799,10 @@ export default function Settings() {
                             variant="ghost"
                             size="icon"
                             onClick={async () => {
-                              await createSubcategoryMutation.mutateAsync({ 
-                                name: editingSubcategory.name
+                              await updateSubcategoryMutation.mutateAsync({
+                                id: subcat.id,
+                                data: { name: editingSubcategory.name, phase_id: subcat.phase_id }
                               });
-                              await deleteSubcategoryMutation.mutateAsync(subcat.id);
                               setEditingSubcategory(null);
                             }}
                             className="h-6 w-6"
@@ -644,8 +821,70 @@ export default function Settings() {
                       </>
                     ) : (
                       <>
-                        <span className="text-sm text-gray-700">{subcat.name}</span>
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-sm text-gray-700">{subcat.name}</span>
+                          {phase && (
+                            <span className={`text-xs px-2 py-0.5 rounded ${phase.color}`}>
+                              {phase.name}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Popover 
+                            open={assigningPhase === subcat.id}
+                            onOpenChange={(open) => setAssigningPhase(open ? subcat.id : null)}
+                          >
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                title="Assign to phase"
+                              >
+                                <Settings className="w-3 h-3 text-[#1e3a5f]" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-56 p-2">
+                              <div className="space-y-1">
+                                <div className="text-xs font-medium text-gray-500 px-2 py-1">Assign to phase:</div>
+                                {phases.map((p) => (
+                                  <button
+                                    key={p.id}
+                                    onClick={() => {
+                                      updateSubcategoryMutation.mutate({
+                                        id: subcat.id,
+                                        data: { ...subcat, phase_id: p.id }
+                                      });
+                                      setAssigningPhase(null);
+                                    }}
+                                    className={`w-full text-left px-2 py-1.5 rounded hover:bg-gray-100 text-sm flex items-center gap-2 ${
+                                      subcat.phase_id === p.id ? 'bg-gray-100' : ''
+                                    }`}
+                                  >
+                                    <div className={`w-3 h-3 rounded ${p.color}`} />
+                                    {p.name}
+                                  </button>
+                                ))}
+                                {subcat.phase_id && (
+                                  <>
+                                    <div className="border-t my-1" />
+                                    <button
+                                      onClick={() => {
+                                        updateSubcategoryMutation.mutate({
+                                          id: subcat.id,
+                                          data: { ...subcat, phase_id: null }
+                                        });
+                                        setAssigningPhase(null);
+                                      }}
+                                      className="w-full text-left px-2 py-1.5 rounded hover:bg-red-50 text-sm text-red-600"
+                                    >
+                                      Remove phase
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -666,7 +905,7 @@ export default function Settings() {
                       </>
                     )}
                   </div>
-                ))}
+                );})}
                 </div>
                 <div className="flex gap-2">
                     <Input
