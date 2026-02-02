@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       spreadsheetId = spreadsheet.spreadsheetId;
 
       // Save spreadsheet ID to user
-      await base44.asServiceRole.entities.User.update(user.id, {
+      await base44.auth.updateMe({
         google_sheets_backup_id: spreadsheetId
       });
     }
