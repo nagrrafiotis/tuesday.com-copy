@@ -32,7 +32,14 @@ import {
   Package,
   Truck,
   Search,
+  MoreHorizontal,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import {
   Table,
@@ -67,6 +74,18 @@ export default function ProjectDetails() {
   const [budgetItems, setBudgetItems] = useState([]);
   const [expandedItems, setExpandedItems] = useState(new Set());
   const [budgetSearchQuery, setBudgetSearchQuery] = useState("");
+  const [columnWidths, setColumnWidths] = useState({
+    category: 150,
+    subcategory: 150,
+    description: 200,
+    payee: 150,
+    payment: 150,
+    quantity: 100,
+    unit: 80,
+    unitCost: 120,
+    total: 120,
+  });
+  const [resizing, setResizing] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -207,6 +226,40 @@ export default function ProjectDetails() {
     });
     setEditingBudget(false);
   };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("de-DE", {
+      style: "currency",
+      currency: "EUR",
+    }).format(amount);
+  };
+
+  const handleMouseDown = (column, e) => {
+    e.preventDefault();
+    setResizing({ column, startX: e.clientX, startWidth: columnWidths[column] });
+  };
+
+  React.useEffect(() => {
+    if (!resizing) return;
+
+    const handleMouseMove = (e) => {
+      const diff = e.clientX - resizing.startX;
+      const newWidth = Math.max(80, resizing.startWidth + diff);
+      setColumnWidths(prev => ({ ...prev, [resizing.column]: newWidth }));
+    };
+
+    const handleMouseUp = () => {
+      setResizing(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizing]);
 
   const categoryConfig = {
     labor: { label: "Labor", icon: Users, color: "bg-blue-100 text-blue-700" },
@@ -897,15 +950,70 @@ export default function ProjectDetails() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gray-50/50">
-                        <TableHead>Category</TableHead>
-                        <TableHead>Subcategory</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Payee</TableHead>
-                        <TableHead>Payment Source</TableHead>
-                        <TableHead className="text-right">Quantity</TableHead>
-                        <TableHead>Unit</TableHead>
-                        <TableHead className="text-right">Unit Cost</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead style={{ width: columnWidths.category }} className="relative group">
+                          Category
+                          <div
+                            onMouseDown={(e) => handleMouseDown('category', e)}
+                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
+                        </TableHead>
+                        <TableHead style={{ width: columnWidths.subcategory }} className="relative group">
+                          Subcategory
+                          <div
+                            onMouseDown={(e) => handleMouseDown('subcategory', e)}
+                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
+                        </TableHead>
+                        <TableHead style={{ width: columnWidths.description }} className="relative group">
+                          Description
+                          <div
+                            onMouseDown={(e) => handleMouseDown('description', e)}
+                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
+                        </TableHead>
+                        <TableHead style={{ width: columnWidths.payee }} className="relative group">
+                          Payee
+                          <div
+                            onMouseDown={(e) => handleMouseDown('payee', e)}
+                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
+                        </TableHead>
+                        <TableHead style={{ width: columnWidths.payment }} className="relative group">
+                          Payment Source
+                          <div
+                            onMouseDown={(e) => handleMouseDown('payment', e)}
+                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
+                        </TableHead>
+                        <TableHead style={{ width: columnWidths.quantity }} className="text-right relative group">
+                          Quantity
+                          <div
+                            onMouseDown={(e) => handleMouseDown('quantity', e)}
+                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
+                        </TableHead>
+                        <TableHead style={{ width: columnWidths.unit }} className="relative group">
+                          Unit
+                          <div
+                            onMouseDown={(e) => handleMouseDown('unit', e)}
+                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
+                        </TableHead>
+                        <TableHead style={{ width: columnWidths.unitCost }} className="text-right relative group">
+                          Unit Cost
+                          <div
+                            onMouseDown={(e) => handleMouseDown('unitCost', e)}
+                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
+                        </TableHead>
+                        <TableHead style={{ width: columnWidths.total }} className="text-right relative group">
+                          Total
+                          <div
+                            onMouseDown={(e) => handleMouseDown('total', e)}
+                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
+                        </TableHead>
+                        <TableHead className="w-12"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -931,7 +1039,7 @@ export default function ProjectDetails() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.03 }}
-                            className="hover:bg-gray-50/50 transition-colors"
+                            className="hover:bg-gray-50/50 transition-colors group"
                           >
                             <TableCell>
                               <Badge className={`${config.color} border-0 gap-1.5`}>
@@ -958,21 +1066,61 @@ export default function ProjectDetails() {
                               {item.unit}
                             </TableCell>
                             <TableCell className="text-right text-gray-900">
-                              €{item.unit_cost?.toLocaleString() || 0}
+                              {formatCurrency(item.unit_cost || 0)}
                             </TableCell>
                             <TableCell className="text-right font-semibold text-[#1e3a5f]">
-                              €{item.total_cost?.toLocaleString() || 0}
+                              {formatCurrency(item.total_cost || 0)}
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => {
+                                    setEditingBudget(true);
+                                    setBudgetItems(project?.budget_items || []);
+                                    setTimeout(() => {
+                                      setExpandedItems(new Set([item.id]));
+                                    }, 100);
+                                  }}>
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={async () => {
+                                      if (window.confirm('Delete this budget item?')) {
+                                        const updatedItems = project.budget_items.filter(i => i.id !== item.id);
+                                        const totalBudget = updatedItems.reduce((sum, i) => sum + (i.total_cost || 0), 0);
+                                        await updateProjectMutation.mutateAsync({
+                                          budget_items: updatedItems,
+                                          budget: totalBudget
+                                        });
+                                      }
+                                    }}
+                                    className="text-red-600"
+                                  >
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </TableCell>
                           </motion.tr>
                         );
                       })}
                       <TableRow className="bg-gray-50 border-t-2 border-gray-200">
-                        <TableCell colSpan={8} className="text-right font-bold text-gray-900">
+                        <TableCell colSpan={9} className="text-right font-bold text-gray-900">
                           Total Project Budget
                         </TableCell>
                         <TableCell className="text-right font-bold text-[#1e3a5f] text-lg">
-                          €{project.budget?.toLocaleString() || 0}
+                          {formatCurrency(project.budget || 0)}
                         </TableCell>
+                        <TableCell />
                       </TableRow>
                     </TableBody>
                   </Table>
