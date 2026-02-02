@@ -13,14 +13,18 @@ Deno.serve(async (req) => {
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
 
     // Fetch all data
-    const [expenses, income, projects, tasks, contacts, subcategories, paymentSources] = await Promise.all([
+    const [expenses, income, projects, tasks, contacts, subcategories, paymentSources, notes, boards, items, dropdownLists] = await Promise.all([
       base44.entities.Expense.list('-date'),
       base44.entities.Income.list('-date'),
       base44.entities.Project.list('-created_date'),
       base44.entities.Task.list('-created_date'),
       base44.entities.Contact.list('name'),
       base44.entities.Subcategory.list('name'),
-      base44.entities.PaymentSource.list('name')
+      base44.entities.PaymentSource.list('name'),
+      base44.entities.ConstructionNote.list('-date'),
+      base44.entities.Board.list('-created_date'),
+      base44.entities.Item.list('-created_date'),
+      base44.entities.DropdownList.list('list_name')
     ]);
 
     // Get or create spreadsheet ID from user data
@@ -44,8 +48,20 @@ Deno.serve(async (req) => {
             { properties: { title: 'Projects' } },
             { properties: { title: 'Tasks' } },
             { properties: { title: 'Contacts' } },
+            { properties: { title: 'Construction Notes' } },
+            { properties: { title: 'Boards' } },
+            { properties: { title: 'Board Items' } },
             { properties: { title: 'Subcategories' } },
-            { properties: { title: 'Payment Sources' } }
+            { properties: { title: 'Payment Sources' } },
+            { properties: { title: 'Units' } },
+            { properties: { title: 'Expense Categories' } },
+            { properties: { title: 'Income Categories' } },
+            { properties: { title: 'Property Types' } },
+            { properties: { title: 'Project Status' } },
+            { properties: { title: 'Task Status' } },
+            { properties: { title: 'Task Phases' } },
+            { properties: { title: 'Priority Levels' } },
+            { properties: { title: 'Contact Categories' } }
           ]
         })
       });
@@ -149,6 +165,58 @@ Deno.serve(async (req) => {
       ...paymentSources.map(ps => [ps.name || ''])
     ];
 
+    const notesData = [
+      ['Date', 'Project', 'Weather', 'Technicians', 'Engineers', 'Subcontractors', 'Work Performed', 'Issues', 'Notes'],
+      ...notes.map(n => [
+        n.date || '',
+        getProjectName(n.project_id),
+        n.weather?.description || '',
+        n.technicians?.join(', ') || '',
+        n.engineers?.join(', ') || '',
+        n.subcontractors?.join(', ') || '',
+        n.work_performed || '',
+        n.issues || '',
+        n.notes || ''
+      ])
+    ];
+
+    const boardsData = [
+      ['Title', 'Description', 'Visibility', 'View Type', 'Color'],
+      ...boards.map(b => [
+        b.title || '',
+        b.description || '',
+        b.visibility || '',
+        b.view_type || '',
+        b.color || ''
+      ])
+    ];
+
+    const itemsData = [
+      ['Board ID', 'Group ID', 'Title', 'Priority', 'Order'],
+      ...items.map(i => [
+        i.board_id || '',
+        i.group_id || '',
+        i.title || '',
+        i.priority || '',
+        i.order_index || 0
+      ])
+    ];
+
+    const getDropdownListData = (listName) => {
+      const list = dropdownLists.find(l => l.list_name === listName);
+      return [['Option'], ...(list?.options || []).map(opt => [opt])];
+    };
+
+    const unitsData = getDropdownListData('units');
+    const expenseCategoriesData = getDropdownListData('expense_categories');
+    const incomeCategoriesData = getDropdownListData('income_categories');
+    const propertyTypesData = getDropdownListData('property_types');
+    const projectStatusData = getDropdownListData('project_status');
+    const taskStatusData = getDropdownListData('task_status');
+    const taskPhasesData = getDropdownListData('task_phases');
+    const priorityLevelsData = getDropdownListData('priority_levels');
+    const contactCategoriesData = getDropdownListData('contact_categories');
+
     // Update all sheets
     await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`, {
       method: 'POST',
@@ -164,8 +232,20 @@ Deno.serve(async (req) => {
           { range: 'Projects!A1', values: projectsData },
           { range: 'Tasks!A1', values: tasksData },
           { range: 'Contacts!A1', values: contactsData },
+          { range: 'Construction Notes!A1', values: notesData },
+          { range: 'Boards!A1', values: boardsData },
+          { range: 'Board Items!A1', values: itemsData },
           { range: 'Subcategories!A1', values: subcategoriesData },
-          { range: 'Payment Sources!A1', values: paymentSourcesData }
+          { range: 'Payment Sources!A1', values: paymentSourcesData },
+          { range: 'Units!A1', values: unitsData },
+          { range: 'Expense Categories!A1', values: expenseCategoriesData },
+          { range: 'Income Categories!A1', values: incomeCategoriesData },
+          { range: 'Property Types!A1', values: propertyTypesData },
+          { range: 'Project Status!A1', values: projectStatusData },
+          { range: 'Task Status!A1', values: taskStatusData },
+          { range: 'Task Phases!A1', values: taskPhasesData },
+          { range: 'Priority Levels!A1', values: priorityLevelsData },
+          { range: 'Contact Categories!A1', values: contactCategoriesData }
         ]
       })
     });
@@ -180,8 +260,12 @@ Deno.serve(async (req) => {
         projects: projects.length,
         tasks: tasks.length,
         contacts: contacts.length,
+        notes: notes.length,
+        boards: boards.length,
+        items: items.length,
         subcategories: subcategories.length,
-        paymentSources: paymentSources.length
+        paymentSources: paymentSources.length,
+        dropdownLists: dropdownLists.length
       }
     });
   } catch (error) {
