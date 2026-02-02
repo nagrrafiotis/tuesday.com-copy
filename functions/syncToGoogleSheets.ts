@@ -202,9 +202,22 @@ Deno.serve(async (req) => {
       ])
     ];
 
+    const DEFAULT_LISTS = {
+      units: ["m", "m²", "m³", "kg", "piece", "day"],
+      expense_categories: ["labor", "subcontractor", "materials", "equipment", "general_expenses"],
+      income_categories: ["sales", "investment", "rental", "other"],
+      property_types: ["residential", "commercial", "mixed_use", "industrial", "land"],
+      project_status: ["planning", "in_progress", "on_hold", "completed"],
+      task_status: ["todo", "in_progress", "review", "completed"],
+      task_phases: ["pre_construction", "permits", "foundation", "construction", "finishing", "inspection", "handover"],
+      priority_levels: ["low", "medium", "high", "urgent", "critical"],
+      contact_categories: ["client", "supplier", "contractor", "partner", "other"],
+    };
+
     const getDropdownListData = (listName) => {
       const list = dropdownLists.find(l => l.list_name === listName);
-      return [['Option'], ...(list?.options || []).map(opt => [opt])];
+      const options = list?.options || DEFAULT_LISTS[listName] || [];
+      return [['Option'], ...options.map(opt => [opt])];
     };
 
     const unitsData = getDropdownListData('units');
