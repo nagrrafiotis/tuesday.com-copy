@@ -60,8 +60,8 @@ import Home from './pages/Home';
 import Income from './pages/Income';
 import ProjectDetails from './pages/ProjectDetails';
 import Projects from './pages/Projects';
-import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -79,8 +79,8 @@ export const PAGES = {
     "Income": Income,
     "ProjectDetails": ProjectDetails,
     "Projects": Projects,
-    "Settings": Settings,
     "Tasks": Tasks,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {

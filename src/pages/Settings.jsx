@@ -51,7 +51,7 @@ const LIST_LABELS = {
 export default function Settings() {
   const queryClient = useQueryClient();
   const [newItems, setNewItems] = useState({});
-  const [newSubcategory, setNewSubcategory] = useState({ name: "", category: "labor" });
+  const [newSubcategory, setNewSubcategory] = useState({ name: "" });
   const [editingItem, setEditingItem] = useState({ listName: null, index: null, value: "" });
   const [editingSubcategory, setEditingSubcategory] = useState(null);
   const [editingPaymentSource, setEditingPaymentSource] = useState(null);
@@ -305,14 +305,11 @@ export default function Settings() {
           'general': 'general_expenses'
         };
 
-        await Promise.all(result.output.map(row => {
-          const categoryLower = row.parent_category?.toLowerCase().trim();
-          const category = categoryMap[categoryLower] || 'general_expenses';
-          return createSubcategoryMutation.mutateAsync({ 
-            name: row.name, 
-            parent_category: category
-          }).catch(() => {});
-        }));
+        await Promise.all(result.output.map(row => 
+          createSubcategoryMutation.mutateAsync({ 
+            name: row.name
+          }).catch(() => {})
+        ));
         alert(`Successfully imported ${result.output.length} subcategories`);
       } else {
         alert("Failed to extract data from file");
@@ -465,9 +462,7 @@ export default function Settings() {
                             size="icon"
                             onClick={async () => {
                               await createSubcategoryMutation.mutateAsync({ 
-                                id: subcat.id,
-                                name: editingSubcategory.name,
-                                parent_category: editingSubcategory.parent_category
+                                name: editingSubcategory.name
                               });
                               await deleteSubcategoryMutation.mutateAsync(subcat.id);
                               setEditingSubcategory(null);
@@ -488,10 +483,7 @@ export default function Settings() {
                       </>
                     ) : (
                       <>
-                        <div>
-                          <span className="text-sm text-gray-700">{subcat.name}</span>
-                          <span className="text-xs text-gray-400 ml-2">({subcat.parent_category})</span>
-                        </div>
+                        <span className="text-sm text-gray-700">{subcat.name}</span>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             variant="ghost"
@@ -515,31 +507,15 @@ export default function Settings() {
                   </div>
                 ))}
                 </div>
-                <div className="space-y-2">
-                  <Select
-                    value={newSubcategory.category}
-                    onValueChange={(v) => setNewSubcategory({ ...newSubcategory, category: v })}
-                  >
-                    <SelectTrigger className="text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="labor">Labor</SelectItem>
-                      <SelectItem value="subcontractor">Subcontractor</SelectItem>
-                      <SelectItem value="materials">Materials</SelectItem>
-                      <SelectItem value="equipment">Equipment</SelectItem>
-                      <SelectItem value="general_expenses">General Expenses</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="flex gap-2">
+                <div className="flex gap-2">
                     <Input
                       placeholder="Add subcategory..."
                       value={newSubcategory.name}
                       onChange={(e) => setNewSubcategory({ ...newSubcategory, name: e.target.value })}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && newSubcategory.name.trim()) {
-                          createSubcategoryMutation.mutate({ name: newSubcategory.name, parent_category: newSubcategory.category });
-                          setNewSubcategory({ ...newSubcategory, name: "" });
+                          createSubcategoryMutation.mutate({ name: newSubcategory.name });
+                          setNewSubcategory({ name: "" });
                         }
                       }}
                       className="text-sm"
@@ -547,8 +523,8 @@ export default function Settings() {
                     <Button
                       onClick={() => {
                         if (newSubcategory.name.trim()) {
-                          createSubcategoryMutation.mutate({ name: newSubcategory.name, parent_category: newSubcategory.category });
-                          setNewSubcategory({ ...newSubcategory, name: "" });
+                          createSubcategoryMutation.mutate({ name: newSubcategory.name });
+                          setNewSubcategory({ name: "" });
                         }
                       }}
                       size="icon"
@@ -557,7 +533,6 @@ export default function Settings() {
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
-                </div>
               </CardContent>
             </Card>
 
