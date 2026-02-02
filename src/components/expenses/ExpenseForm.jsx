@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import SearchableSelect from "@/components/ui/searchable-select";
 import {
   Dialog,
   DialogContent,
@@ -189,21 +190,13 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
               <Label>Subcategory</Label>
               {!showNewSubcategory ? (
                 <div className="flex gap-2 mt-1.5">
-                  <Select
+                  <SearchableSelect
                     value={formData.subcategory}
                     onValueChange={(v) => setFormData({ ...formData, subcategory: v })}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredSubcategories.map((s) => (
-                        <SelectItem key={s.id} value={s.name}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    items={filteredSubcategories.map(s => ({ value: s.name, label: s.name }))}
+                    placeholder="Search subcategory..."
+                    className="flex-1"
+                  />
                   <Button
                     type="button"
                     variant="outline"
@@ -264,29 +257,17 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
             <Label>Payee / Vendor *</Label>
             {!showNewContact ? (
               <div className="flex gap-2 mt-1.5">
-                <Select
+                <SearchableSelect
                   value={formData.payee}
                   onValueChange={(v) => setFormData({ ...formData, payee: v })}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select payee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contacts.map((c) => (
-                      <SelectItem key={c.id} value={c.name}>
-                        <div>
-                          <div>{c.name}</div>
-                          {(c.phone || c.company) && (
-                            <div className="text-xs text-gray-500">
-                              {c.phone && `${c.phone} • `}
-                              {c.company}
-                            </div>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  items={contacts.map(c => ({ 
+                    value: c.name, 
+                    label: c.name,
+                    subtitle: [c.phone, c.company].filter(Boolean).join(' • ')
+                  }))}
+                  placeholder="Search payee..."
+                  className="flex-1"
+                />
                 <Button
                   type="button"
                   variant="outline"
@@ -381,21 +362,13 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
             <Label>Payment Source</Label>
             {!showNewPaymentSource ? (
               <div className="flex gap-2 mt-1.5">
-                <Select
+                <SearchableSelect
                   value={formData.payment_source}
                   onValueChange={(v) => setFormData({ ...formData, payment_source: v })}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select payment source" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {paymentSources.map((ps) => (
-                      <SelectItem key={ps.id} value={ps.name}>
-                        {ps.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
+                  placeholder="Search payment source..."
+                  className="flex-1"
+                />
                 <Button
                   type="button"
                   variant="outline"
