@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
             { properties: { title: 'Expenses' } },
             { properties: { title: 'Income' } },
             { properties: { title: 'Projects' } },
+            { properties: { title: 'Budget Items' } },
             { properties: { title: 'Tasks' } },
             { properties: { title: 'Contacts' } },
             { properties: { title: 'Construction Notes' } },
@@ -129,6 +130,32 @@ Deno.serve(async (req) => {
         p.start_date || '',
         p.target_completion || '',
         p.progress || 0
+      ])
+    ];
+
+    // Extract all budget items from projects
+    const budgetItems = [];
+    projects.forEach(project => {
+      if (project.budget_items && Array.isArray(project.budget_items)) {
+        project.budget_items.forEach(item => {
+          budgetItems.push({
+            projectName: project.name,
+            ...item
+          });
+        });
+      }
+    });
+
+    const budgetItemsData = [
+      ['Project', 'Category', 'Description', 'Quantity', 'Unit', 'Unit Cost', 'Total Cost'],
+      ...budgetItems.map(b => [
+        b.projectName || '',
+        b.category || '',
+        b.description || '',
+        b.quantity || 0,
+        b.unit || '',
+        b.unit_cost || 0,
+        b.total_cost || 0
       ])
     ];
 
@@ -261,6 +288,7 @@ Deno.serve(async (req) => {
           { range: 'Expenses!A1', values: expensesData },
           { range: 'Income!A1', values: incomeData },
           { range: 'Projects!A1', values: projectsData },
+          { range: 'Budget Items!A1', values: budgetItemsData },
           { range: 'Tasks!A1', values: tasksData },
           { range: 'Contacts!A1', values: contactsData },
           { range: 'Construction Notes!A1', values: notesData },
@@ -290,6 +318,7 @@ Deno.serve(async (req) => {
         expenses: expenses.length,
         income: income.length,
         projects: projects.length,
+        budgetItems: budgetItems.length,
         tasks: tasks.length,
         contacts: contacts.length,
         notes: notes.length,
