@@ -43,7 +43,12 @@ export function SearchableSelect({
         </div>
         {filteredItems.map((item) => (
           <SelectItem key={item.value} value={item.value}>
-            {item.label}
+            <div>
+              <div>{item.label}</div>
+              {item.subtitle && (
+                <div className="text-xs text-gray-500">{item.subtitle}</div>
+              )}
+            </div>
           </SelectItem>
         ))}
         {filteredItems.length === 0 && (
