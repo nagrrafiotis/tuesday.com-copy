@@ -304,6 +304,7 @@ export default function Layout({ children, currentPageName }) {
                   type="button"
                   className="w-full bg-[#1e3a5f] hover:bg-[#152a45]"
                   disabled={uploading}
+                  asChild={false}
                   onClick={() => document.getElementById('logo-upload').click()}
                 >
                   <Upload className="w-4 h-4 mr-2" />

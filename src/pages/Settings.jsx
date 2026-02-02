@@ -434,7 +434,7 @@ export default function Settings() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    window.location.href = '/api/connectors/googlesheets/authorize';
+                    alert('To reconnect your Google account, please go to the Base44 Dashboard → Integrations → Google Sheets and re-authorize.');
                   }}
                   className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
                 >
@@ -447,7 +447,7 @@ export default function Settings() {
                 <p className="text-gray-500 mb-4">No Google account connected</p>
                 <Button
                   onClick={() => {
-                    window.location.href = '/api/connectors/googlesheets/authorize';
+                    alert('To connect your Google account, please go to the Base44 Dashboard → Integrations → Google Sheets and authorize the connection.');
                   }}
                   className="bg-[#4285F4] hover:bg-[#3367D6]"
                 >
