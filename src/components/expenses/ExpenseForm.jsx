@@ -24,13 +24,13 @@ import { CalendarIcon, Users, Wrench, Package, Truck, Receipt, Plus, X } from "l
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const categories = [
-  { value: "labor", label: "Labor", icon: Users },
-  { value: "subcontractor", label: "Subcontractor", icon: Wrench },
-  { value: "materials", label: "Materials", icon: Package },
-  { value: "equipment", label: "Equipment", icon: Truck },
-  { value: "general_expenses", label: "General Expenses", icon: Receipt },
-];
+const categoryIcons = {
+  labor: Users,
+  subcontractor: Wrench,
+  materials: Package,
+  equipment: Truck,
+  general_expenses: Receipt,
+};
 
 export default function ExpenseForm({ expense, projectId, projects = [], open, onClose, onSubmit }) {
   const [formData, setFormData] = useState(
@@ -89,6 +89,19 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
     queryFn: () => base44.entities.PaymentSource.list("name"),
     enabled: open,
   });
+
+  const { data: lists = [] } = useQuery({
+    queryKey: ["dropdown-lists"],
+    queryFn: () => base44.entities.DropdownList.list(),
+    enabled: open,
+  });
+
+  const expenseCategoriesList = lists.find(l => l.list_name === "expense_categories");
+  const categories = (expenseCategoriesList?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"]).map(cat => ({
+    value: cat,
+    label: cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+    icon: categoryIcons[cat] || Receipt
+  }));
   
   const createContactMutation = useMutation({
     mutationFn: (data) => base44.entities.Contact.create(data),
