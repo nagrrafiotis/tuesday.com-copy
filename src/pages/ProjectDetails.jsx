@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SearchableSelect from "@/components/ui/searchable-select";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -803,39 +804,23 @@ export default function ProjectDetails() {
                               </div>
                               <div>
                                 <label className="text-xs text-gray-500 mb-1 block">Subcategory</label>
-                                <Select
+                                <SearchableSelect
+                                  items={subcategories.map(s => ({ value: s.name, label: s.name }))}
                                   value={item.subcategory}
                                   onValueChange={(v) => updateBudgetItem(item.id, 'subcategory', v)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select subcategory" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {subcategories.map((subcat) => (
-                                      <SelectItem key={subcat.id} value={subcat.name}>
-                                        {subcat.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                  placeholder="Select subcategory"
+                                  searchPlaceholder="Search subcategories..."
+                                />
                               </div>
                               <div>
                                 <label className="text-xs text-gray-500 mb-1 block">Payee</label>
-                                <Select
+                                <SearchableSelect
+                                  items={contacts.map(c => ({ value: c.name, label: c.name }))}
                                   value={item.payee}
                                   onValueChange={(v) => updateBudgetItem(item.id, 'payee', v)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select payee" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {contacts.map((contact) => (
-                                      <SelectItem key={contact.id} value={contact.name}>
-                                        {contact.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                  placeholder="Select payee"
+                                  searchPlaceholder="Search payees..."
+                                />
                               </div>
                               <div>
                                 <label className="text-xs text-gray-500 mb-1 block">Payment Source</label>
