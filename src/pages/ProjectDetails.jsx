@@ -734,13 +734,11 @@ export default function ProjectDetails() {
                                     <SelectValue placeholder="Select subcategory" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {subcategories
-                                      .filter(s => s.parent_category === item.category)
-                                      .map((subcat) => (
-                                        <SelectItem key={subcat.id} value={subcat.name}>
-                                          {subcat.name}
-                                        </SelectItem>
-                                      ))}
+                                    {subcategories.map((subcat) => (
+                                      <SelectItem key={subcat.id} value={subcat.name}>
+                                        {subcat.name}
+                                      </SelectItem>
+                                    ))}
                                   </SelectContent>
                                 </Select>
                               </div>
