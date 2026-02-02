@@ -676,7 +676,7 @@ export default function ProjectDetails() {
                         borderRadius: '8px'
                       }}
                     />
-                    <Legend />
+                    <Legend verticalAlign="top" height={36} />
                     <Bar dataKey="budget" fill="#c9a962" name="Budget" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="actual" fill="#1e3a5f" name="Actual Expenses" radius={[4, 4, 0, 0]} />
                   </BarChart>
