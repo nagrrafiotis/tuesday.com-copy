@@ -14,13 +14,13 @@ Deno.serve(async (req) => {
 
     // Fetch all data
     const [expenses, income, projects, tasks, contacts, subcategories, paymentSources] = await Promise.all([
-      base44.asServiceRole.entities.Expense.list('-date'),
-      base44.asServiceRole.entities.Income.list('-date'),
-      base44.asServiceRole.entities.Project.list('-created_date'),
-      base44.asServiceRole.entities.Task.list('-created_date'),
-      base44.asServiceRole.entities.Contact.list('name'),
-      base44.asServiceRole.entities.Subcategory.list('name'),
-      base44.asServiceRole.entities.PaymentSource.list('name')
+      base44.entities.Expense.list('-date'),
+      base44.entities.Income.list('-date'),
+      base44.entities.Project.list('-created_date'),
+      base44.entities.Task.list('-created_date'),
+      base44.entities.Contact.list('name'),
+      base44.entities.Subcategory.list('name'),
+      base44.entities.PaymentSource.list('name')
     ]);
 
     // Get or create spreadsheet ID from user data
