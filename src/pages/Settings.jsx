@@ -476,6 +476,23 @@ export default function Settings() {
                 <Download className="w-4 h-4 mr-2" />
                 Sync to Google Sheets
               </Button>
+
+              <Button
+                onClick={async () => {
+                  if (confirm('Import data from Google Sheets? New records will be added to your app.')) {
+                    const response = await base44.functions.invoke('importFromGoogleSheets', {});
+                    if (response.data.success) {
+                      alert(`Imported: ${response.data.imported.expenses} expenses, ${response.data.imported.income} income, ${response.data.imported.subcategories} subcategories, ${response.data.imported.paymentSources} payment sources`);
+                      queryClient.invalidateQueries();
+                    }
+                  }
+                }}
+                variant="outline"
+                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import from Google Sheets
+              </Button>
             </div>
           </CardContent>
         </Card>
