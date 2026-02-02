@@ -137,7 +137,7 @@ export default function Expenses() {
     const csvData = [
       ["Date", "Project", "Category", "Subcategory", "Payee", "Description", "Amount (€)", "Payment Source"],
       ...filteredExpenses.map((e) => [
-        new Date(e.date).toLocaleDateString("de-DE"),
+        e.date,
         getProjectName(e.project_id),
         e.category || "",
         e.subcategory || "",
