@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
 
     // Fetch all data
-    const [expenses, income, projects, tasks, contacts, subcategories, paymentSources, notes, boards, items, dropdownLists] = await Promise.all([
+    const [expenses, income, projects, tasks, contacts, subcategories, paymentSources, notes, boards, items, dropdownLists, phases] = await Promise.all([
       base44.entities.Expense.list('-date'),
       base44.entities.Income.list('-date'),
       base44.entities.Project.list('-created_date'),
@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
       base44.entities.ConstructionNote.list('-date'),
       base44.entities.Board.list('-created_date'),
       base44.entities.Item.list('-created_date'),
-      base44.entities.DropdownList.list('list_name')
+      base44.entities.DropdownList.list('list_name'),
+      base44.entities.ProjectPhase.list('order')
     ]);
 
     // Get or create spreadsheet ID from user data
@@ -51,6 +52,7 @@ Deno.serve(async (req) => {
             { properties: { title: 'Construction Notes' } },
             { properties: { title: 'Boards' } },
             { properties: { title: 'Board Items' } },
+            { properties: { title: 'Project Phases' } },
             { properties: { title: 'Subcategories' } },
             { properties: { title: 'Payment Sources' } },
             { properties: { title: 'Units' } },
@@ -155,9 +157,25 @@ Deno.serve(async (req) => {
       ])
     ];
 
+    const getPhaseName = (phaseId) => {
+      return phases.find(p => p.id === phaseId)?.name || '';
+    };
+
+    const phasesData = [
+      ['Name', 'Order', 'Color'],
+      ...phases.map(p => [
+        p.name || '',
+        p.order || 0,
+        p.color || ''
+      ])
+    ];
+
     const subcategoriesData = [
-      ['Name'],
-      ...subcategories.map(s => [s.name || ''])
+      ['Name', 'Phase'],
+      ...subcategories.map(s => [
+        s.name || '',
+        getPhaseName(s.phase_id)
+      ])
     ];
 
     const paymentSourcesData = [
@@ -248,6 +266,7 @@ Deno.serve(async (req) => {
           { range: 'Construction Notes!A1', values: notesData },
           { range: 'Boards!A1', values: boardsData },
           { range: 'Board Items!A1', values: itemsData },
+          { range: 'Project Phases!A1', values: phasesData },
           { range: 'Subcategories!A1', values: subcategoriesData },
           { range: 'Payment Sources!A1', values: paymentSourcesData },
           { range: 'Units!A1', values: unitsData },
@@ -276,6 +295,7 @@ Deno.serve(async (req) => {
         notes: notes.length,
         boards: boards.length,
         items: items.length,
+        phases: phases.length,
         subcategories: subcategories.length,
         paymentSources: paymentSources.length,
         dropdownLists: dropdownLists.length
