@@ -17,11 +17,15 @@ Deno.serve(async (req) => {
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
 
     // Fetch all sheets data
+    const rangeParams = [
+      'ranges=Expenses!A2:H',
+      'ranges=Income!A2:G', 
+      'ranges=Subcategories!A2:A',
+      'ranges=Payment Sources!A2:A'
+    ].join('&');
+    
     const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?` +
-      new URLSearchParams({
-        ranges: ['Expenses!A2:H', 'Income!A2:G', 'Subcategories!A2:A', 'Payment Sources!A2:A']
-      }),
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?${rangeParams}`,
       {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       }
