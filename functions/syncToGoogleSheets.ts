@@ -50,8 +50,17 @@ Deno.serve(async (req) => {
         })
       });
 
+      if (!createResponse.ok) {
+        const error = await createResponse.text();
+        return Response.json({ error: `Failed to create spreadsheet: ${error}` }, { status: 500 });
+      }
+
       const spreadsheet = await createResponse.json();
       spreadsheetId = spreadsheet.spreadsheetId;
+      
+      if (!spreadsheetId) {
+        return Response.json({ error: 'Spreadsheet ID not returned from Google' }, { status: 500 });
+      }
 
       // Save spreadsheet ID to user
       await base44.auth.updateMe({
