@@ -368,7 +368,7 @@ export default function Settings() {
             </div>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Button
                 onClick={exportBackup}
                 className="bg-[#1e3a5f] hover:bg-[#152a45]"
@@ -395,6 +395,20 @@ export default function Settings() {
                 className="hidden"
                 onChange={importBackup}
               />
+
+              <Button
+                onClick={async () => {
+                  const response = await base44.functions.invoke('syncToGoogleSheets', {});
+                  if (response.data.success) {
+                    window.open(response.data.url, '_blank');
+                  }
+                }}
+                variant="outline"
+                className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Sync to Google Sheets
+              </Button>
             </div>
           </CardContent>
         </Card>
