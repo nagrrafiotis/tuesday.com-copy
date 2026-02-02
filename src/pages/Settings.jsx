@@ -287,24 +287,13 @@ export default function Settings() {
           items: {
             type: "object",
             properties: {
-              name: { type: "string" },
-              parent_category: { type: "string" }
+              name: { type: "string" }
             }
           }
         }
       });
 
       if (result.status === "success" && result.output) {
-        const categoryMap = {
-          'labor': 'labor',
-          'subcontractor': 'subcontractor',
-          'materials': 'materials',
-          'equipment': 'equipment',
-          'general_expenses': 'general_expenses',
-          'general expenses': 'general_expenses',
-          'general': 'general_expenses'
-        };
-
         await Promise.all(result.output.map(row => 
           createSubcategoryMutation.mutateAsync({ 
             name: row.name
