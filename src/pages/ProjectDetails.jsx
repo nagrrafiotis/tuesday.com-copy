@@ -31,6 +31,7 @@ import {
   Wrench,
   Package,
   Truck,
+  Search,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -65,6 +66,7 @@ export default function ProjectDetails() {
   const [editingBudget, setEditingBudget] = useState(false);
   const [budgetItems, setBudgetItems] = useState([]);
   const [expandedItems, setExpandedItems] = useState(new Set());
+  const [budgetSearchQuery, setBudgetSearchQuery] = useState("");
 
   const queryClient = useQueryClient();
 
@@ -657,9 +659,31 @@ export default function ProjectDetails() {
                 </Button>
               </div>
 
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="Search budget items..."
+                  value={budgetSearchQuery}
+                  onChange={(e) => setBudgetSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
               {budgetItems.length > 0 ? (
                 <div className="space-y-3">
-                  {budgetItems.map((item, index) => {
+                  {budgetItems
+                    .filter(item => {
+                      if (!budgetSearchQuery) return true;
+                      const query = budgetSearchQuery.toLowerCase();
+                      return (
+                        item.description?.toLowerCase().includes(query) ||
+                        item.category?.toLowerCase().includes(query) ||
+                        item.subcategory?.toLowerCase().includes(query) ||
+                        item.payee?.toLowerCase().includes(query) ||
+                        item.payment_source?.toLowerCase().includes(query)
+                      );
+                    })
+                    .map((item, index) => {
                     const isExpanded = expandedItems.has(item.id);
                     
                     return (
@@ -859,6 +883,17 @@ export default function ProjectDetails() {
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
                 >
+                  <div className="p-4 border-b border-gray-100">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        placeholder="Search budget items..."
+                        value={budgetSearchQuery}
+                        onChange={(e) => setBudgetSearchQuery(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gray-50/50">
@@ -874,7 +909,19 @@ export default function ProjectDetails() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {project.budget_items.map((item, index) => {
+                      {project.budget_items
+                        .filter(item => {
+                          if (!budgetSearchQuery) return true;
+                          const query = budgetSearchQuery.toLowerCase();
+                          return (
+                            item.description?.toLowerCase().includes(query) ||
+                            item.category?.toLowerCase().includes(query) ||
+                            item.subcategory?.toLowerCase().includes(query) ||
+                            item.payee?.toLowerCase().includes(query) ||
+                            item.payment_source?.toLowerCase().includes(query)
+                          );
+                        })
+                        .map((item, index) => {
                         const config = categoryConfig[item.category] || categoryConfig.general_expenses;
                         const Icon = config.icon;
                         
