@@ -420,25 +420,49 @@ export default function Settings() {
               <CardHeader className="border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg text-[#1e3a5f]">Expense Subcategories</CardTitle>
-                  <label htmlFor="subcategories-import">
+                  <div className="flex gap-2">
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
-                      onClick={() => document.getElementById('subcategories-import').click()}
+                      className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+                      onClick={() => {
+                        const csvData = [["name"], ...subcategories.map(s => [s.name])];
+                        const csvContent = csvData.map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+                        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                        const link = document.createElement("a");
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `subcategories_${new Date().toISOString().split("T")[0]}.csv`);
+                        link.style.visibility = "hidden";
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
                     >
-                      <Upload className="w-4 h-4 mr-1" />
-                      Import
+                      <Download className="w-4 h-4 mr-1" />
+                      Export
                     </Button>
-                  </label>
-                  <input
-                    id="subcategories-import"
-                    type="file"
-                    accept=".csv"
-                    className="hidden"
-                    onChange={importSubcategories}
-                  />
+                    <label htmlFor="subcategories-import">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
+                        onClick={() => document.getElementById('subcategories-import').click()}
+                      >
+                        <Upload className="w-4 h-4 mr-1" />
+                        Import
+                      </Button>
+                    </label>
+                    <input
+                      id="subcategories-import"
+                      type="file"
+                      accept=".csv"
+                      className="hidden"
+                      onChange={importSubcategories}
+                    />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="pt-4">
@@ -541,25 +565,49 @@ export default function Settings() {
               <CardHeader className="border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg text-[#1e3a5f]">Payment Sources</CardTitle>
-                  <label htmlFor="payment-sources-import">
+                  <div className="flex gap-2">
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
-                      onClick={() => document.getElementById('payment-sources-import').click()}
+                      className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+                      onClick={() => {
+                        const csvData = [["name"], ...paymentSources.map(ps => [ps.name])];
+                        const csvContent = csvData.map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+                        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                        const link = document.createElement("a");
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `payment_sources_${new Date().toISOString().split("T")[0]}.csv`);
+                        link.style.visibility = "hidden";
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
                     >
-                      <Upload className="w-4 h-4 mr-1" />
-                      Import
+                      <Download className="w-4 h-4 mr-1" />
+                      Export
                     </Button>
-                  </label>
-                  <input
-                    id="payment-sources-import"
-                    type="file"
-                    accept=".csv"
-                    className="hidden"
-                    onChange={importPaymentSources}
-                  />
+                    <label htmlFor="payment-sources-import">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
+                        onClick={() => document.getElementById('payment-sources-import').click()}
+                      >
+                        <Upload className="w-4 h-4 mr-1" />
+                        Import
+                      </Button>
+                    </label>
+                    <input
+                      id="payment-sources-import"
+                      type="file"
+                      accept=".csv"
+                      className="hidden"
+                      onChange={importPaymentSources}
+                    />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="pt-4">
