@@ -20,12 +20,20 @@ import { format } from "date-fns";
 import { MoreHorizontal, Users, Wrench, Package, Truck, Receipt } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const categoryConfig = {
-  labor: { label: "Labor", icon: Users, color: "bg-blue-100 text-blue-700" },
-  subcontractor: { label: "Subcontractor", icon: Wrench, color: "bg-purple-100 text-purple-700" },
-  materials: { label: "Materials", icon: Package, color: "bg-amber-100 text-amber-700" },
-  equipment: { label: "Equipment", icon: Truck, color: "bg-emerald-100 text-emerald-700" },
-  general_expenses: { label: "General", icon: Receipt, color: "bg-gray-100 text-gray-700" },
+const categoryIcons = {
+  labor: Users,
+  subcontractor: Wrench,
+  materials: Package,
+  equipment: Truck,
+  general_expenses: Receipt,
+};
+
+const categoryColors = {
+  labor: "bg-blue-100 text-blue-700",
+  subcontractor: "bg-purple-100 text-purple-700",
+  materials: "bg-amber-100 text-amber-700",
+  equipment: "bg-emerald-100 text-emerald-700",
+  general_expenses: "bg-gray-100 text-gray-700",
 };
 
 export default function ExpenseTable({ expenses, projects, contacts = [], onEdit, onDelete, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense, onViewContact }) {
@@ -168,8 +176,9 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
         </TableHeader>
         <TableBody>
           {expenses.map((expense, index) => {
-            const config = categoryConfig[expense.category] || categoryConfig.general_expenses;
-            const Icon = config.icon;
+            const Icon = categoryIcons[expense.category] || Receipt;
+            const color = categoryColors[expense.category] || "bg-gray-100 text-gray-700";
+            const label = expense.category ? expense.category.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "General";
 
             return (
               <motion.tr
@@ -189,9 +198,9 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                   {format(new Date(expense.date), "dd/MM/yy")}
                 </TableCell>
                 <TableCell>
-                  <Badge className={`${config.color} border-0 gap-1.5`}>
+                  <Badge className={`${color} border-0 gap-1.5`}>
                     <Icon className="w-3 h-3" />
-                    {config.label}
+                    {label}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-gray-600">
