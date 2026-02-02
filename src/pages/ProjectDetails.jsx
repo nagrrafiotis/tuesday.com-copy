@@ -136,6 +136,11 @@ export default function ProjectDetails() {
     queryFn: () => base44.entities.ProjectPhase.list("order"),
   });
 
+  const { data: dropdownLists = [] } = useQuery({
+    queryKey: ["dropdown-lists"],
+    queryFn: () => base44.entities.DropdownList.list(),
+  });
+
   const { data: expenses = [] } = useQuery({
     queryKey: ["expenses", projectId],
     queryFn: () => base44.entities.Expense.filter({ project_id: projectId }),
@@ -280,6 +285,15 @@ export default function ProjectDetails() {
     in_progress: "bg-amber-100 text-amber-700",
     on_hold: "bg-gray-100 text-gray-700",
     completed: "bg-emerald-100 text-emerald-700",
+  };
+
+  const DEFAULT_LISTS = {
+    expense_categories: ["labor", "subcontractor", "materials", "equipment", "general_expenses"],
+  };
+
+  const getExpenseCategories = () => {
+    const list = dropdownLists.find(l => l.list_name === "expense_categories");
+    return list?.options || DEFAULT_LISTS.expense_categories;
   };
 
   const defaultImages = {
@@ -822,11 +836,11 @@ export default function ProjectDetails() {
                                     <SelectValue placeholder="Select category" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="labor">Labor</SelectItem>
-                                    <SelectItem value="subcontractor">Subcontractor</SelectItem>
-                                    <SelectItem value="materials">Materials</SelectItem>
-                                    <SelectItem value="equipment">Equipment</SelectItem>
-                                    <SelectItem value="general_expenses">General Expenses</SelectItem>
+                                    {getExpenseCategories().map((cat) => (
+                                      <SelectItem key={cat} value={cat}>
+                                        {cat.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                      </SelectItem>
+                                    ))}
                                   </SelectContent>
                                 </Select>
                               </div>
