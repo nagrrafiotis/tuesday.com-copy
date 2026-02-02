@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X, Palette, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X, Palette, RefreshCw, Clock } from "lucide-react";
+import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -84,6 +85,11 @@ export default function Settings() {
       const response = await base44.functions.invoke('getGoogleAccountInfo', {});
       return response.data;
     },
+  });
+
+  const { data: currentUser, refetch: refetchUser } = useQuery({
+    queryKey: ["current-user"],
+    queryFn: () => base44.auth.me(),
   });
 
   const createMutation = useMutation({
@@ -435,66 +441,110 @@ export default function Settings() {
             </div>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="flex flex-wrap gap-3">
-              <Button
-                onClick={exportBackup}
-                className="bg-[#1e3a5f] hover:bg-[#152a45]"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download Full Backup
-              </Button>
-              
-              <label htmlFor="backup-upload">
+            <div className="flex flex-wrap gap-6">
+              <div className="flex flex-col gap-1">
                 <Button
-                  type="button"
+                  onClick={async () => {
+                    exportBackup();
+                    await base44.auth.updateMe({ last_backup_download_date: new Date().toISOString() });
+                    refetchUser();
+                  }}
+                  className="bg-[#1e3a5f] hover:bg-[#152a45]"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Full Backup
+                </Button>
+                {currentUser?.last_backup_download_date && (
+                  <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                    <Clock className="w-3 h-3" />
+                    Last used: {format(new Date(currentUser.last_backup_download_date), 'MMM d, yyyy HH:mm')}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex flex-col gap-1">
+                <label htmlFor="backup-upload">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
+                    onClick={() => document.getElementById('backup-upload').click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Restore from Backup
+                  </Button>
+                </label>
+                <input
+                  id="backup-upload"
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={async (e) => {
+                    await importBackup(e);
+                    await base44.auth.updateMe({ last_backup_restore_date: new Date().toISOString() });
+                    refetchUser();
+                  }}
+                />
+                {currentUser?.last_backup_restore_date && (
+                  <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                    <Clock className="w-3 h-3" />
+                    Last used: {format(new Date(currentUser.last_backup_restore_date), 'MMM d, yyyy HH:mm')}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <Button
+                  onClick={async () => {
+                    const response = await base44.functions.invoke('syncToGoogleSheets', {});
+                    if (response.data.success) {
+                      window.open(response.data.url, '_blank');
+                      await base44.auth.updateMe({ last_google_sync_date: new Date().toISOString() });
+                      refetchUser();
+                    }
+                  }}
                   variant="outline"
-                  className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
-                  onClick={() => document.getElementById('backup-upload').click()}
+                  className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Sync to Google Sheets
+                </Button>
+                {currentUser?.last_google_sync_date && (
+                  <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                    <Clock className="w-3 h-3" />
+                    Last used: {format(new Date(currentUser.last_google_sync_date), 'MMM d, yyyy HH:mm')}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <Button
+                  onClick={async () => {
+                    if (confirm('Import data from Google Sheets? New records will be added to your app.')) {
+                      const response = await base44.functions.invoke('importFromGoogleSheets', {});
+                      if (response.data.success) {
+                        alert(`Imported: ${response.data.imported.expenses} expenses, ${response.data.imported.income} income, ${response.data.imported.subcategories} subcategories, ${response.data.imported.paymentSources} payment sources`);
+                        queryClient.invalidateQueries();
+                        await base44.auth.updateMe({ last_google_import_date: new Date().toISOString() });
+                        refetchUser();
+                      }
+                    }
+                  }}
+                  variant="outline"
+                  className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Restore from Backup
+                  Import from Google Sheets
                 </Button>
-              </label>
-              <input
-                id="backup-upload"
-                type="file"
-                accept=".json"
-                className="hidden"
-                onChange={importBackup}
-              />
-
-              <Button
-                onClick={async () => {
-                  const response = await base44.functions.invoke('syncToGoogleSheets', {});
-                  if (response.data.success) {
-                    window.open(response.data.url, '_blank');
-                  }
-                }}
-                variant="outline"
-                className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Sync to Google Sheets
-              </Button>
-
-              <Button
-                onClick={async () => {
-                  if (confirm('Import data from Google Sheets? New records will be added to your app.')) {
-                    const response = await base44.functions.invoke('importFromGoogleSheets', {});
-                    if (response.data.success) {
-                      alert(`Imported: ${response.data.imported.expenses} expenses, ${response.data.imported.income} income, ${response.data.imported.subcategories} subcategories, ${response.data.imported.paymentSources} payment sources`);
-                      queryClient.invalidateQueries();
-                    }
-                  }
-                }}
-                variant="outline"
-                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Import from Google Sheets
-              </Button>
-            </div>
-          </CardContent>
+                {currentUser?.last_google_import_date && (
+                  <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                    <Clock className="w-3 h-3" />
+                    Last used: {format(new Date(currentUser.last_google_import_date), 'MMM d, yyyy HH:mm')}
+                  </div>
+                )}
+              </div>
+              </div>
+              </CardContent>
         </Card>
 
         {/* Expense & Income Lists */}
