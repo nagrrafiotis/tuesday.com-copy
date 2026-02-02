@@ -738,6 +738,31 @@ export default function Settings() {
                       variant="ghost"
                       size="sm"
                       className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+                      onClick={async () => {
+                        // Auto-assign subcategories to phases based on number ranges
+                        const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
+                        const subcatsPerPhase = Math.ceil(subcategories.length / sortedPhases.length);
+
+                        const updates = subcategories.map((subcat, idx) => {
+                          const phaseIndex = Math.floor(idx / subcatsPerPhase);
+                          const phase = sortedPhases[Math.min(phaseIndex, sortedPhases.length - 1)];
+                          return updateSubcategoryMutation.mutateAsync({
+                            id: subcat.id,
+                            data: { ...subcat, phase_id: phase?.id || null }
+                          });
+                        });
+
+                        await Promise.all(updates);
+                      }}
+                      title="Auto-assign subcategories to phases by order"
+                    >
+                      Auto-assign
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
                       onClick={() => {
                         const csvData = [["name"], ...subcategories.map(s => [s.name])];
                         const csvContent = csvData.map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
@@ -830,61 +855,27 @@ export default function Settings() {
                           )}
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Popover 
-                            open={assigningPhase === subcat.id}
-                            onOpenChange={(open) => setAssigningPhase(open ? subcat.id : null)}
+                          <Select
+                            value={subcat.phase_id || "none"}
+                            onValueChange={(value) => {
+                              updateSubcategoryMutation.mutate({
+                                id: subcat.id,
+                                data: { ...subcat, phase_id: value === "none" ? null : value }
+                              });
+                            }}
                           >
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                title="Assign to phase"
-                              >
-                                <SettingsGear className="w-3 h-3 text-[#1e3a5f]" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-56 p-2">
-                              <div className="space-y-1">
-                                <div className="text-xs font-medium text-gray-500 px-2 py-1">Assign to phase:</div>
-                                {phases.map((p) => (
-                                  <button
-                                    key={p.id}
-                                    onClick={() => {
-                                      updateSubcategoryMutation.mutate({
-                                        id: subcat.id,
-                                        data: { ...subcat, phase_id: p.id }
-                                      });
-                                      setAssigningPhase(null);
-                                    }}
-                                    className={`w-full text-left px-2 py-1.5 rounded hover:bg-gray-100 text-sm flex items-center gap-2 ${
-                                      subcat.phase_id === p.id ? 'bg-gray-100' : ''
-                                    }`}
-                                  >
-                                    <div className={`w-3 h-3 rounded ${p.color}`} />
-                                    {p.name}
-                                  </button>
-                                ))}
-                                {subcat.phase_id && (
-                                  <>
-                                    <div className="border-t my-1" />
-                                    <button
-                                      onClick={() => {
-                                        updateSubcategoryMutation.mutate({
-                                          id: subcat.id,
-                                          data: { ...subcat, phase_id: null }
-                                        });
-                                        setAssigningPhase(null);
-                                      }}
-                                      className="w-full text-left px-2 py-1.5 rounded hover:bg-red-50 text-sm text-red-600"
-                                    >
-                                      Remove phase
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
+                            <SelectTrigger className="h-6 w-24 text-xs">
+                              <SelectValue placeholder="Phase" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {phases.map((p) => (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <Button
                             variant="ghost"
                             size="icon"
