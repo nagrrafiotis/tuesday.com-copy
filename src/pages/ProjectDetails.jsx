@@ -131,6 +131,11 @@ export default function ProjectDetails() {
     queryFn: () => base44.entities.PaymentSource.list(),
   });
 
+  const { data: phases = [] } = useQuery({
+    queryKey: ["phases"],
+    queryFn: () => base44.entities.ProjectPhase.list("order"),
+  });
+
   const { data: expenses = [] } = useQuery({
     queryKey: ["expenses", projectId],
     queryFn: () => base44.entities.Expense.filter({ project_id: projectId }),
@@ -307,27 +312,50 @@ export default function ProjectDetails() {
   const budgetRemaining = (project.budget || 0) - totalExpenses;
   const budgetUsedPercent = project.budget ? (totalExpenses / project.budget) * 100 : 0;
 
-  // Group expenses by subcategory
-  const expensesBySubcategory = expenses.reduce((acc, expense) => {
-    const key = expense.subcategory || expense.category || "Other";
-    acc[key] = (acc[key] || 0) + (expense.amount || 0);
-    return acc;
-  }, {});
+  // Phase chart data - comparing budget vs actual expenses by phase
+  const phaseChartData = phases.map(phase => {
+    // Get all subcategories for this phase
+    const phaseSubcategories = subcategories.filter(s => s.phase_id === phase.id);
+    const subcategoryNames = phaseSubcategories.map(s => s.name);
+    
+    // Calculate budget for this phase
+    const phaseBudget = (project?.budget_items || [])
+      .filter(item => subcategoryNames.includes(item.subcategory))
+      .reduce((sum, item) => sum + (item.total_cost || 0), 0);
+    
+    // Calculate actual expenses for this phase
+    const phaseExpenses = expenses
+      .filter(exp => subcategoryNames.includes(exp.subcategory))
+      .reduce((sum, exp) => sum + exp.amount, 0);
+    
+    return {
+      phase: phase.name,
+      budget: phaseBudget,
+      actual: phaseExpenses,
+      color: phase.color
+    };
+  });
 
-  // Group budget by subcategory
-  const budgetByCategory = (project.budget_items || []).reduce((acc, item) => {
-    const key = item.subcategory || item.category || "Other";
-    acc[key] = (acc[key] || 0) + (item.total_cost || 0);
-    return acc;
-  }, {});
-
-  // Create chart data combining both
-  const allCategories = [...new Set([...Object.keys(budgetByCategory), ...Object.keys(expensesBySubcategory)])];
-  const categoryChartData = allCategories.map(category => ({
-    name: category,
-    budget: budgetByCategory[category] || 0,
-    expenses: expensesBySubcategory[category] || 0,
-  })).sort((a, b) => b.budget - a.budget);
+  // Add "Unassigned" phase for items without a phase
+  const unassignedSubcategories = subcategories.filter(s => !s.phase_id).map(s => s.name);
+  if (unassignedSubcategories.length > 0) {
+    const unassignedBudget = (project?.budget_items || [])
+      .filter(item => unassignedSubcategories.includes(item.subcategory))
+      .reduce((sum, item) => sum + (item.total_cost || 0), 0);
+    
+    const unassignedExpenses = expenses
+      .filter(exp => unassignedSubcategories.includes(exp.subcategory))
+      .reduce((sum, exp) => sum + exp.amount, 0);
+    
+    if (unassignedBudget > 0 || unassignedExpenses > 0) {
+      phaseChartData.push({
+        phase: "Unassigned",
+        budget: unassignedBudget,
+        actual: unassignedExpenses,
+        color: "bg-gray-100 text-gray-700"
+      });
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
@@ -622,15 +650,15 @@ export default function ProjectDetails() {
               </div>
             </div>
 
-            {/* Category Comparison Chart */}
-            {categoryChartData.length > 0 && (
+            {/* Phase Comparison Chart */}
+            {phaseChartData.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-6">Budget vs Expenses by Category</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-6">Budget vs Expenses by Phase</h3>
                 <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={categoryChartData}>
+                  <BarChart data={phaseChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis 
-                      dataKey="name" 
+                      dataKey="phase" 
                       angle={-45} 
                       textAnchor="end" 
                       height={100}
@@ -649,8 +677,8 @@ export default function ProjectDetails() {
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="budget" fill="#1e3a5f" name="Budget" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="expenses" fill="#ef4444" name="Expenses" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="budget" fill="#c9a962" name="Budget" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="actual" fill="#1e3a5f" name="Actual Expenses" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
