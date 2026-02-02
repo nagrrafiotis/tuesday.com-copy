@@ -26,7 +26,6 @@ const COLOR_OPTIONS = [
 
 const DEFAULT_LISTS = {
   units: ["m", "m²", "m³", "kg", "piece", "day"],
-  expense_categories: ["labor", "subcontractor", "materials", "equipment", "general_expenses"],
   income_categories: ["sales", "investment", "rental", "other"],
   property_types: ["residential", "commercial", "mixed_use", "industrial", "land"],
   project_status: ["planning", "in_progress", "on_hold", "completed"],
@@ -38,7 +37,6 @@ const DEFAULT_LISTS = {
 
 const LIST_LABELS = {
   units: "Units",
-  expense_categories: "Expense Categories",
   income_categories: "Income Categories",
   property_types: "Property Types",
   project_status: "Project Status",
