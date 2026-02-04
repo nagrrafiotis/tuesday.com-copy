@@ -525,11 +525,15 @@ export default function Settings() {
               <div className="flex flex-col gap-1">
                 <Button
                   onClick={async () => {
-                    const response = await base44.functions.invoke('syncToGoogleSheets', {});
-                    if (response.data.success) {
-                      window.open(response.data.url, '_blank');
-                      await base44.auth.updateMe({ last_google_sync_date: new Date().toISOString() });
-                      refetchUser();
+                    try {
+                      const response = await base44.functions.invoke('syncToGoogleSheets', {});
+                      if (response.data.success) {
+                        window.open(response.data.url, '_blank');
+                        await base44.auth.updateMe({ last_google_sync_date: new Date().toISOString() });
+                        refetchUser();
+                      }
+                    } catch (error) {
+                      alert('Sync failed. Please make sure your Google account is connected.');
                     }
                   }}
                   variant="outline"
@@ -550,12 +554,18 @@ export default function Settings() {
                 <Button
                   onClick={async () => {
                     if (confirm('Import data from Google Sheets? New records will be added to your app.')) {
-                      const response = await base44.functions.invoke('importFromGoogleSheets', {});
-                      if (response.data.success) {
-                        alert(`Imported: ${response.data.imported.expenses} expenses, ${response.data.imported.income} income, ${response.data.imported.subcategories} subcategories, ${response.data.imported.paymentSources} payment sources`);
-                        queryClient.invalidateQueries();
-                        await base44.auth.updateMe({ last_google_import_date: new Date().toISOString() });
-                        refetchUser();
+                      try {
+                        const response = await base44.functions.invoke('importFromGoogleSheets', {});
+                        if (response.data.success) {
+                          alert(`Imported: ${response.data.imported.expenses} expenses, ${response.data.imported.income} income, ${response.data.imported.subcategories} subcategories, ${response.data.imported.paymentSources} payment sources`);
+                          queryClient.invalidateQueries();
+                          await base44.auth.updateMe({ last_google_import_date: new Date().toISOString() });
+                          refetchUser();
+                        } else if (response.data.error) {
+                          alert(`Import failed: ${response.data.error}`);
+                        }
+                      } catch (error) {
+                        alert('Import failed. Make sure you have synced data to Google Sheets first and that the spreadsheet still exists.');
                       }
                     }
                   }}
