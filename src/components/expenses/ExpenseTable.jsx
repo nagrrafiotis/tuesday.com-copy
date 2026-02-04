@@ -102,9 +102,10 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden w-full"
     >
-      <Table>
+      <div className="overflow-x-auto w-full">
+        <Table>
         <TableHeader>
           <TableRow className="bg-gray-50/50">
             <TableHead className="w-12">
@@ -268,6 +269,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
           </TableRow>
         </TableBody>
       </Table>
+      </div>
     </motion.div>
   );
 }
