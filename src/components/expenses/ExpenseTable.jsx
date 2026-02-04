@@ -247,8 +247,8 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit?.(expense)}>Edit</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onDelete?.(expense)} className="text-red-600">
+                      <DropdownMenuItem onClick={() => onEdit(expense)}>Edit</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onDelete(expense)} className="text-red-600">
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
