@@ -11,7 +11,9 @@ Deno.serve(async (req) => {
 
     const spreadsheetId = user.google_sheets_backup_id;
     if (!spreadsheetId) {
-      return Response.json({ error: 'No Google Sheet connected' }, { status: 400 });
+      return Response.json({ 
+        error: 'Please sync to Google Sheets first before importing. Click "Sync to Google Sheets" button to create the spreadsheet.' 
+      }, { status: 400 });
     }
 
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
@@ -46,6 +48,11 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
+      if (response.status === 403 || response.status === 404) {
+        return Response.json({ 
+          error: 'Unable to access Google Sheet. Please sync to Google Sheets first to create/update the spreadsheet, then try importing again.' 
+        }, { status: 500 });
+      }
       return Response.json({ error: 'Failed to fetch from Google Sheets', details: errorText }, { status: 500 });
     }
 
