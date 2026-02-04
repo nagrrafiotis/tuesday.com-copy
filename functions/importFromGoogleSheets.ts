@@ -9,7 +9,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const spreadsheetId = user.google_sheets_backup_id;
+    // Get user with custom fields using service role
+    const fullUser = await base44.asServiceRole.entities.User.list({ id: user.id });
+    const spreadsheetId = fullUser[0]?.google_sheets_backup_id;
+    
     if (!spreadsheetId) {
       return Response.json({ 
         error: 'Please sync to Google Sheets first before importing. Click "Sync to Google Sheets" button to create the spreadsheet.' 
