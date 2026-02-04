@@ -434,14 +434,15 @@ export default function Settings() {
                 <Button
                   variant="outline"
                   onClick={async () => {
-                    if (confirm('This will disconnect your current Google account. After this, you can reconnect with a different account from Base44 Dashboard → Integrations → Google Sheets. Continue?')) {
+                    if (confirm('This will disconnect your current Google account. You can reconnect with a different account right after. Continue?')) {
                       try {
                         await base44.auth.updateMe({
                           google_sheets_backup_id: null
                         });
-                        alert('Google account disconnected successfully. Please go to Base44 Dashboard → Integrations → Google Sheets to connect a different account.');
                         refetchUser();
                         refetchGoogleAccount();
+                        // Open Base44 integrations page
+                        window.open('https://app.base44.com/integrations', '_blank');
                       } catch (error) {
                         alert('Failed to disconnect account. Please try again.');
                       }
@@ -458,7 +459,7 @@ export default function Settings() {
                 <p className="text-gray-500 mb-4">No Google account connected</p>
                 <Button
                   onClick={() => {
-                    alert('To connect your Google account, please go to the Base44 Dashboard → Integrations → Google Sheets and authorize the connection.');
+                    window.open('https://app.base44.com/integrations', '_blank');
                   }}
                   className="bg-[#4285F4] hover:bg-[#3367D6]"
                 >
