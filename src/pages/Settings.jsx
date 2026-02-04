@@ -418,53 +418,57 @@ export default function Settings() {
           </CardHeader>
           <CardContent className="pt-6">
             {googleAccount?.connected ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Avatar className="w-12 h-12">
-                    <AvatarImage src={googleAccount.picture} />
-                    <AvatarFallback className="bg-[#4285F4] text-white">
-                      {googleAccount.email?.[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium text-gray-900">{googleAccount.name}</p>
-                    <p className="text-sm text-gray-500">{googleAccount.email}</p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={googleAccount.picture} />
+                      <AvatarFallback className="bg-[#4285F4] text-white">
+                        {googleAccount.email?.[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-gray-900">{googleAccount.name}</p>
+                      <p className="text-sm text-gray-500">{googleAccount.email}</p>
+                    </div>
                   </div>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    if (confirm('This will disconnect your current Google account. You can reconnect with a different account right after. Continue?')) {
-                      try {
-                        await base44.auth.updateMe({
-                          google_sheets_backup_id: null
-                        });
-                        refetchUser();
-                        refetchGoogleAccount();
-                        // Open Base44 integrations page
-                        window.open('https://app.base44.com/integrations', '_blank');
-                      } catch (error) {
-                        alert('Failed to disconnect account. Please try again.');
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      if (confirm('Clear spreadsheet data? You can sync again after this. Continue?')) {
+                        try {
+                          await base44.auth.updateMe({
+                            google_sheets_backup_id: null
+                          });
+                          alert('Spreadsheet data cleared. Next sync will create a new spreadsheet.');
+                          refetchUser();
+                        } catch (error) {
+                          alert('Failed to clear data. Please try again.');
+                        }
                       }
-                    }
-                  }}
-                  className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Change Account
-                </Button>
+                    }}
+                    className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Reset Sync
+                  </Button>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> To change which Google account is connected, go to your Base44 Dashboard → Code → Integrations → Google Sheets and reconnect.
+                  </p>
+                </div>
               </div>
             ) : (
-              <div className="text-center py-4">
-                <p className="text-gray-500 mb-4">No Google account connected</p>
-                <Button
-                  onClick={() => {
-                    window.open('https://app.base44.com/integrations', '_blank');
-                  }}
-                  className="bg-[#4285F4] hover:bg-[#3367D6]"
-                >
-                  Connect Google Account
-                </Button>
+              <div className="space-y-4">
+                <div className="text-center py-4">
+                  <p className="text-gray-500 mb-4">No Google account connected</p>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-sm text-amber-800">
+                    <strong>To connect Google Sheets:</strong> Go to your Base44 Dashboard → Code → Integrations → Google Sheets and authorize the connection.
+                  </p>
+                </div>
               </div>
             )}
           </CardContent>
