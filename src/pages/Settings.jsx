@@ -433,8 +433,18 @@ export default function Settings() {
                 </div>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    alert('To reconnect your Google account, please go to the Base44 Dashboard → Integrations → Google Sheets and re-authorize.');
+                  onClick={async () => {
+                    if (confirm('This will disconnect your current Google account and prompt you to connect a different one. Continue?')) {
+                      try {
+                        await base44.asServiceRole.entities.User.update(user.id, {
+                          google_sheets_backup_id: null
+                        });
+                        alert('Google account disconnected. Please authorize again with a different account.');
+                        window.location.href = 'https://accounts.google.com/logout';
+                      } catch (error) {
+                        alert('Failed to disconnect account. Please try again.');
+                      }
+                    }
                   }}
                   className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
                 >
