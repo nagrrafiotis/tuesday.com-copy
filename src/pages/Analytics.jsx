@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Board } from "@/entities/Board";
-import { Item } from "@/entities/Item";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -44,8 +42,8 @@ export default function AnalyticsPage() {
     setIsLoading(true);
     try {
       const [boardsData, itemsData] = await Promise.all([
-        Board.list("-updated_date"),
-        Item.list("-updated_date")
+        base44.entities.Board.list("-updated_date"),
+        base44.entities.Item.list("-updated_date")
       ]);
       setBoards(boardsData);
       setItems(itemsData);
