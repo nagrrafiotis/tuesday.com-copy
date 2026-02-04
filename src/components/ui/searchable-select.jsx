@@ -18,6 +18,7 @@ export function SearchableSelect({
   triggerClassName 
 }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const inputRef = React.useRef(null);
 
   const filteredItems = items.filter(item =>
     item.label.toLowerCase().includes(searchTerm.toLowerCase())
@@ -33,11 +34,13 @@ export function SearchableSelect({
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
+              ref={inputRef}
               placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8 h-8"
               onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
             />
           </div>
         </div>
