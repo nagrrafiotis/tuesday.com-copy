@@ -528,6 +528,7 @@ export default function Settings() {
                     try {
                       const response = await base44.functions.invoke('syncToGoogleSheets', {});
                       if (response.data.success) {
+                        alert('Data synced successfully! You can now edit the spreadsheet and import changes back.');
                         window.open(response.data.url, '_blank');
                         await base44.auth.updateMe({ last_google_sync_date: new Date().toISOString() });
                         refetchUser();
@@ -540,7 +541,7 @@ export default function Settings() {
                   className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Sync to Google Sheets
+                  1. Sync to Google Sheets
                 </Button>
                 {currentUser?.last_google_sync_date && (
                   <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
@@ -553,6 +554,10 @@ export default function Settings() {
               <div className="flex flex-col gap-1">
                 <Button
                   onClick={async () => {
+                    if (!currentUser?.last_google_sync_date) {
+                      alert('Please sync to Google Sheets first (click "1. Sync to Google Sheets" button above).');
+                      return;
+                    }
                     if (confirm('Import data from Google Sheets? New records will be added to your app.')) {
                       try {
                         const response = await base44.functions.invoke('importFromGoogleSheets', {});
@@ -565,7 +570,7 @@ export default function Settings() {
                           alert(`Import failed: ${response.data.error}`);
                         }
                       } catch (error) {
-                        alert('Import failed. Make sure you have synced data to Google Sheets first and that the spreadsheet still exists.');
+                        alert('Import failed. Please sync to Google Sheets first, then try importing again.');
                       }
                     }
                   }}
@@ -573,7 +578,7 @@ export default function Settings() {
                   className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Import from Google Sheets
+                  2. Import from Google Sheets
                 </Button>
                 {currentUser?.last_google_import_date && (
                   <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
