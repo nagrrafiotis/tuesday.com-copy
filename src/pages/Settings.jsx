@@ -299,22 +299,38 @@ export default function Settings() {
     return existingList?.colors?.[option] || "bg-gray-100 text-gray-700";
   };
 
+  const { data: exportData, refetch: refetchExportData } = useQuery({
+    queryKey: ["export-data"],
+    queryFn: async () => {
+      const [projects, tasks, expenses, incomes, contacts, notes] = await Promise.all([
+        base44.entities.Project.list(),
+        base44.entities.Task.list(),
+        base44.entities.Expense.list(),
+        base44.entities.Income.list(),
+        base44.entities.Contact.list(),
+        base44.entities.ConstructionNote.list()
+      ]);
+      return { projects, tasks, expenses, incomes, contacts, notes };
+    },
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
+    enabled: false
+  });
+
   const exportBackup = async () => {
-    const projects = await base44.entities.Project.list();
-    const tasks = await base44.entities.Task.list();
-    const expenses = await base44.entities.Expense.list();
-    const incomes = await base44.entities.Income.list();
-    const contacts = await base44.entities.Contact.list();
-    const notes = await base44.entities.ConstructionNote.list();
+    const data = await refetchExportData();
+    const backupData = data.data || exportData;
+    
+    if (!backupData) return;
 
     const backup = {
       exported_at: new Date().toISOString(),
-      projects,
-      tasks,
-      expenses,
-      incomes,
-      contacts,
-      notes,
+      projects: backupData.projects,
+      tasks: backupData.tasks,
+      expenses: backupData.expenses,
+      incomes: backupData.incomes,
+      contacts: backupData.contacts,
+      notes: backupData.notes,
       subcategories,
       payment_sources: paymentSources,
       dropdown_lists: lists,
