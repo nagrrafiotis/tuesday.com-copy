@@ -131,7 +131,16 @@ export default function Settings() {
   });
 
   const deleteSubcategoryMutation = useMutation({
-    mutationFn: (id) => base44.entities.Subcategory.delete(id),
+    mutationFn: async (id) => {
+      try {
+        await base44.entities.Subcategory.delete(id);
+      } catch (error) {
+        // Ignore if already deleted
+        if (!error.message?.includes('not found')) {
+          throw error;
+        }
+      }
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subcategories"] }),
   });
 
@@ -141,7 +150,16 @@ export default function Settings() {
   });
 
   const deletePaymentSourceMutation = useMutation({
-    mutationFn: (id) => base44.entities.PaymentSource.delete(id),
+    mutationFn: async (id) => {
+      try {
+        await base44.entities.PaymentSource.delete(id);
+      } catch (error) {
+        // Ignore if already deleted
+        if (!error.message?.includes('not found')) {
+          throw error;
+        }
+      }
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["paymentSources"] }),
   });
 
@@ -156,7 +174,16 @@ export default function Settings() {
   });
 
   const deletePhaseMutation = useMutation({
-    mutationFn: (id) => base44.entities.ProjectPhase.delete(id),
+    mutationFn: async (id) => {
+      try {
+        await base44.entities.ProjectPhase.delete(id);
+      } catch (error) {
+        // Ignore if already deleted
+        if (!error.message?.includes('not found')) {
+          throw error;
+        }
+      }
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["phases"] }),
   });
 
