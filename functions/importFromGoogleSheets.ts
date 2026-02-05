@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       'ranges=Tasks!A2:G',
       'ranges=Contacts!A2:F',
       'ranges=Construction Notes!A2:I',
-      'ranges=Subcategories!A2:A',
+      'ranges=Subcategories!A2:B',
       'ranges=Payment Sources!A2:A',
       'ranges=Units!A2:A',
       'ranges=Expense Categories!A2:A',
@@ -117,16 +117,39 @@ Deno.serve(async (req) => {
 
     // Import Subcategories in batch
     const subcategoriesData = subcategoriesRange.values || [];
+    const phases = await base44.entities.ProjectPhase.list();
     const newSubcategories = [];
+    const subcategoryUpdates = [];
+    
     for (const row of subcategoriesData) {
       const name = row[0]?.trim();
-      if (name && !existingSubcategories.find(s => s.name === name)) {
-        newSubcategories.push({ name });
+      const phaseName = row[1]?.trim();
+      
+      if (!name) continue;
+      
+      const phase = phases.find(p => p.name === phaseName);
+      const existing = existingSubcategories.find(s => s.name === name);
+      
+      if (existing) {
+        // Update phase if changed
+        if (phaseName && phase && existing.phase_id !== phase.id) {
+          subcategoryUpdates.push({ id: existing.id, phase_id: phase.id });
+        } else if (!phaseName && existing.phase_id) {
+          subcategoryUpdates.push({ id: existing.id, phase_id: null });
+        }
+      } else {
+        newSubcategories.push({ name, phase_id: phase?.id || null });
       }
     }
+    
     if (newSubcategories.length > 0) {
       await base44.entities.Subcategory.bulkCreate(newSubcategories);
       imported.subcategories = newSubcategories.length;
+    }
+    
+    // Update existing subcategories with new phases
+    for (const update of subcategoryUpdates) {
+      await base44.entities.Subcategory.update(update.id, { phase_id: update.phase_id });
     }
 
     // Import Payment Sources in batch
