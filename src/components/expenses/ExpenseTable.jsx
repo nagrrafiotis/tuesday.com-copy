@@ -66,6 +66,49 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
     setResizing({ column, startX: e.clientX, startWidth: columnWidths[column] });
   };
 
+  const handleDoubleClick = (column) => {
+    // Auto-resize column to fit content
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    context.font = '14px Inter, system-ui, sans-serif';
+    
+    let maxWidth = 80;
+    
+    expenses.forEach(expense => {
+      let text = '';
+      switch(column) {
+        case 'date':
+          text = format(new Date(expense.date), "dd/MM/yy");
+          break;
+        case 'category':
+          text = expense.category ? expense.category.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "General";
+          break;
+        case 'subcategory':
+          text = expense.subcategory || "—";
+          break;
+        case 'project':
+          text = getProjectName(expense.project_id);
+          break;
+        case 'payee':
+          text = expense.payee || "—";
+          break;
+        case 'description':
+          text = expense.description || "—";
+          break;
+        case 'payment':
+          text = expense.payment_source || "—";
+          break;
+        case 'amount':
+          text = formatCurrency(expense.amount);
+          break;
+      }
+      const width = context.measureText(text).width + 40; // padding
+      maxWidth = Math.max(maxWidth, width);
+    });
+    
+    setColumnWidths(prev => ({ ...prev, [column]: Math.min(maxWidth, 500) }));
+  };
+
   React.useEffect(() => {
     if (!resizing) return;
 
@@ -118,6 +161,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               Date
               <div
                 onMouseDown={(e) => handleMouseDown('date', e)}
+                onDoubleClick={() => handleDoubleClick('date')}
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
@@ -125,6 +169,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               Category
               <div
                 onMouseDown={(e) => handleMouseDown('category', e)}
+                onDoubleClick={() => handleDoubleClick('category')}
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
@@ -132,6 +177,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               Subcategory
               <div
                 onMouseDown={(e) => handleMouseDown('subcategory', e)}
+                onDoubleClick={() => handleDoubleClick('subcategory')}
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
@@ -140,6 +186,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                 Project
                 <div
                   onMouseDown={(e) => handleMouseDown('project', e)}
+                  onDoubleClick={() => handleDoubleClick('project')}
                   className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
                 />
               </TableHead>
@@ -148,6 +195,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               Payee
               <div
                 onMouseDown={(e) => handleMouseDown('payee', e)}
+                onDoubleClick={() => handleDoubleClick('payee')}
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
@@ -155,6 +203,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               Description
               <div
                 onMouseDown={(e) => handleMouseDown('description', e)}
+                onDoubleClick={() => handleDoubleClick('description')}
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
@@ -162,6 +211,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               Payment Source
               <div
                 onMouseDown={(e) => handleMouseDown('payment', e)}
+                onDoubleClick={() => handleDoubleClick('payment')}
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
@@ -169,6 +219,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               Amount
               <div
                 onMouseDown={(e) => handleMouseDown('amount', e)}
+                onDoubleClick={() => handleDoubleClick('amount')}
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
