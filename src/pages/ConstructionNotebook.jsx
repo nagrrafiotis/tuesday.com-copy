@@ -66,6 +66,8 @@ export default function ConstructionNotebook() {
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list(),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: notes = [] } = useQuery({
@@ -75,6 +77,8 @@ export default function ConstructionNotebook() {
         ? base44.entities.ConstructionNote.filter({ project_id: selectedProject })
         : base44.entities.ConstructionNote.list(),
     initialData: [],
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const createNoteMutation = useMutation({

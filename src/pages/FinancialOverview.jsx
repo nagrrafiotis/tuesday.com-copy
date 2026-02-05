@@ -19,21 +19,29 @@ export default function FinancialOverview() {
   const { data: expenses = [], isLoading: expensesLoading } = useQuery({
     queryKey: ["expenses"],
     queryFn: () => base44.entities.Expense.list("-date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: incomes = [], isLoading: incomesLoading } = useQuery({
     queryKey: ["incomes"],
     queryFn: () => base44.entities.Income.list("-date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list("-created_date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: paymentSources = [] } = useQuery({
     queryKey: ["paymentSources"],
     queryFn: () => base44.entities.PaymentSource.list("name"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const formatCurrency = (amount) => {

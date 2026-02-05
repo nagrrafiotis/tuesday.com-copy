@@ -34,21 +34,29 @@ export default function Income() {
   const { data: incomes = [], isLoading: incomesLoading } = useQuery({
     queryKey: ["incomes"],
     queryFn: () => base44.entities.Income.list("-date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list("-created_date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => base44.entities.Contact.list("name"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: dropdownLists = [] } = useQuery({
     queryKey: ["dropdown-lists"],
     queryFn: () => base44.entities.DropdownList.list(),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const incomeCategories = dropdownLists.find(l => l.list_name === "income_categories")?.options || ["sales", "investment", "rental", "other"];

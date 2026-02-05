@@ -22,11 +22,15 @@ export default function Gantt() {
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list(),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks"],
     queryFn: () => base44.entities.Task.list(),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const rangeStart = startOfMonth(currentMonth);

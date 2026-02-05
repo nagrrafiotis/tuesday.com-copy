@@ -51,6 +51,8 @@ export default function Contacts() {
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => base44.entities.Contact.list("name"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const createMutation = useMutation({
