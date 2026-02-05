@@ -4,11 +4,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X, Palette, RefreshCw, Clock, Settings as SettingsGear } from "lucide-react";
+import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X, Palette, RefreshCw, Clock, Settings as SettingsGear, CheckSquare, Square } from "lucide-react";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const COLOR_OPTIONS = [
   { value: "bg-emerald-100 text-emerald-700", label: "Emerald" },
@@ -62,6 +63,10 @@ export default function Settings() {
   const [editingPhase, setEditingPhase] = useState(null);
   const [phaseColorPopover, setPhaseColorPopover] = useState(null);
   const [assigningPhase, setAssigningPhase] = useState(null);
+  const [selectedSubcategories, setSelectedSubcategories] = useState([]);
+  const [selectedPaymentSources, setSelectedPaymentSources] = useState([]);
+  const [selectedPhases, setSelectedPhases] = useState([]);
+  const [selectedListItems, setSelectedListItems] = useState({});
 
   const { data: lists = [], isLoading } = useQuery({
     queryKey: ["dropdown-lists"],
@@ -615,15 +620,60 @@ export default function Settings() {
             {/* Project Phases */}
             <Card className="bg-white shadow-sm">
               <CardHeader className="border-b border-gray-100">
-                <CardTitle className="text-lg text-[#1e3a5f]">Project Phases</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg text-[#1e3a5f]">Project Phases</CardTitle>
+                  {phases.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (selectedPhases.length === phases.length) {
+                            setSelectedPhases([]);
+                          } else {
+                            setSelectedPhases(phases.map(p => p.id));
+                          }
+                        }}
+                        className="text-xs"
+                      >
+                        {selectedPhases.length === phases.length ? 'Deselect All' : 'Select All'}
+                      </Button>
+                      {selectedPhases.length > 0 && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={async () => {
+                            if (confirm(`Delete ${selectedPhases.length} selected phases?`)) {
+                              await Promise.all(selectedPhases.map(id => deletePhaseMutation.mutateAsync(id)));
+                              setSelectedPhases([]);
+                            }
+                          }}
+                          className="text-xs"
+                        >
+                          Delete ({selectedPhases.length})
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
                   {phases.map((phase) => (
                     <div
                       key={phase.id}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
+                      className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg group"
                     >
+                      <Checkbox
+                        checked={selectedPhases.includes(phase.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedPhases([...selectedPhases, phase.id]);
+                          } else {
+                            setSelectedPhases(selectedPhases.filter(id => id !== phase.id));
+                          }
+                        }}
+                      />
                       {editingPhase?.id === phase.id ? (
                         <>
                           <div className="flex gap-2 flex-1">
@@ -764,6 +814,39 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg text-[#1e3a5f]">Expense Subcategories</CardTitle>
                   <div className="flex gap-2">
+                    {subcategories.length > 0 && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (selectedSubcategories.length === subcategories.length) {
+                              setSelectedSubcategories([]);
+                            } else {
+                              setSelectedSubcategories(subcategories.map(s => s.id));
+                            }
+                          }}
+                          className="text-xs"
+                        >
+                          {selectedSubcategories.length === subcategories.length ? 'Deselect' : 'Select All'}
+                        </Button>
+                        {selectedSubcategories.length > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={async () => {
+                              if (confirm(`Delete ${selectedSubcategories.length} selected subcategories?`)) {
+                                await Promise.all(selectedSubcategories.map(id => deleteSubcategoryMutation.mutateAsync(id)));
+                                setSelectedSubcategories([]);
+                              }
+                            }}
+                            className="text-xs"
+                          >
+                            Delete ({selectedSubcategories.length})
+                          </Button>
+                        )}
+                      </>
+                    )}
                     <Button
                       type="button"
                       variant="ghost"
@@ -840,8 +923,18 @@ export default function Settings() {
                   return (
                   <div
                     key={subcat.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
+                    className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg group"
                   >
+                    <Checkbox
+                      checked={selectedSubcategories.includes(subcat.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedSubcategories([...selectedSubcategories, subcat.id]);
+                        } else {
+                          setSelectedSubcategories(selectedSubcategories.filter(id => id !== subcat.id));
+                        }
+                      }}
+                    />
                     {editingSubcategory?.id === subcat.id ? (
                       <>
                         <Input
@@ -964,6 +1057,39 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg text-[#1e3a5f]">Payment Sources</CardTitle>
                   <div className="flex gap-2">
+                    {paymentSources.length > 0 && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (selectedPaymentSources.length === paymentSources.length) {
+                              setSelectedPaymentSources([]);
+                            } else {
+                              setSelectedPaymentSources(paymentSources.map(ps => ps.id));
+                            }
+                          }}
+                          className="text-xs"
+                        >
+                          {selectedPaymentSources.length === paymentSources.length ? 'Deselect' : 'Select All'}
+                        </Button>
+                        {selectedPaymentSources.length > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={async () => {
+                              if (confirm(`Delete ${selectedPaymentSources.length} selected payment sources?`)) {
+                                await Promise.all(selectedPaymentSources.map(id => deletePaymentSourceMutation.mutateAsync(id)));
+                                setSelectedPaymentSources([]);
+                              }
+                            }}
+                            className="text-xs"
+                          >
+                            Delete ({selectedPaymentSources.length})
+                          </Button>
+                        )}
+                      </>
+                    )}
                     <Button
                       type="button"
                       variant="ghost"
@@ -1013,8 +1139,18 @@ export default function Settings() {
                   {paymentSources.map((ps) => (
                     <div
                       key={ps.id}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
+                      className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg group"
                     >
+                      <Checkbox
+                        checked={selectedPaymentSources.includes(ps.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedPaymentSources([...selectedPaymentSources, ps.id]);
+                          } else {
+                            setSelectedPaymentSources(selectedPaymentSources.filter(id => id !== ps.id));
+                          }
+                        }}
+                      />
                       {editingPaymentSource?.id === ps.id ? (
                         <>
                           <Input
@@ -1109,20 +1245,73 @@ export default function Settings() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Object.keys(DEFAULT_LISTS).map((listName) => {
             const listData = getListOptions(listName);
+            const selectedItems = selectedListItems[listName] || [];
             return (
               <Card key={listName} className="bg-white shadow-sm">
                 <CardHeader className="border-b border-gray-100">
-                  <CardTitle className="text-lg text-[#1e3a5f]">
-                    {LIST_LABELS[listName]}
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg text-[#1e3a5f]">
+                      {LIST_LABELS[listName]}
+                    </CardTitle>
+                    {listData.options.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (selectedItems.length === listData.options.length) {
+                              setSelectedListItems({ ...selectedListItems, [listName]: [] });
+                            } else {
+                              setSelectedListItems({ ...selectedListItems, [listName]: [...listData.options] });
+                            }
+                          }}
+                          className="text-xs"
+                        >
+                          {selectedItems.length === listData.options.length ? 'Deselect' : 'Select All'}
+                        </Button>
+                        {selectedItems.length > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={async () => {
+                              if (confirm(`Delete ${selectedItems.length} selected items?`)) {
+                                const remainingOptions = listData.options.filter(opt => !selectedItems.includes(opt));
+                                const existingList = lists.find((l) => l.list_name === listName);
+                                if (existingList) {
+                                  await updateMutation.mutateAsync({
+                                    id: existingList.id,
+                                    data: { options: remainingOptions },
+                                  });
+                                }
+                                setSelectedListItems({ ...selectedListItems, [listName]: [] });
+                              }
+                            }}
+                            className="text-xs"
+                          >
+                            Delete ({selectedItems.length})
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="space-y-2 mb-4">
                     {listData.options.map((option, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group"
+                        className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg group"
                       >
+                        <Checkbox
+                          checked={selectedItems.includes(option)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedListItems({ ...selectedListItems, [listName]: [...selectedItems, option] });
+                            } else {
+                              setSelectedListItems({ ...selectedListItems, [listName]: selectedItems.filter(item => item !== option) });
+                            }
+                          }}
+                        />
                         {editingItem.listName === listName && editingItem.index === idx ? (
                           <>
                             <Input
