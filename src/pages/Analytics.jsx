@@ -22,36 +22,45 @@ export default function AnalyticsPage() {
   const { data: expenses = [] } = useQuery({
     queryKey: ["expenses"],
     queryFn: () => base44.entities.Expense.list("-date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks"],
     queryFn: () => base44.entities.Task.list("-due_date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list("-created_date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+  });
+
+
+
+  const { data: boardsData = [], isLoading: boardsLoading } = useQuery({
+    queryKey: ["boards"],
+    queryFn: () => base44.entities.Board.list("-updated_date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: itemsData = [], isLoading: itemsLoading } = useQuery({
+    queryKey: ["items"],
+    queryFn: () => base44.entities.Item.list("-updated_date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      const [boardsData, itemsData] = await Promise.all([
-        base44.entities.Board.list("-updated_date"),
-        base44.entities.Item.list("-updated_date")
-      ]);
-      setBoards(boardsData);
-      setItems(itemsData);
-    } catch (error) {
-      console.error("Error loading analytics data:", error);
-    }
-    setIsLoading(false);
-  };
+    setBoards(boardsData);
+    setItems(itemsData);
+    setIsLoading(boardsLoading || itemsLoading);
+  }, [boardsData, itemsData, boardsLoading, itemsLoading]);
 
   // Filter data based on selections
   const filteredItems = items.filter(item => {
