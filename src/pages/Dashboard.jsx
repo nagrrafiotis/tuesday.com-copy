@@ -23,11 +23,15 @@ export default function Dashboard() {
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list("-created_date"),
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["tasks"],
     queryFn: () => base44.entities.Task.list("-created_date"),
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   const stats = {
