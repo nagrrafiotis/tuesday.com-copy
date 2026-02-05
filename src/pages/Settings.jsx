@@ -894,22 +894,25 @@ export default function Settings() {
                       size="sm"
                       className="text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
                       onClick={async () => {
-                        // Auto-assign subcategories to phases based on number ranges
-                        const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
-                        const subcatsPerPhase = Math.ceil(subcategories.length / sortedPhases.length);
+                        // Auto-assign subcategories to phases based on first word matching
+                        const updates = subcategories.map((subcat) => {
+                          const firstWord = subcat.name.split(' ')[0].toLowerCase();
 
-                        const updates = subcategories.map((subcat, idx) => {
-                          const phaseIndex = Math.floor(idx / subcatsPerPhase);
-                          const phase = sortedPhases[Math.min(phaseIndex, sortedPhases.length - 1)];
+                          // Find matching phase by name
+                          const matchingPhase = phases.find(phase => 
+                            phase.name.toLowerCase().includes(firstWord) || 
+                            firstWord.includes(phase.name.toLowerCase())
+                          );
+
                           return updateSubcategoryMutation.mutateAsync({
                             id: subcat.id,
-                            data: { ...subcat, phase_id: phase?.id || null }
+                            data: { ...subcat, phase_id: matchingPhase?.id || null }
                           });
                         });
 
                         await Promise.all(updates);
                       }}
-                      title="Auto-assign subcategories to phases by order"
+                      title="Auto-assign subcategories to phases based on name matching"
                     >
                       Auto-assign
                     </Button>
