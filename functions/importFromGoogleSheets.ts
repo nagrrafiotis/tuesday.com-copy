@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
     }
 
     // Get user with custom fields using service role
-    const fullUser = await base44.asServiceRole.entities.User.list({ id: user.id });
+    const fullUser = await base44.asServiceRole.entities.User.filter({ id: user.id });
     const spreadsheetId = fullUser[0]?.google_sheets_backup_id;
     
     if (!spreadsheetId) {
