@@ -246,7 +246,7 @@ export default function Expenses() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <div className="max-w-[1600px] mx-auto px-6 py-8">
+      <div className="w-full py-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
