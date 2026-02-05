@@ -36,16 +36,22 @@ export default function Expenses() {
   const { data: expenses = [], isLoading: expensesLoading } = useQuery({
     queryKey: ["expenses"],
     queryFn: () => base44.entities.Expense.list("-date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list("-created_date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => base44.entities.Contact.list("name"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const updateContactMutation = useMutation({
@@ -59,6 +65,8 @@ export default function Expenses() {
   const { data: paymentSources = [] } = useQuery({
     queryKey: ["paymentSources"],
     queryFn: () => base44.entities.PaymentSource.list("name"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const createMutation = useMutation({

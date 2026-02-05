@@ -49,16 +49,22 @@ export default function Tasks() {
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["tasks"],
     queryFn: () => base44.entities.Task.list("-created_date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list("-created_date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ["users"],
     queryFn: () => base44.entities.User.list(),
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
   });
 
   const createMutation = useMutation({

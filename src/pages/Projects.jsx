@@ -28,6 +28,8 @@ export default function Projects() {
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list("-created_date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const createMutation = useMutation({
