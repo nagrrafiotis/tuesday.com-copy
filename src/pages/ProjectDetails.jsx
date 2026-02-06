@@ -610,9 +610,10 @@ export default function ProjectDetails() {
             <div className="flex items-center justify-between mb-6">
               <TabsList>
                 <TabsTrigger value="board">Tasks</TabsTrigger>
+                <TabsTrigger value="expenses">Expenses</TabsTrigger>
                 <TabsTrigger value="budget">Budget</TabsTrigger>
               </TabsList>
-              
+
               {activeTab === "board" ? (
                 <Button
                   onClick={() => {
@@ -623,6 +624,17 @@ export default function ProjectDetails() {
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Task
+                </Button>
+              ) : activeTab === "expenses" ? (
+                <Button
+                  onClick={() => {
+                    setEditingExpense(null);
+                    setShowExpenseForm(true);
+                  }}
+                  className="bg-[#1e3a5f] hover:bg-[#152a45]"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Expense
                 </Button>
               ) : (
                 <Button
@@ -653,6 +665,43 @@ export default function ProjectDetails() {
                   onStatusChange={handleStatusChange}
                 />
               )}
+            </TabsContent>
+
+            <TabsContent value="expenses">
+              {selectedExpenses.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-[#1e3a5f] text-white rounded-xl p-4 flex items-center justify-between mb-4"
+                >
+                  <span className="font-medium">{selectedExpenses.length} selected</span>
+                  <Button
+                    onClick={handleBulkDeleteExpenses}
+                    variant="destructive"
+                    size="sm"
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Selected
+                  </Button>
+                </motion.div>
+              )}
+
+              <ExpenseTable
+                expenses={expenses}
+                projects={[project]}
+                contacts={contacts}
+                showProject={false}
+                selectedExpenses={selectedExpenses}
+                onSelectAll={toggleSelectAllExpenses}
+                onSelectExpense={toggleSelectExpense}
+                onEdit={(expense) => {
+                  setEditingExpense(expense);
+                  setShowExpenseForm(true);
+                }}
+                onDelete={handleDeleteExpense}
+                onViewContact={() => {}}
+              />
             </TabsContent>
 
             <TabsContent value="budget">
