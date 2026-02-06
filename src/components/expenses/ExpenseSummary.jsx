@@ -24,17 +24,22 @@ export default function ExpenseSummary({ expenses, budget }) {
 
   const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
 
-  // Group expenses by project phase
+  // Group expenses by phase based on subcategory's phase_id
   const byPhase = phases.map((phase) => {
-    // Find projects in this phase and get their expenses
-    const projectsInPhase = projects.filter((p) => p.status === phase.name.toLowerCase().replace(/\s+/g, "_"));
-    const projectIds = projectsInPhase.map((p) => p.id);
-    const phaseExpenses = expenses.filter((e) => projectIds.includes(e.project_id));
+    // Find subcategories that belong to this phase
+    const phaseSubcategories = subcategories
+      .filter((s) => s.phase_id === phase.id)
+      .map((s) => s.name);
+    
+    // Find expenses that have these subcategories
+    const phaseExpenses = expenses.filter((e) => 
+      e.subcategory && phaseSubcategories.includes(e.subcategory)
+    );
     const total = phaseExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     
     return {
       name: phase.name,
-      color: phase.color || "bg-blue-500",
+      color: phase.color || "bg-blue-100 text-blue-700",
       total,
       count: phaseExpenses.length,
       percentage: totalExpenses > 0 ? (total / totalExpenses) * 100 : 0,
