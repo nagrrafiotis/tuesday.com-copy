@@ -288,11 +288,17 @@ export default function ProjectDetails() {
   const saveBudget = async () => {
     const totalBudget = budgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
     console.log('Saving budget items:', budgetItems);
-    await updateProjectMutation.mutateAsync({
-      budget_items: budgetItems,
-      budget: totalBudget
-    });
-    setEditingBudget(false);
+    try {
+      await updateProjectMutation.mutateAsync({
+        budget_items: budgetItems,
+        budget: totalBudget
+      });
+      // Wait for query to update before exiting edit mode
+      await queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      setEditingBudget(false);
+    } catch (error) {
+      console.error('Error saving budget:', error);
+    }
   };
 
   const formatCurrency = (amount) => {
