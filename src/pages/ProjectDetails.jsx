@@ -234,68 +234,7 @@ export default function ProjectDetails() {
   const budgetRemaining = (project.budget || 0) - totalExpenses;
   const budgetUsedPercent = project.budget ? (totalExpenses / project.budget) * 100 : 0;
 
-  // Phase chart data - comparing budget vs actual expenses by phase
-  const phaseColors = phasesList?.colors || {};
-  
-  // Create a map of subcategory names to their phases
-  const subcategoryToPhase = {};
-  subcategories.forEach(subcat => {
-    if (subcat.phase_id) {
-      subcategoryToPhase[subcat.name] = subcat.phase_id;
-    }
-  });
-  
-  // Show ALL phases, even with zero data
-  const phaseChartData = phases.map(phaseName => {
-    // Get all subcategory names for this phase
-    const subcategoryNames = Object.keys(subcategoryToPhase).filter(
-      name => subcategoryToPhase[name] === phaseName
-    );
-    
-    // Calculate budget for this phase
-    const phaseBudget = (project?.budget_items || [])
-      .filter(item => subcategoryNames.includes(item.subcategory))
-      .reduce((sum, item) => sum + (item.total_cost || 0), 0);
-    
-    // Calculate actual expenses for this phase
-    const phaseExpenses = expenses
-      .filter(exp => subcategoryNames.includes(exp.subcategory))
-      .reduce((sum, exp) => sum + exp.amount, 0);
-    
-    return {
-      phase: phaseName,
-      budget: phaseBudget,
-      actual: phaseExpenses,
-      color: phaseColors[phaseName] || "bg-gray-100 text-gray-700"
-    };
-  });
 
-  // Add "Unassigned" phase for items without a phase
-  const assignedSubcategories = new Set(Object.keys(subcategoryToPhase));
-  const allBudgetSubcategories = [...new Set((project?.budget_items || []).map(item => item.subcategory).filter(Boolean))];
-  const allExpenseSubcategories = [...new Set(expenses.map(exp => exp.subcategory).filter(Boolean))];
-  const unassignedSubcategories = [...new Set([...allBudgetSubcategories, ...allExpenseSubcategories])].filter(
-    name => !assignedSubcategories.has(name)
-  );
-  
-  if (unassignedSubcategories.length > 0) {
-    const unassignedBudget = (project?.budget_items || [])
-      .filter(item => unassignedSubcategories.includes(item.subcategory))
-      .reduce((sum, item) => sum + (item.total_cost || 0), 0);
-    
-    const unassignedExpenses = expenses
-      .filter(exp => unassignedSubcategories.includes(exp.subcategory))
-      .reduce((sum, exp) => sum + exp.amount, 0);
-    
-    if (unassignedBudget > 0 || unassignedExpenses > 0) {
-      phaseChartData.push({
-        phase: "Unassigned",
-        budget: unassignedBudget,
-        actual: unassignedExpenses,
-        color: "bg-gray-100 text-gray-700"
-      });
-    }
-  }
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
@@ -590,70 +529,8 @@ export default function ProjectDetails() {
               </div>
             </div>
 
-            {/* Phase Comparison Chart */}
-            {phases.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-6">Budget vs Expenses by Phase</h3>
-                <div className="space-y-6">
-                  {phaseChartData.map((phase, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">{phase.phase}</span>
-                        <div className="flex gap-6 text-xs">
-                          <span className="text-[#c9a962]">Budget: €{phase.budget.toLocaleString()}</span>
-                          <span className="text-[#1e3a5f]">Actual: €{phase.actual.toLocaleString()}</span>
-                        </div>
-                      </div>
-                      <div className="relative">
-                        <div className="flex gap-2">
-                          <div className="flex-1">
-                            <div className="h-10 bg-[#c9a962]/10 rounded-lg overflow-hidden">
-                              <div 
-                                className="h-full bg-[#c9a962] rounded-lg transition-all duration-500"
-                                style={{ width: phase.budget > 0 ? '100%' : '0%' }}
-                              />
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <div className="h-10 bg-[#1e3a5f]/10 rounded-lg overflow-hidden">
-                              <div 
-                                className="h-full bg-[#1e3a5f] rounded-lg transition-all duration-500"
-                                style={{ 
-                                  width: phase.budget > 0 
-                                    ? `${Math.min((phase.actual / phase.budget) * 100, 100)}%` 
-                                    : phase.actual > 0 ? '100%' : '0%'
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </motion.div>
         )}
-
-
-              ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-                  <Receipt className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 mb-4">No budget breakdown yet</p>
-                  <Button
-                    onClick={() => setEditingBudget(true)}
-                    variant="outline"
-                    className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Budget
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </motion.div>
       </div>
 
       {/* Forms */}
