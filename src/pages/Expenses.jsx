@@ -42,22 +42,16 @@ export default function Expenses() {
   const { data: expenses = [], isLoading: expensesLoading } = useQuery({
     queryKey: ["expenses"],
     queryFn: () => base44.entities.Expense.list("-date"),
-    staleTime: 60000,
-    refetchOnWindowFocus: false,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list("-created_date"),
-    staleTime: 60000,
-    refetchOnWindowFocus: false,
   });
 
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => base44.entities.Contact.list("name"),
-    staleTime: 60000,
-    refetchOnWindowFocus: false,
   });
 
   const updateContactMutation = useMutation({
@@ -71,8 +65,11 @@ export default function Expenses() {
   const { data: paymentSources = [] } = useQuery({
     queryKey: ["paymentSources"],
     queryFn: () => base44.entities.PaymentSource.list("name"),
-    staleTime: 60000,
-    refetchOnWindowFocus: false,
+  });
+
+  const { data: dropdownLists = [] } = useQuery({
+    queryKey: ["dropdown-lists"],
+    queryFn: () => base44.entities.DropdownList.list(),
   });
 
   const createMutation = useMutation({
@@ -426,11 +423,11 @@ export default function Expenses() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="labor">Labor</SelectItem>
-                    <SelectItem value="subcontractor">Subcontractor</SelectItem>
-                    <SelectItem value="materials">Materials</SelectItem>
-                    <SelectItem value="equipment">Equipment</SelectItem>
-                    <SelectItem value="general_expenses">General Expenses</SelectItem>
+                    {(dropdownLists.find(l => l.list_name === "expense_categories")?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"]).map(cat => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
