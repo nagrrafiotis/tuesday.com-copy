@@ -740,7 +740,7 @@ export default function ProjectDetails() {
             </div>
 
             {/* Phase Comparison Chart */}
-            {phaseChartData.length > 0 && (
+            {phases.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-6">Budget vs Expenses by Phase</h3>
                 <ResponsiveContainer width="100%" height={400}>
