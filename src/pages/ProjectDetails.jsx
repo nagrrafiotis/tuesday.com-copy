@@ -106,10 +106,10 @@ export default function ProjectDetails() {
   });
 
   React.useEffect(() => {
-    if (project) {
+    if (project && !editingBudget) {
       setBudgetItems(project.budget_items || []);
     }
-  }, [project]);
+  }, [project, editingBudget]);
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["tasks", projectId],
