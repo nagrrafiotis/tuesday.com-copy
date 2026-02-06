@@ -10,9 +10,9 @@ export default function ExpenseSummary({ expenses, budget }) {
     queryFn: () => base44.entities.ProjectPhase.list("order"),
   });
 
-  const { data: projects = [] } = useQuery({
-    queryKey: ["projects"],
-    queryFn: () => base44.entities.Project.list(),
+  const { data: subcategories = [] } = useQuery({
+    queryKey: ["subcategories"],
+    queryFn: () => base44.entities.Subcategory.list(),
   });
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("de-DE", {
