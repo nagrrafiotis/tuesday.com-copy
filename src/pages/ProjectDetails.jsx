@@ -292,9 +292,8 @@ export default function ProjectDetails() {
         budget_items: budgetItems,
         budget: totalBudget
       });
-      // Wait for fresh data to load before exiting edit mode
-      await queryClient.refetchQueries({ queryKey: ["project", projectId] });
       setEditingBudget(false);
+      await queryClient.invalidateQueries({ queryKey: ["project", projectId] });
     } catch (error) {
       console.error('Error saving budget:', error);
     }
