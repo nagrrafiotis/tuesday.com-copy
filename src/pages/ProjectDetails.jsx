@@ -214,15 +214,12 @@ export default function ProjectDetails() {
   const createPaymentSourceMutation = useMutation({
     mutationFn: (data) => base44.entities.PaymentSource.create(data),
     onSuccess: (newSource) => {
+      queryClient.invalidateQueries({ queryKey: ["paymentSources"] });
       if (showNewPaymentSource) {
         updateBudgetItem(showNewPaymentSource, 'payment_source', newSource.name);
       }
       setShowNewPaymentSource(null);
       setNewPaymentSourceName("");
-      // Invalidate after state update to avoid race conditions
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["paymentSources"] });
-      }, 0);
     },
   });
 
