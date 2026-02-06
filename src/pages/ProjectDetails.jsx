@@ -137,10 +137,15 @@ export default function ProjectDetails() {
     queryFn: () => base44.entities.PaymentSource.list(),
   });
 
-  const { data: phases = [] } = useQuery({
-    queryKey: ["phases"],
-    queryFn: () => base44.entities.ProjectPhase.list("order"),
+  const { data: phasesList = [] } = useQuery({
+    queryKey: ["phases-list"],
+    queryFn: async () => {
+      const lists = await base44.entities.DropdownList.list();
+      return lists.find(l => l.list_name === "project_phases");
+    },
   });
+  
+  const phases = phasesList?.options || [];
 
   const { data: dropdownLists = [] } = useQuery({
     queryKey: ["dropdown-lists"],
