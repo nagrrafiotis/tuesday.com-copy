@@ -273,6 +273,7 @@ export default function ProjectDetails() {
 
   const saveBudget = async () => {
     const totalBudget = budgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
+    console.log('Saving budget items:', budgetItems);
     await updateProjectMutation.mutateAsync({
       budget_items: budgetItems,
       budget: totalBudget
