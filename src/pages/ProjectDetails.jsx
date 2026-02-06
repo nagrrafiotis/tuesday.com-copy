@@ -186,36 +186,45 @@ export default function ProjectDetails() {
   const createSubcategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Subcategory.create(data),
     onSuccess: (newSubcat) => {
-      queryClient.invalidateQueries({ queryKey: ["subcategories"] });
       if (showNewSubcategory) {
         updateBudgetItem(showNewSubcategory, 'subcategory', newSubcat.name);
       }
       setShowNewSubcategory(null);
       setNewSubcategoryName("");
+      // Invalidate after state update to avoid race conditions
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["subcategories"] });
+      }, 0);
     },
   });
 
   const createContactMutation = useMutation({
     mutationFn: (data) => base44.entities.Contact.create(data),
     onSuccess: (newContact) => {
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
       if (showNewContact) {
         updateBudgetItem(showNewContact, 'payee', newContact.name);
       }
       setShowNewContact(null);
       setNewContactName("");
+      // Invalidate after state update to avoid race conditions
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      }, 0);
     },
   });
 
   const createPaymentSourceMutation = useMutation({
     mutationFn: (data) => base44.entities.PaymentSource.create(data),
     onSuccess: (newSource) => {
-      queryClient.invalidateQueries({ queryKey: ["paymentSources"] });
       if (showNewPaymentSource) {
         updateBudgetItem(showNewPaymentSource, 'payment_source', newSource.name);
       }
       setShowNewPaymentSource(null);
       setNewPaymentSourceName("");
+      // Invalidate after state update to avoid race conditions
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["paymentSources"] });
+      }, 0);
     },
   });
 
