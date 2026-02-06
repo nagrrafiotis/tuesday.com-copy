@@ -253,26 +253,31 @@ export default function ProjectDetails() {
   };
 
   const handleBudgetItemSubmit = async (data) => {
-    const currentBudgetItems = project.budget_items || [];
-    let updatedBudgetItems;
+    try {
+      const currentBudgetItems = project.budget_items || [];
+      let updatedBudgetItems;
 
-    if (editingBudgetItem) {
-      updatedBudgetItems = currentBudgetItems.map(item => 
-        item.id === editingBudgetItem.id ? { ...data, id: item.id } : item
-      );
-    } else {
-      updatedBudgetItems = [...currentBudgetItems, { ...data, id: Date.now().toString() }];
+      if (editingBudgetItem) {
+        updatedBudgetItems = currentBudgetItems.map(item => 
+          item.id === editingBudgetItem.id ? { ...data, id: item.id } : item
+        );
+      } else {
+        updatedBudgetItems = [...currentBudgetItems, { ...data, id: Date.now().toString() }];
+      }
+
+      const totalBudget = updatedBudgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
+      
+      await updateProjectMutation.mutateAsync({
+        budget_items: updatedBudgetItems,
+        budget: totalBudget
+      });
+      
+      setShowBudgetForm(false);
+      setEditingBudgetItem(null);
+    } catch (error) {
+      console.error("Failed to save budget item:", error);
+      alert("Failed to save budget item. Please try again.");
     }
-
-    const totalBudget = updatedBudgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
-    
-    await updateProjectMutation.mutateAsync({
-      budget_items: updatedBudgetItems,
-      budget: totalBudget
-    });
-    
-    setShowBudgetForm(false);
-    setEditingBudgetItem(null);
   };
 
   const handleDeleteBudgetItem = async (item) => {
