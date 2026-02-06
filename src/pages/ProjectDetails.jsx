@@ -254,23 +254,33 @@ export default function ProjectDetails() {
 
   const handleBudgetItemSubmit = async (data) => {
     try {
+      console.log("Budget item submit - data received:", data);
+      console.log("Editing item:", editingBudgetItem);
+      
       const currentBudgetItems = project.budget_items || [];
+      console.log("Current budget items:", currentBudgetItems);
+      
       let updatedBudgetItems;
 
       if (editingBudgetItem) {
         updatedBudgetItems = currentBudgetItems.map(item => 
           item.id === editingBudgetItem.id ? { ...data, id: item.id } : item
         );
+        console.log("Updated budget items (edit):", updatedBudgetItems);
       } else {
         updatedBudgetItems = [...currentBudgetItems, { ...data, id: Date.now().toString() }];
+        console.log("Updated budget items (create):", updatedBudgetItems);
       }
 
       const totalBudget = updatedBudgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
       
-      await updateProjectMutation.mutateAsync({
+      const updatePayload = {
         budget_items: updatedBudgetItems,
         budget: totalBudget
-      });
+      };
+      console.log("Updating project with payload:", updatePayload);
+      
+      await updateProjectMutation.mutateAsync(updatePayload);
       
       setShowBudgetForm(false);
       setEditingBudgetItem(null);
