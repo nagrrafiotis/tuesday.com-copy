@@ -743,33 +743,43 @@ export default function ProjectDetails() {
             {phases.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-6">Budget vs Expenses by Phase</h3>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={phaseChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="phase" 
-                      angle={-45} 
-                      textAnchor="end" 
-                      height={100}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 12 }}
-                      tickFormatter={(value) => `€${(value / 1000).toFixed(0)}K`}
-                    />
-                    <Tooltip 
-                      formatter={(value) => `€${value.toLocaleString()}`}
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px'
-                      }}
-                    />
-                    <Legend verticalAlign="top" height={36} />
-                    <Bar dataKey="budget" fill="#c9a962" name="Budget" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="actual" fill="#1e3a5f" name="Actual Expenses" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="space-y-6">
+                  {phaseChartData.map((phase, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">{phase.phase}</span>
+                        <div className="flex gap-6 text-xs">
+                          <span className="text-[#c9a962]">Budget: €{phase.budget.toLocaleString()}</span>
+                          <span className="text-[#1e3a5f]">Actual: €{phase.actual.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <div className="h-10 bg-[#c9a962]/10 rounded-lg overflow-hidden">
+                              <div 
+                                className="h-full bg-[#c9a962] rounded-lg transition-all duration-500"
+                                style={{ width: phase.budget > 0 ? '100%' : '0%' }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <div className="h-10 bg-[#1e3a5f]/10 rounded-lg overflow-hidden">
+                              <div 
+                                className="h-full bg-[#1e3a5f] rounded-lg transition-all duration-500"
+                                style={{ 
+                                  width: phase.budget > 0 
+                                    ? `${Math.min((phase.actual / phase.budget) * 100, 100)}%` 
+                                    : phase.actual > 0 ? '100%' : '0%'
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </motion.div>
