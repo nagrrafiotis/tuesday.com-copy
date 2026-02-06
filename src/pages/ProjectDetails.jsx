@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExpenseTable from "@/components/expenses/ExpenseTable";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   ArrowLeft,
   MapPin,
@@ -128,6 +128,16 @@ export default function ProjectDetails() {
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => base44.entities.Contact.list("name"),
+  });
+
+  const { data: subcategories = [] } = useQuery({
+    queryKey: ["subcategories"],
+    queryFn: () => base44.entities.Subcategory.list(),
+  });
+
+  const { data: projectPhases = [] } = useQuery({
+    queryKey: ["phases"],
+    queryFn: () => base44.entities.ProjectPhase.list("order"),
   });
 
   const updateProjectMutation = useMutation({
@@ -301,6 +311,34 @@ export default function ProjectDetails() {
   const budgetRemaining = (project.budget || 0) - totalExpenses;
   const budgetUsedPercent = project.budget ? (totalExpenses / project.budget) * 100 : 0;
 
+  // Calculate phase chart data
+  const subcategoryToPhase = {};
+  subcategories.forEach(subcat => {
+    if (subcat.phase_id) {
+      subcategoryToPhase[subcat.name] = subcat.phase_id;
+    }
+  });
+
+  const phaseChartData = projectPhases.map(phase => {
+    const subcategoryNames = Object.keys(subcategoryToPhase).filter(
+      name => subcategoryToPhase[name] === phase.id
+    );
+    
+    const phaseBudget = expenses
+      .filter(exp => subcategoryNames.includes(exp.subcategory))
+      .reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    
+    const phaseExpenses = expenses
+      .filter(exp => subcategoryNames.includes(exp.subcategory))
+      .reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    
+    return {
+      name: phase.name,
+      Budget: phaseBudget,
+      Expenses: phaseExpenses,
+    };
+  });
+
 
 
   return (
@@ -453,11 +491,51 @@ export default function ProjectDetails() {
           </motion.div>
         )}
 
+        {/* Phase Chart */}
+        {projectPhases.length > 0 && expenses.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8"
+          >
+            <h2 className="text-xl font-semibold text-[#1e3a5f] mb-6">Budget vs Expenses by Phase</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={phaseChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="name" stroke="#666" />
+                <YAxis stroke="#666" />
+                <Tooltip 
+                  formatter={(value) => `€${value.toLocaleString()}`}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="Budget" 
+                  stroke="#c9a962" 
+                  strokeWidth={3}
+                  dot={{ fill: '#c9a962', r: 5 }}
+                  activeDot={{ r: 7 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="Expenses" 
+                  stroke="#1e3a5f" 
+                  strokeWidth={3}
+                  dot={{ fill: '#1e3a5f', r: 5 }}
+                  activeDot={{ r: 7 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </motion.div>
+        )}
+
         {/* Tasks and Budget Tabs Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.3 }}
         >
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="flex items-center justify-between mb-6">
