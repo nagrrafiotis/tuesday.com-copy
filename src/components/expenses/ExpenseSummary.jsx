@@ -1,16 +1,19 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Users, Wrench, Package, Truck, Receipt, DollarSign } from "lucide-react";
-
-const categoryConfig = {
-  labor: { label: "Labor", icon: Users, color: "bg-blue-500" },
-  subcontractor: { label: "Subcontractor", icon: Wrench, color: "bg-purple-500" },
-  materials: { label: "Materials", icon: Package, color: "bg-amber-500" },
-  equipment: { label: "Equipment", icon: Truck, color: "bg-emerald-500" },
-  general_expenses: { label: "General Expenses", icon: Receipt, color: "bg-gray-500" },
-};
+import { DollarSign, Layers } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 
 export default function ExpenseSummary({ expenses, budget }) {
+  const { data: phases = [] } = useQuery({
+    queryKey: ["phases"],
+    queryFn: () => base44.entities.ProjectPhase.list("order"),
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: () => base44.entities.Project.list(),
+  });
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("de-DE", {
       style: "currency",
@@ -21,17 +24,22 @@ export default function ExpenseSummary({ expenses, budget }) {
 
   const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
 
-  const byCategory = Object.keys(categoryConfig).map((key) => {
-    const categoryExpenses = expenses.filter((e) => e.category === key);
-    const total = categoryExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  // Group expenses by project phase
+  const byPhase = phases.map((phase) => {
+    // Find projects in this phase and get their expenses
+    const projectsInPhase = projects.filter((p) => p.status === phase.name.toLowerCase().replace(/\s+/g, "_"));
+    const projectIds = projectsInPhase.map((p) => p.id);
+    const phaseExpenses = expenses.filter((e) => projectIds.includes(e.project_id));
+    const total = phaseExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    
     return {
-      key,
-      ...categoryConfig[key],
+      name: phase.name,
+      color: phase.color || "bg-blue-500",
       total,
-      count: categoryExpenses.length,
+      count: phaseExpenses.length,
       percentage: totalExpenses > 0 ? (total / totalExpenses) * 100 : 0,
     };
-  });
+  }).filter((p) => p.count > 0);
 
   const budgetUsed = budget ? (totalExpenses / budget) * 100 : 0;
 
@@ -72,45 +80,48 @@ export default function ExpenseSummary({ expenses, budget }) {
         )}
       </motion.div>
 
-      {/* By Category */}
+      {/* By Phase */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
       >
-        <h3 className="font-semibold text-[#1e3a5f] mb-4">By Category</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <Layers className="w-4 h-4 text-[#1e3a5f]" />
+          <h3 className="font-semibold text-[#1e3a5f]">By Phase</h3>
+        </div>
         <div className="space-y-4">
-          {byCategory.map((cat, index) => {
-            const Icon = cat.icon;
-            return (
+          {byPhase.length > 0 ? (
+            byPhase.map((phase, index) => (
               <motion.div
-                key={cat.key}
+                key={phase.name}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 + index * 0.05 }}
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded-lg ${cat.color} bg-opacity-10`}>
-                      <Icon className={`w-3.5 h-3.5 ${cat.color.replace("bg-", "text-")}`} />
+                    <div className={`px-2 py-1 rounded-lg ${phase.color}`}>
+                      <span className="text-xs font-medium">{phase.name}</span>
                     </div>
-                    <span className="text-sm font-medium text-gray-700">{cat.label}</span>
-                    <span className="text-xs text-gray-400">({cat.count})</span>
+                    <span className="text-xs text-gray-400">({phase.count})</span>
                   </div>
                   <span className="text-sm font-semibold text-gray-900">
-                    {formatCurrency(cat.total)}
+                    {formatCurrency(phase.total)}
                   </span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-1.5">
                   <div
-                    className={`h-1.5 rounded-full ${cat.color} transition-all`}
-                    style={{ width: `${cat.percentage}%` }}
+                    className={`h-1.5 rounded-full ${phase.color.split(" ")[0]} transition-all`}
+                    style={{ width: `${phase.percentage}%` }}
                   />
                 </div>
               </motion.div>
-            );
-          })}
+            ))
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-4">No phase data available</p>
+          )}
         </div>
       </motion.div>
     </div>
