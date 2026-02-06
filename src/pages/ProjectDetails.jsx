@@ -87,6 +87,12 @@ export default function ProjectDetails() {
     total: 120,
   });
   const [resizing, setResizing] = useState(null);
+  const [showNewSubcategory, setShowNewSubcategory] = useState(null);
+  const [newSubcategoryName, setNewSubcategoryName] = useState("");
+  const [showNewContact, setShowNewContact] = useState(null);
+  const [newContactName, setNewContactName] = useState("");
+  const [showNewPaymentSource, setShowNewPaymentSource] = useState(null);
+  const [newPaymentSourceName, setNewPaymentSourceName] = useState("");
 
   const queryClient = useQueryClient();
 
@@ -175,6 +181,42 @@ export default function ProjectDetails() {
   const deleteTaskMutation = useMutation({
     mutationFn: (id) => base44.entities.Task.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }),
+  });
+
+  const createSubcategoryMutation = useMutation({
+    mutationFn: (data) => base44.entities.Subcategory.create(data),
+    onSuccess: (newSubcat) => {
+      queryClient.invalidateQueries({ queryKey: ["subcategories"] });
+      if (showNewSubcategory) {
+        updateBudgetItem(showNewSubcategory, 'subcategory', newSubcat.name);
+      }
+      setShowNewSubcategory(null);
+      setNewSubcategoryName("");
+    },
+  });
+
+  const createContactMutation = useMutation({
+    mutationFn: (data) => base44.entities.Contact.create(data),
+    onSuccess: (newContact) => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      if (showNewContact) {
+        updateBudgetItem(showNewContact, 'payee', newContact.name);
+      }
+      setShowNewContact(null);
+      setNewContactName("");
+    },
+  });
+
+  const createPaymentSourceMutation = useMutation({
+    mutationFn: (data) => base44.entities.PaymentSource.create(data),
+    onSuccess: (newSource) => {
+      queryClient.invalidateQueries({ queryKey: ["paymentSources"] });
+      if (showNewPaymentSource) {
+        updateBudgetItem(showNewPaymentSource, 'payment_source', newSource.name);
+      }
+      setShowNewPaymentSource(null);
+      setNewPaymentSourceName("");
+    },
   });
 
   const handleTaskSubmit = async (data) => {
@@ -846,41 +888,198 @@ export default function ProjectDetails() {
                               </div>
                               <div>
                                 <label className="text-xs text-gray-500 mb-1 block">Subcategory</label>
-                                <SearchableSelect
-                                  items={subcategories.map(s => ({ value: s.name, label: s.name }))}
-                                  value={item.subcategory}
-                                  onValueChange={(v) => updateBudgetItem(item.id, 'subcategory', v)}
-                                  placeholder="Select subcategory"
-                                  searchPlaceholder="Search subcategories..."
-                                />
+                                {showNewSubcategory === item.id ? (
+                                  <div className="flex gap-1">
+                                    <Input
+                                      value={newSubcategoryName}
+                                      onChange={(e) => setNewSubcategoryName(e.target.value)}
+                                      placeholder="New subcategory"
+                                      className="text-sm h-9"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          if (newSubcategoryName.trim()) {
+                                            createSubcategoryMutation.mutate({ name: newSubcategoryName });
+                                          }
+                                        }
+                                      }}
+                                    />
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      className="h-9 w-9 p-0"
+                                      onClick={() => {
+                                        if (newSubcategoryName.trim()) {
+                                          createSubcategoryMutation.mutate({ name: newSubcategoryName });
+                                        }
+                                      }}
+                                      disabled={!newSubcategoryName.trim() || createSubcategoryMutation.isPending}
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-9 w-9 p-0"
+                                      onClick={() => {
+                                        setShowNewSubcategory(null);
+                                        setNewSubcategoryName("");
+                                      }}
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex gap-1">
+                                    <SearchableSelect
+                                      items={subcategories.map(s => ({ value: s.name, label: s.name }))}
+                                      value={item.subcategory}
+                                      onValueChange={(v) => updateBudgetItem(item.id, 'subcategory', v)}
+                                      placeholder="Select subcategory"
+                                      searchPlaceholder="Search subcategories..."
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-9 w-9 p-0 shrink-0"
+                                      onClick={() => setShowNewSubcategory(item.id)}
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                               <div>
                                 <label className="text-xs text-gray-500 mb-1 block">Payee</label>
-                                <SearchableSelect
-                                  items={contacts.map(c => ({ value: c.name, label: c.name }))}
-                                  value={item.payee}
-                                  onValueChange={(v) => updateBudgetItem(item.id, 'payee', v)}
-                                  placeholder="Select payee"
-                                  searchPlaceholder="Search payees..."
-                                />
+                                {showNewContact === item.id ? (
+                                  <div className="flex gap-1">
+                                    <Input
+                                      value={newContactName}
+                                      onChange={(e) => setNewContactName(e.target.value)}
+                                      placeholder="New contact"
+                                      className="text-sm h-9"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          if (newContactName.trim()) {
+                                            createContactMutation.mutate({ name: newContactName, category: "supplier" });
+                                          }
+                                        }
+                                      }}
+                                    />
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      className="h-9 w-9 p-0"
+                                      onClick={() => {
+                                        if (newContactName.trim()) {
+                                          createContactMutation.mutate({ name: newContactName, category: "supplier" });
+                                        }
+                                      }}
+                                      disabled={!newContactName.trim() || createContactMutation.isPending}
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-9 w-9 p-0"
+                                      onClick={() => {
+                                        setShowNewContact(null);
+                                        setNewContactName("");
+                                      }}
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex gap-1">
+                                    <SearchableSelect
+                                      items={contacts.map(c => ({ value: c.name, label: c.name }))}
+                                      value={item.payee}
+                                      onValueChange={(v) => updateBudgetItem(item.id, 'payee', v)}
+                                      placeholder="Select payee"
+                                      searchPlaceholder="Search payees..."
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-9 w-9 p-0 shrink-0"
+                                      onClick={() => setShowNewContact(item.id)}
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                               <div>
                                 <label className="text-xs text-gray-500 mb-1 block">Payment Source</label>
-                                <Select
-                                  value={item.payment_source}
-                                  onValueChange={(v) => updateBudgetItem(item.id, 'payment_source', v)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select source" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {paymentSources.map((ps) => (
-                                      <SelectItem key={ps.id} value={ps.name}>
-                                        {ps.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                {showNewPaymentSource === item.id ? (
+                                  <div className="flex gap-1">
+                                    <Input
+                                      value={newPaymentSourceName}
+                                      onChange={(e) => setNewPaymentSourceName(e.target.value)}
+                                      placeholder="e.g., Bank 01"
+                                      className="text-sm h-9"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          if (newPaymentSourceName.trim()) {
+                                            createPaymentSourceMutation.mutate({ name: newPaymentSourceName });
+                                          }
+                                        }
+                                      }}
+                                    />
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      className="h-9 w-9 p-0"
+                                      onClick={() => {
+                                        if (newPaymentSourceName.trim()) {
+                                          createPaymentSourceMutation.mutate({ name: newPaymentSourceName });
+                                        }
+                                      }}
+                                      disabled={!newPaymentSourceName.trim() || createPaymentSourceMutation.isPending}
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-9 w-9 p-0"
+                                      onClick={() => {
+                                        setShowNewPaymentSource(null);
+                                        setNewPaymentSourceName("");
+                                      }}
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex gap-1">
+                                    <SearchableSelect
+                                      items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
+                                      value={item.payment_source}
+                                      onValueChange={(v) => updateBudgetItem(item.id, 'payment_source', v)}
+                                      placeholder="Select source"
+                                      searchPlaceholder="Search sources..."
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-9 w-9 p-0 shrink-0"
+                                      onClick={() => setShowNewPaymentSource(item.id)}
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                             </div>
                             <div>
