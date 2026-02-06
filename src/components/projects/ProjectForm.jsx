@@ -37,6 +37,9 @@ export default function ProjectForm({ project, open, onClose, onSubmit }) {
       priority: "medium",
       progress: 0,
       cover_image: "",
+      land_size: "",
+      building_coefficient: "",
+      built_area: "",
     }
   );
   const [loading, setLoading] = useState(false);
@@ -63,6 +66,9 @@ export default function ProjectForm({ project, open, onClose, onSubmit }) {
       ...formData,
       budget: formData.budget ? Number(formData.budget) : null,
       progress: Number(formData.progress) || 0,
+      land_size: formData.land_size ? Number(formData.land_size) : null,
+      building_coefficient: formData.building_coefficient ? Number(formData.building_coefficient) : null,
+      built_area: formData.built_area ? Number(formData.built_area) : null,
     });
     setLoading(false);
   };
@@ -204,6 +210,59 @@ export default function ProjectForm({ project, open, onClose, onSubmit }) {
                 placeholder="Project overview and key details..."
                 className="mt-1.5 min-h-[100px]"
               />
+            </div>
+
+            {/* Building Metrics */}
+            <div className="col-span-2 border-t pt-4">
+              <h3 className="text-sm font-semibold text-[#1e3a5f] mb-3">Building Metrics</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Land Size (m²)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.land_size}
+                    onChange={(e) => setFormData({ ...formData, land_size: e.target.value })}
+                    placeholder="e.g., 500"
+                    className="mt-1.5"
+                  />
+                </div>
+
+                <div>
+                  <Label>Building Coefficient</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.building_coefficient}
+                    onChange={(e) => setFormData({ ...formData, building_coefficient: e.target.value })}
+                    placeholder="e.g., 0.8"
+                    className="mt-1.5"
+                  />
+                </div>
+
+                {formData.land_size && formData.building_coefficient && (
+                  <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="text-sm text-blue-700 font-medium">
+                      Maximum Buildable Area
+                    </div>
+                    <div className="text-2xl font-bold text-blue-900 mt-1">
+                      {(Number(formData.land_size) * Number(formData.building_coefficient)).toFixed(2)} m²
+                    </div>
+                  </div>
+                )}
+
+                <div className="col-span-2">
+                  <Label>Actually Built Area (m²)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.built_area}
+                    onChange={(e) => setFormData({ ...formData, built_area: e.target.value })}
+                    placeholder="e.g., 380"
+                    className="mt-1.5"
+                  />
+                </div>
+              </div>
             </div>
 
             <div>
