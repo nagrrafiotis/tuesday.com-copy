@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ExpenseTable from "@/components/expenses/ExpenseTable";
+import ExpenseForm from "@/components/expenses/ExpenseForm";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   ArrowLeft,
@@ -71,6 +73,9 @@ export default function ProjectDetails() {
   const [activeTab, setActiveTab] = useState("board");
   const [imagePosition, setImagePosition] = useState({ x: 50, y: 50 });
   const [isDragging, setIsDragging] = useState(false);
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [selectedExpenses, setSelectedExpenses] = useState([]);
 
 
   const queryClient = useQueryClient();
@@ -120,6 +125,11 @@ export default function ProjectDetails() {
     enabled: !!projectId,
   });
 
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => base44.entities.Contact.list("name"),
+  });
+
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
     onSuccess: () => {
@@ -149,6 +159,28 @@ export default function ProjectDetails() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }),
   });
 
+  const createExpenseMutation = useMutation({
+    mutationFn: (data) => base44.entities.Expense.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses", projectId] });
+      setShowExpenseForm(false);
+    },
+  });
+
+  const updateExpenseMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Expense.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses", projectId] });
+      setShowExpenseForm(false);
+      setEditingExpense(null);
+    },
+  });
+
+  const deleteExpenseMutation = useMutation({
+    mutationFn: (id) => base44.entities.Expense.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["expenses", projectId] }),
+  });
+
 
 
   const handleTaskSubmit = async (data) => {
@@ -167,6 +199,41 @@ export default function ProjectDetails() {
     if (window.confirm(`Delete task "${task.title}"?`)) {
       await deleteTaskMutation.mutateAsync(task.id);
     }
+  };
+
+  const handleExpenseSubmit = async (data) => {
+    if (editingExpense) {
+      await updateExpenseMutation.mutateAsync({ id: editingExpense.id, data });
+    } else {
+      await createExpenseMutation.mutateAsync(data);
+    }
+  };
+
+  const handleDeleteExpense = async (expense) => {
+    if (window.confirm(`Delete this expense from ${expense.payee}?`)) {
+      await deleteExpenseMutation.mutateAsync(expense.id);
+    }
+  };
+
+  const handleBulkDeleteExpenses = async () => {
+    if (window.confirm(`Delete ${selectedExpenses.length} selected expenses?`)) {
+      await Promise.all(selectedExpenses.map(id => deleteExpenseMutation.mutateAsync(id)));
+      setSelectedExpenses([]);
+    }
+  };
+
+  const toggleSelectAllExpenses = () => {
+    if (selectedExpenses.length === expenses.length) {
+      setSelectedExpenses([]);
+    } else {
+      setSelectedExpenses(expenses.map(e => e.id));
+    }
+  };
+
+  const toggleSelectExpense = (id) => {
+    setSelectedExpenses(prev => 
+      prev.includes(id) ? prev.filter(expId => expId !== id) : [...prev, id]
+    );
   };
 
 
@@ -386,40 +453,98 @@ export default function ProjectDetails() {
           </motion.div>
         )}
 
-        {/* Tasks Section */}
+        {/* Tasks and Budget Tabs Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-[#1e3a5f]">Tasks</h2>
-            <Button
-              onClick={() => {
-                setEditingTask(null);
-                setShowTaskForm(true);
-              }}
-              className="bg-[#1e3a5f] hover:bg-[#152a45]"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Task
-            </Button>
-          </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className="flex items-center justify-between mb-6">
+              <TabsList>
+                <TabsTrigger value="board">Tasks</TabsTrigger>
+                <TabsTrigger value="budget">Budget</TabsTrigger>
+              </TabsList>
+              
+              {activeTab === "board" ? (
+                <Button
+                  onClick={() => {
+                    setEditingTask(null);
+                    setShowTaskForm(true);
+                  }}
+                  className="bg-[#1e3a5f] hover:bg-[#152a45]"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Task
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    setEditingExpense(null);
+                    setShowExpenseForm(true);
+                  }}
+                  className="bg-[#1e3a5f] hover:bg-[#152a45]"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Budget Item
+                </Button>
+              )}
+            </div>
 
-          {tasksLoading ? (
-            <div className="text-center py-12 text-gray-500">Loading tasks...</div>
-          ) : (
-            <TaskBoard
-              tasks={tasks}
-              onAddTask={() => setShowTaskForm(true)}
-              onEditTask={(task) => {
-                setEditingTask(task);
-                setShowTaskForm(true);
-              }}
-              onDeleteTask={handleDeleteTask}
-              onStatusChange={handleStatusChange}
-            />
-          )}
+            <TabsContent value="board">
+              {tasksLoading ? (
+                <div className="text-center py-12 text-gray-500">Loading tasks...</div>
+              ) : (
+                <TaskBoard
+                  tasks={tasks}
+                  onAddTask={() => setShowTaskForm(true)}
+                  onEditTask={(task) => {
+                    setEditingTask(task);
+                    setShowTaskForm(true);
+                  }}
+                  onDeleteTask={handleDeleteTask}
+                  onStatusChange={handleStatusChange}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="budget">
+              {selectedExpenses.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-[#1e3a5f] text-white rounded-xl p-4 flex items-center justify-between mb-4"
+                >
+                  <span className="font-medium">{selectedExpenses.length} selected</span>
+                  <Button
+                    onClick={handleBulkDeleteExpenses}
+                    variant="destructive"
+                    size="sm"
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Selected
+                  </Button>
+                </motion.div>
+              )}
+
+              <ExpenseTable
+                expenses={expenses}
+                projects={[project]}
+                contacts={contacts}
+                showProject={false}
+                selectedExpenses={selectedExpenses}
+                onSelectAll={toggleSelectAllExpenses}
+                onSelectExpense={toggleSelectExpense}
+                onEdit={(expense) => {
+                  setEditingExpense(expense);
+                  setShowExpenseForm(true);
+                }}
+                onDelete={handleDeleteExpense}
+                onViewContact={() => {}}
+              />
+            </TabsContent>
+          </Tabs>
         </motion.div>
 
       </div>
@@ -442,6 +567,18 @@ export default function ProjectDetails() {
         open={showProjectForm}
         onClose={() => setShowProjectForm(false)}
         onSubmit={(data) => updateProjectMutation.mutateAsync(data)}
+      />
+
+      <ExpenseForm
+        expense={editingExpense}
+        projects={[project]}
+        projectId={projectId}
+        open={showExpenseForm}
+        onClose={() => {
+          setShowExpenseForm(false);
+          setEditingExpense(null);
+        }}
+        onSubmit={handleExpenseSubmit}
       />
     </div>
   );
