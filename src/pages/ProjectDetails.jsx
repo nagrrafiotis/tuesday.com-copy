@@ -148,6 +148,7 @@ export default function ProjectDetails() {
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       setShowProjectForm(false);
     },
   });
