@@ -163,13 +163,14 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
             <div>
               <Label>Subcategory</Label>
               <div className="flex gap-2">
-                <SearchableSelect
-                  value={formData.subcategory}
-                  onValueChange={(value) => setFormData({...formData, subcategory: value})}
-                  placeholder="Select subcategory"
-                  triggerClassName="flex-1"
-                  items={subcategories.map(s => ({ value: s.name, label: s.name }))}
-                />
+                <div className="flex-1">
+                  <SearchableSelect
+                    value={formData.subcategory}
+                    onValueChange={(value) => setFormData(prev => ({...prev, subcategory: value}))}
+                    placeholder="Select subcategory"
+                    items={subcategories.map(s => ({ value: s.name, label: s.name }))}
+                  />
+                </div>
                 <Button type="button" size="icon" variant="outline" onClick={() => setShowNewSubcategory(true)}>
                   <Plus className="w-4 h-4" />
                 </Button>
@@ -180,13 +181,14 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
           <div>
             <Label>Payee</Label>
             <div className="flex gap-2">
-              <SearchableSelect
-                value={formData.payee}
-                onValueChange={(value) => setFormData({...formData, payee: value})}
-                placeholder="Select payee"
-                triggerClassName="flex-1"
-                items={contacts.map(c => ({ value: c.name, label: c.name }))}
-              />
+              <div className="flex-1">
+                <SearchableSelect
+                  value={formData.payee}
+                  onValueChange={(value) => setFormData(prev => ({...prev, payee: value}))}
+                  placeholder="Select payee"
+                  items={contacts.map(c => ({ value: c.name, label: c.name }))}
+                />
+              </div>
               <Button type="button" size="icon" variant="outline" onClick={() => setShowNewContact(true)}>
                 <Plus className="w-4 h-4" />
               </Button>
@@ -205,13 +207,14 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
           <div>
             <Label>Payment Source</Label>
             <div className="flex gap-2">
-              <SearchableSelect
-                value={formData.payment_source}
-                onValueChange={(value) => setFormData({...formData, payment_source: value})}
-                placeholder="Select payment source"
-                triggerClassName="flex-1"
-                items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
-              />
+              <div className="flex-1">
+                <SearchableSelect
+                  value={formData.payment_source}
+                  onValueChange={(value) => setFormData(prev => ({...prev, payment_source: value}))}
+                  placeholder="Select payment source"
+                  items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
+                />
+              </div>
               <Button type="button" size="icon" variant="outline" onClick={() => setShowNewPaymentSource(true)}>
                 <Plus className="w-4 h-4" />
               </Button>
