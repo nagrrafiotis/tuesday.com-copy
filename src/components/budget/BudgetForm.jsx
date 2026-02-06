@@ -167,7 +167,10 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Category</Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+              <Select 
+                value={formData.category || "labor"} 
+                onValueChange={(value) => setFormData(prev => ({...prev, category: value}))}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -255,7 +258,10 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
 
             <div>
               <Label>Unit</Label>
-              <Select value={formData.unit} onValueChange={(value) => setFormData({...formData, unit: value})}>
+              <Select 
+                value={formData.unit || "piece"} 
+                onValueChange={(value) => setFormData(prev => ({...prev, unit: value}))}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
