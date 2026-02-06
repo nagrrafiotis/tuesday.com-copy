@@ -149,15 +149,15 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
     >
       <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-300px)] w-full">
         <Table>
-        <TableHeader className="sticky top-0 z-10">
+        <TableHeader className="sticky top-0 z-10 bg-gray-50">
           <TableRow className="bg-gray-50">
-            <TableHead className="w-12">
+            <TableHead className="w-12 bg-gray-50">
               <Checkbox
                 checked={selectedExpenses.length === expenses.length && expenses.length > 0}
                 onCheckedChange={onSelectAll}
               />
             </TableHead>
-            <TableHead style={{ width: columnWidths.date }} className="relative group">
+            <TableHead style={{ width: columnWidths.date }} className="relative group bg-gray-50">
               Date
               <div
                 onMouseDown={(e) => handleMouseDown('date', e)}
@@ -165,7 +165,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
-            <TableHead style={{ width: columnWidths.category }} className="relative group">
+            <TableHead style={{ width: columnWidths.category }} className="relative group bg-gray-50">
               Category
               <div
                 onMouseDown={(e) => handleMouseDown('category', e)}
@@ -173,7 +173,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
-            <TableHead style={{ width: columnWidths.subcategory }} className="relative group">
+            <TableHead style={{ width: columnWidths.subcategory }} className="relative group bg-gray-50">
               Subcategory
               <div
                 onMouseDown={(e) => handleMouseDown('subcategory', e)}
@@ -182,7 +182,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               />
             </TableHead>
             {showProject && (
-              <TableHead style={{ width: columnWidths.project }} className="relative group">
+              <TableHead style={{ width: columnWidths.project }} className="relative group bg-gray-50">
                 Project
                 <div
                   onMouseDown={(e) => handleMouseDown('project', e)}
@@ -191,7 +191,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                 />
               </TableHead>
             )}
-            <TableHead style={{ width: columnWidths.payee }} className="relative group">
+            <TableHead style={{ width: columnWidths.payee }} className="relative group bg-gray-50">
               Payee
               <div
                 onMouseDown={(e) => handleMouseDown('payee', e)}
@@ -199,7 +199,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
-            <TableHead style={{ width: columnWidths.description }} className="relative group">
+            <TableHead style={{ width: columnWidths.description }} className="relative group bg-gray-50">
               Description
               <div
                 onMouseDown={(e) => handleMouseDown('description', e)}
@@ -207,7 +207,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
-            <TableHead style={{ width: columnWidths.payment }} className="relative group">
+            <TableHead style={{ width: columnWidths.payment }} className="relative group bg-gray-50">
               Payment Source
               <div
                 onMouseDown={(e) => handleMouseDown('payment', e)}
@@ -215,7 +215,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
-            <TableHead style={{ width: columnWidths.amount }} className="text-right relative group">
+            <TableHead style={{ width: columnWidths.amount }} className="text-right relative group bg-gray-50">
               Amount
               <div
                 onMouseDown={(e) => handleMouseDown('amount', e)}
@@ -223,7 +223,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
-            <TableHead className="w-12"></TableHead>
+            <TableHead className="w-12 bg-gray-50"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
