@@ -202,15 +202,12 @@ export default function ProjectDetails() {
   const createContactMutation = useMutation({
     mutationFn: (data) => base44.entities.Contact.create(data),
     onSuccess: (newContact) => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
       if (showNewContact) {
         updateBudgetItem(showNewContact, 'payee', newContact.name);
       }
       setShowNewContact(null);
       setNewContactName("");
-      // Invalidate after state update to avoid race conditions
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["contacts"] });
-      }, 0);
     },
   });
 
