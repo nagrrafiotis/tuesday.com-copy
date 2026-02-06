@@ -394,6 +394,7 @@ export default function ProjectDetails() {
     }
   });
   
+  // Show ALL phases, even with zero data
   const phaseChartData = phases.map(phaseName => {
     // Get all subcategory names for this phase
     const subcategoryNames = Object.keys(subcategoryToPhase).filter(
