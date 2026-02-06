@@ -132,12 +132,21 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
     e.preventDefault();
     setSaving(true);
     
+    console.log("Form data before submit:", formData);
+    
     const dataToSubmit = {
-      ...formData,
+      category: formData.category || "labor",
+      subcategory: formData.subcategory || "",
+      payee: formData.payee || "",
+      description: formData.description || "",
+      payment_source: formData.payment_source || "",
       quantity: Number(formData.quantity) || 0,
+      unit: formData.unit || "piece",
       unit_cost: Number(formData.unit_cost) || 0,
       total_cost: (Number(formData.quantity) || 0) * (Number(formData.unit_cost) || 0),
     };
+    
+    console.log("Data to submit:", dataToSubmit);
 
     await onSubmit(dataToSubmit);
     setSaving(false);
