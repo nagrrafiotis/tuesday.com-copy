@@ -149,7 +149,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
     >
       <div className="overflow-x-auto w-full">
         <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-10 bg-gray-50">
           <TableRow className="bg-gray-50/50">
             <TableHead className="w-12">
               <Checkbox
