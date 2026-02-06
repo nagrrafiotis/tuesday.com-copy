@@ -16,8 +16,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { format } from "date-fns";
-import { MoreHorizontal, Users, Wrench, Package, Truck, Receipt } from "lucide-react";
+import { MoreHorizontal, Users, Wrench, Package, Truck, Receipt, Layers } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const categoryIcons = {
@@ -39,6 +45,7 @@ const categoryColors = {
 export default function ExpenseTable({ expenses, projects, contacts = [], onEdit, onDelete, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense, onViewContact }) {
   const [columnWidths, setColumnWidths] = useState({
     date: 120,
+    phase: 140,
     category: 150,
     subcategory: 150,
     project: 150,
@@ -52,6 +59,15 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
   const getProjectName = (projectId) => {
     const project = projects?.find((p) => p.id === projectId);
     return project?.name || "Unknown";
+  };
+
+  const getProjectPhase = (projectId) => {
+    const project = projects?.find((p) => p.id === projectId);
+    if (!project || !project.status) return null;
+    return {
+      name: project.status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      color: "bg-blue-100 text-blue-700"
+    };
   };
 
   const formatCurrency = (amount) => {
@@ -79,6 +95,10 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
       switch(column) {
         case 'date':
           text = format(new Date(expense.date), "dd/MM/yy");
+          break;
+        case 'phase':
+          const phase = getProjectPhase(expense.project_id);
+          text = phase?.name || "—";
           break;
         case 'category':
           text = expense.category ? expense.category.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "General";
@@ -162,6 +182,14 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               <div
                 onMouseDown={(e) => handleMouseDown('date', e)}
                 onDoubleClick={() => handleDoubleClick('date')}
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </TableHead>
+            <TableHead style={{ width: columnWidths.phase }} className="relative group bg-gray-50">
+              Phase
+              <div
+                onMouseDown={(e) => handleMouseDown('phase', e)}
+                onDoubleClick={() => handleDoubleClick('phase')}
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
               />
             </TableHead>
@@ -250,6 +278,19 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                   {format(new Date(expense.date), "dd/MM/yy")}
                 </TableCell>
                 <TableCell>
+                  {(() => {
+                    const phase = getProjectPhase(expense.project_id);
+                    return phase ? (
+                      <Badge className={`${phase.color} border-0 gap-1.5`}>
+                        <Layers className="w-3 h-3" />
+                        {phase.name}
+                      </Badge>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    );
+                  })()}
+                </TableCell>
+                <TableCell>
                   <Badge className={`${color} border-0 gap-1.5`}>
                     <Icon className="w-3 h-3" />
                     {label}
@@ -278,8 +319,23 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                     );
                   })()}
                 </TableCell>
-                <TableCell className="text-gray-500 max-w-xs truncate">
-                  {expense.description || "—"}
+                <TableCell className="text-gray-500">
+                  {expense.description ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="max-w-xs truncate block cursor-help">
+                            {expense.description}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm">
+                          <p>{expense.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <span>—</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-gray-600">
                   {expense.payment_source || "—"}
@@ -310,7 +366,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
             );
           })}
           <TableRow className="bg-gray-50 border-t-2 border-gray-200">
-            <TableCell colSpan={showProject ? 8 : 7} className="text-right font-bold text-gray-900">
+            <TableCell colSpan={showProject ? 9 : 8} className="text-right font-bold text-gray-900">
               Total
             </TableCell>
             <TableCell className="text-right font-bold text-[#1e3a5f] text-lg">
