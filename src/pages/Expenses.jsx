@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Plus, Search, Download, Receipt, Upload, Trash2 } from "lucide-react";
+import { Plus, Search, Download, Receipt, Upload, Trash2, RefreshCw } from "lucide-react";
 
 export default function Expenses() {
   const [showForm, setShowForm] = useState(false);
@@ -30,6 +30,7 @@ export default function Expenses() {
   const [selectedExpenses, setSelectedExpenses] = useState([]);
   const [viewingContact, setViewingContact] = useState(null);
   const [editingContact, setEditingContact] = useState(null);
+  const [syncing, setSyncing] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -233,6 +234,34 @@ export default function Expenses() {
     }
   };
 
+  const syncFromGoogleSheets = async () => {
+    setSyncing(true);
+    try {
+      const result = await base44.functions.invoke('importFromGoogleSheets', {});
+      
+      if (result.data.success) {
+        queryClient.invalidateQueries({ queryKey: ["expenses"] });
+        queryClient.invalidateQueries({ queryKey: ["projects"] });
+        queryClient.invalidateQueries({ queryKey: ["contacts"] });
+        
+        const imported = result.data.imported;
+        const messages = [];
+        if (imported.expenses > 0) messages.push(`${imported.expenses} expenses`);
+        if (imported.income > 0) messages.push(`${imported.income} income`);
+        if (imported.projects > 0) messages.push(`${imported.projects} projects`);
+        if (imported.tasks > 0) messages.push(`${imported.tasks} tasks`);
+        if (imported.contacts > 0) messages.push(`${imported.contacts} contacts`);
+        
+        alert(`Successfully synced from Google Sheets:\n${messages.join(', ')}`);
+      } else {
+        alert("Failed to sync from Google Sheets");
+      }
+    } catch (error) {
+      alert(error.response?.data?.error || "Error syncing from Google Sheets");
+    }
+    setSyncing(false);
+  };
+
   if (expensesLoading) {
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
@@ -258,6 +287,15 @@ export default function Expenses() {
             <p className="text-gray-500 mt-1">Track and manage project costs</p>
           </div>
           <div className="flex gap-2">
+            <Button
+              onClick={syncFromGoogleSheets}
+              variant="outline"
+              disabled={syncing}
+              className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync from Google Sheets'}
+            </Button>
             <label htmlFor="expense-import">
               <Button
                 type="button"
@@ -266,7 +304,7 @@ export default function Expenses() {
                 onClick={() => document.getElementById('expense-import').click()}
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Import
+                Import CSV
               </Button>
             </label>
             <input
