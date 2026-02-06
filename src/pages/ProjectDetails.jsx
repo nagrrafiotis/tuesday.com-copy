@@ -385,10 +385,20 @@ export default function ProjectDetails() {
 
   // Phase chart data - comparing budget vs actual expenses by phase
   const phaseColors = phasesList?.colors || {};
+  
+  // Create a map of subcategory names to their phases
+  const subcategoryToPhase = {};
+  subcategories.forEach(subcat => {
+    if (subcat.phase_id) {
+      subcategoryToPhase[subcat.name] = subcat.phase_id;
+    }
+  });
+  
   const phaseChartData = phases.map(phaseName => {
-    // Get all subcategories for this phase
-    const phaseSubcategories = subcategories.filter(s => s.phase_id === phaseName);
-    const subcategoryNames = phaseSubcategories.map(s => s.name);
+    // Get all subcategory names for this phase
+    const subcategoryNames = Object.keys(subcategoryToPhase).filter(
+      name => subcategoryToPhase[name] === phaseName
+    );
     
     // Calculate budget for this phase
     const phaseBudget = (project?.budget_items || [])
@@ -409,8 +419,13 @@ export default function ProjectDetails() {
   });
 
   // Add "Unassigned" phase for items without a phase
-  const assignedPhases = new Set(phases);
-  const unassignedSubcategories = subcategories.filter(s => !s.phase_id || !assignedPhases.has(s.phase_id)).map(s => s.name);
+  const assignedSubcategories = new Set(Object.keys(subcategoryToPhase));
+  const allBudgetSubcategories = [...new Set((project?.budget_items || []).map(item => item.subcategory).filter(Boolean))];
+  const allExpenseSubcategories = [...new Set(expenses.map(exp => exp.subcategory).filter(Boolean))];
+  const unassignedSubcategories = [...new Set([...allBudgetSubcategories, ...allExpenseSubcategories])].filter(
+    name => !assignedSubcategories.has(name)
+  );
+  
   if (unassignedSubcategories.length > 0) {
     const unassignedBudget = (project?.budget_items || [])
       .filter(item => unassignedSubcategories.includes(item.subcategory))
