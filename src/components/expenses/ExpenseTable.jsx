@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 import {
   Table,
   TableBody,
@@ -56,17 +58,30 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
   });
   const [resizing, setResizing] = useState(null);
 
+  const { data: subcategories = [] } = useQuery({
+    queryKey: ["subcategories"],
+    queryFn: () => base44.entities.Subcategory.list(),
+  });
+
+  const { data: phases = [] } = useQuery({
+    queryKey: ["phases"],
+    queryFn: () => base44.entities.ProjectPhase.list("order"),
+  });
+
   const getProjectName = (projectId) => {
     const project = projects?.find((p) => p.id === projectId);
     return project?.name || "Unknown";
   };
 
-  const getProjectPhase = (projectId) => {
-    const project = projects?.find((p) => p.id === projectId);
-    if (!project || !project.status) return null;
+  const getProjectPhase = (subcategoryName) => {
+    if (!subcategoryName) return null;
+    const subcategory = subcategories.find((s) => s.name === subcategoryName);
+    if (!subcategory || !subcategory.phase_id) return null;
+    const phase = phases.find((p) => p.id === subcategory.phase_id);
+    if (!phase) return null;
     return {
-      name: project.status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-      color: "bg-blue-100 text-blue-700"
+      name: phase.name,
+      color: phase.color || "bg-blue-100 text-blue-700"
     };
   };
 
@@ -97,7 +112,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
           text = format(new Date(expense.date), "dd/MM/yy");
           break;
         case 'phase':
-          const phase = getProjectPhase(expense.project_id);
+          const phase = getProjectPhase(expense.subcategory);
           text = phase?.name || "—";
           break;
         case 'category':
@@ -279,7 +294,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                 </TableCell>
                 <TableCell>
                   {(() => {
-                    const phase = getProjectPhase(expense.project_id);
+                    const phase = getProjectPhase(expense.subcategory);
                     return phase ? (
                       <Badge className={`${phase.color} border-0 gap-1.5`}>
                         <Layers className="w-3 h-3" />
