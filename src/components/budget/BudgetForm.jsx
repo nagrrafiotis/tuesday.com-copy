@@ -39,20 +39,32 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
   const queryClient = useQueryClient();
 
   React.useEffect(() => {
-    if (item) {
-      setFormData(item);
-    } else {
-      setFormData({
-        category: "labor",
-        subcategory: "",
-        payee: "",
-        description: "",
-        payment_source: "",
-        quantity: 1,
-        unit: "piece",
-        unit_cost: 0,
-        total_cost: 0,
-      });
+    if (open) {
+      if (item) {
+        setFormData({
+          category: item.category || "labor",
+          subcategory: item.subcategory || "",
+          payee: item.payee || "",
+          description: item.description || "",
+          payment_source: item.payment_source || "",
+          quantity: item.quantity || 1,
+          unit: item.unit || "piece",
+          unit_cost: item.unit_cost || 0,
+          total_cost: item.total_cost || 0,
+        });
+      } else {
+        setFormData({
+          category: "labor",
+          subcategory: "",
+          payee: "",
+          description: "",
+          payment_source: "",
+          quantity: 1,
+          unit: "piece",
+          unit_cost: 0,
+          total_cost: 0,
+        });
+      }
     }
   }, [item, open]);
 
@@ -165,8 +177,8 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
               <div className="flex gap-2">
                 <div className="flex-1">
                   <SearchableSelect
-                    value={formData.subcategory}
-                    onValueChange={(value) => setFormData(prev => ({...prev, subcategory: value}))}
+                    value={formData.subcategory || ""}
+                    onValueChange={(value) => setFormData(prev => ({...prev, subcategory: value || ""}))}
                     placeholder="Select subcategory"
                     items={subcategories.map(s => ({ value: s.name, label: s.name }))}
                   />
@@ -183,8 +195,8 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
             <div className="flex gap-2">
               <div className="flex-1">
                 <SearchableSelect
-                  value={formData.payee}
-                  onValueChange={(value) => setFormData(prev => ({...prev, payee: value}))}
+                  value={formData.payee || ""}
+                  onValueChange={(value) => setFormData(prev => ({...prev, payee: value || ""}))}
                   placeholder="Select payee"
                   items={contacts.map(c => ({ value: c.name, label: c.name }))}
                 />
@@ -209,8 +221,8 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
             <div className="flex gap-2">
               <div className="flex-1">
                 <SearchableSelect
-                  value={formData.payment_source}
-                  onValueChange={(value) => setFormData(prev => ({...prev, payment_source: value}))}
+                  value={formData.payment_source || ""}
+                  onValueChange={(value) => setFormData(prev => ({...prev, payment_source: value || ""}))}
                   placeholder="Select payment source"
                   items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
                 />
