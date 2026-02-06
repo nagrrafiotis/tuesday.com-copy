@@ -9,6 +9,8 @@ import ContactCard from "@/components/contacts/ContactCard.jsx";
 import ContactForm from "@/components/contacts/ContactForm.jsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -17,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Plus, Search, Download, Receipt, Upload, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Search, Download, Receipt, Upload, Trash2, RefreshCw, FileSpreadsheet } from "lucide-react";
 
 export default function Expenses() {
   const [showForm, setShowForm] = useState(false);
@@ -31,6 +33,9 @@ export default function Expenses() {
   const [viewingContact, setViewingContact] = useState(null);
   const [editingContact, setEditingContact] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [showSheetImport, setShowSheetImport] = useState(false);
+  const [sheetUrl, setSheetUrl] = useState("");
+  const [importing, setImporting] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -262,6 +267,44 @@ export default function Expenses() {
     setSyncing(false);
   };
 
+  const extractSheetId = (url) => {
+    // Extract sheet ID from various Google Sheets URL formats
+    const patterns = [
+      /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/,
+      /^([a-zA-Z0-9-_]+)$/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
+  const importFromSheet = async () => {
+    const spreadsheetId = extractSheetId(sheetUrl);
+    
+    if (!spreadsheetId) {
+      alert("Please enter a valid Google Sheets URL or ID");
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const result = await base44.functions.invoke('importExpensesFromSheet', { spreadsheetId });
+      
+      if (result.data.success) {
+        queryClient.invalidateQueries({ queryKey: ["expenses"] });
+        alert(`Successfully imported ${result.data.imported} expenses from Google Sheets`);
+        setShowSheetImport(false);
+        setSheetUrl("");
+      }
+    } catch (error) {
+      alert(error.response?.data?.error || "Error importing from Google Sheets");
+    }
+    setImporting(false);
+  };
+
   if (expensesLoading) {
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
@@ -286,7 +329,7 @@ export default function Expenses() {
             <h1 className="text-3xl font-bold text-[#1e3a5f]">Expenses</h1>
             <p className="text-gray-500 mt-1">Track and manage project costs</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               onClick={syncFromGoogleSheets}
               variant="outline"
@@ -294,7 +337,15 @@ export default function Expenses() {
               className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Sync from Google Sheets'}
+              {syncing ? 'Syncing...' : 'Sync Backup'}
+            </Button>
+            <Button
+              onClick={() => setShowSheetImport(true)}
+              variant="outline"
+              className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Import from Google Sheets
             </Button>
             <label htmlFor="expense-import">
               <Button
@@ -486,6 +537,40 @@ export default function Expenses() {
         onClose={() => setEditingContact(null)}
         onSubmit={(data) => updateContactMutation.mutate({ id: editingContact.id, data })}
       />
+
+      {/* Import from Sheet Dialog */}
+      <Dialog open={showSheetImport} onOpenChange={setShowSheetImport}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Expenses from Google Sheets</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Google Sheets URL or ID</Label>
+              <Input
+                value={sheetUrl}
+                onChange={(e) => setSheetUrl(e.target.value)}
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Sheet must have an "Expenses" tab with columns: Date, Project, Category, Subcategory, Payee, Description, Amount, Payment Source
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowSheetImport(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={importFromSheet} 
+                disabled={importing || !sheetUrl}
+                className="bg-[#1e3a5f] hover:bg-[#152a45]"
+              >
+                {importing ? "Importing..." : "Import"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
