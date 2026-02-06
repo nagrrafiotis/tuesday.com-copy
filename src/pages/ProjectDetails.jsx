@@ -384,9 +384,10 @@ export default function ProjectDetails() {
   const budgetUsedPercent = project.budget ? (totalExpenses / project.budget) * 100 : 0;
 
   // Phase chart data - comparing budget vs actual expenses by phase
-  const phaseChartData = phases.map(phase => {
+  const phaseColors = phasesList?.colors || {};
+  const phaseChartData = phases.map(phaseName => {
     // Get all subcategories for this phase
-    const phaseSubcategories = subcategories.filter(s => s.phase_id === phase.id);
+    const phaseSubcategories = subcategories.filter(s => s.phase_id === phaseName);
     const subcategoryNames = phaseSubcategories.map(s => s.name);
     
     // Calculate budget for this phase
@@ -400,15 +401,16 @@ export default function ProjectDetails() {
       .reduce((sum, exp) => sum + exp.amount, 0);
     
     return {
-      phase: phase.name,
+      phase: phaseName,
       budget: phaseBudget,
       actual: phaseExpenses,
-      color: phase.color
+      color: phaseColors[phaseName] || "bg-gray-100 text-gray-700"
     };
   });
 
   // Add "Unassigned" phase for items without a phase
-  const unassignedSubcategories = subcategories.filter(s => !s.phase_id).map(s => s.name);
+  const assignedPhases = new Set(phases);
+  const unassignedSubcategories = subcategories.filter(s => !s.phase_id || !assignedPhases.has(s.phase_id)).map(s => s.name);
   if (unassignedSubcategories.length > 0) {
     const unassignedBudget = (project?.budget_items || [])
       .filter(item => unassignedSubcategories.includes(item.subcategory))
