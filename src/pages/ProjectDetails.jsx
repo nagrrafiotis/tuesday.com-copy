@@ -190,15 +190,12 @@ export default function ProjectDetails() {
   const createSubcategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Subcategory.create(data),
     onSuccess: (newSubcat) => {
+      queryClient.invalidateQueries({ queryKey: ["subcategories"] });
       if (showNewSubcategory) {
         updateBudgetItem(showNewSubcategory, 'subcategory', newSubcat.name);
       }
       setShowNewSubcategory(null);
       setNewSubcategoryName("");
-      // Invalidate after state update to avoid race conditions
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["subcategories"] });
-      }, 0);
     },
   });
 
