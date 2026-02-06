@@ -147,10 +147,10 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden w-full"
     >
-      <div className="overflow-x-auto w-full">
+      <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-300px)] w-full">
         <Table>
-        <TableHeader className="sticky top-0 z-10 bg-gray-50">
-          <TableRow className="bg-gray-50/50">
+        <TableHeader className="sticky top-0 z-10">
+          <TableRow className="bg-gray-50">
             <TableHead className="w-12">
               <Checkbox
                 checked={selectedExpenses.length === expenses.length && expenses.length > 0}
