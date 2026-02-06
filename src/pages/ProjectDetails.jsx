@@ -16,6 +16,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExpenseTable from "@/components/expenses/ExpenseTable";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
+import BudgetTable from "@/components/budget/BudgetTable";
+import BudgetForm from "@/components/budget/BudgetForm";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   ArrowLeft,
@@ -76,6 +78,9 @@ export default function ProjectDetails() {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [selectedExpenses, setSelectedExpenses] = useState([]);
+  const [showBudgetForm, setShowBudgetForm] = useState(false);
+  const [editingBudgetItem, setEditingBudgetItem] = useState(null);
+  const [selectedBudgetItems, setSelectedBudgetItems] = useState([]);
 
 
   const queryClient = useQueryClient();
@@ -246,6 +251,70 @@ export default function ProjectDetails() {
     );
   };
 
+  const handleBudgetItemSubmit = async (data) => {
+    const currentBudgetItems = project.budget_items || [];
+    let updatedBudgetItems;
+
+    if (editingBudgetItem) {
+      updatedBudgetItems = currentBudgetItems.map(item => 
+        item.id === editingBudgetItem.id ? { ...data, id: item.id } : item
+      );
+    } else {
+      updatedBudgetItems = [...currentBudgetItems, { ...data, id: Date.now().toString() }];
+    }
+
+    const totalBudget = updatedBudgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
+    
+    await updateProjectMutation.mutateAsync({
+      budget_items: updatedBudgetItems,
+      budget: totalBudget
+    });
+    
+    setShowBudgetForm(false);
+    setEditingBudgetItem(null);
+  };
+
+  const handleDeleteBudgetItem = async (item) => {
+    if (window.confirm(`Delete this budget item?`)) {
+      const updatedBudgetItems = (project.budget_items || []).filter(i => i.id !== item.id);
+      const totalBudget = updatedBudgetItems.reduce((sum, i) => sum + (i.total_cost || 0), 0);
+      
+      await updateProjectMutation.mutateAsync({
+        budget_items: updatedBudgetItems,
+        budget: totalBudget
+      });
+    }
+  };
+
+  const handleBulkDeleteBudgetItems = async () => {
+    if (window.confirm(`Delete ${selectedBudgetItems.length} selected budget items?`)) {
+      const updatedBudgetItems = (project.budget_items || []).filter(item => !selectedBudgetItems.includes(item.id));
+      const totalBudget = updatedBudgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
+      
+      await updateProjectMutation.mutateAsync({
+        budget_items: updatedBudgetItems,
+        budget: totalBudget
+      });
+      
+      setSelectedBudgetItems([]);
+    }
+  };
+
+  const toggleSelectAllBudgetItems = () => {
+    const budgetItems = project.budget_items || [];
+    if (selectedBudgetItems.length === budgetItems.length) {
+      setSelectedBudgetItems([]);
+    } else {
+      setSelectedBudgetItems(budgetItems.map(item => item.id));
+    }
+  };
+
+  const toggleSelectBudgetItem = (id) => {
+    setSelectedBudgetItems(prev => 
+      prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
+    );
+  };
+
 
 
   const formatCurrency = (amount) => {
@@ -324,9 +393,9 @@ export default function ProjectDetails() {
       name => subcategoryToPhase[name] === phase.id
     );
     
-    const phaseBudget = expenses
-      .filter(exp => subcategoryNames.includes(exp.subcategory))
-      .reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    const phaseBudget = (project?.budget_items || [])
+      .filter(item => subcategoryNames.includes(item.subcategory))
+      .reduce((sum, item) => sum + (item.total_cost || 0), 0);
     
     const phaseExpenses = expenses
       .filter(exp => subcategoryNames.includes(exp.subcategory))
@@ -558,8 +627,8 @@ export default function ProjectDetails() {
               ) : (
                 <Button
                   onClick={() => {
-                    setEditingExpense(null);
-                    setShowExpenseForm(true);
+                    setEditingBudgetItem(null);
+                    setShowBudgetForm(true);
                   }}
                   className="bg-[#1e3a5f] hover:bg-[#152a45]"
                 >
@@ -587,15 +656,15 @@ export default function ProjectDetails() {
             </TabsContent>
 
             <TabsContent value="budget">
-              {selectedExpenses.length > 0 && (
+              {selectedBudgetItems.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-[#1e3a5f] text-white rounded-xl p-4 flex items-center justify-between mb-4"
                 >
-                  <span className="font-medium">{selectedExpenses.length} selected</span>
+                  <span className="font-medium">{selectedBudgetItems.length} selected</span>
                   <Button
-                    onClick={handleBulkDeleteExpenses}
+                    onClick={handleBulkDeleteBudgetItems}
                     variant="destructive"
                     size="sm"
                     className="bg-red-600 hover:bg-red-700"
@@ -606,20 +675,16 @@ export default function ProjectDetails() {
                 </motion.div>
               )}
 
-              <ExpenseTable
-                expenses={expenses}
-                projects={[project]}
-                contacts={contacts}
-                showProject={false}
-                selectedExpenses={selectedExpenses}
-                onSelectAll={toggleSelectAllExpenses}
-                onSelectExpense={toggleSelectExpense}
-                onEdit={(expense) => {
-                  setEditingExpense(expense);
-                  setShowExpenseForm(true);
+              <BudgetTable
+                budgetItems={project.budget_items || []}
+                selectedItems={selectedBudgetItems}
+                onSelectAll={toggleSelectAllBudgetItems}
+                onSelectItem={toggleSelectBudgetItem}
+                onEdit={(item) => {
+                  setEditingBudgetItem(item);
+                  setShowBudgetForm(true);
                 }}
-                onDelete={handleDeleteExpense}
-                onViewContact={() => {}}
+                onDelete={handleDeleteBudgetItem}
               />
             </TabsContent>
           </Tabs>
@@ -657,6 +722,16 @@ export default function ProjectDetails() {
           setEditingExpense(null);
         }}
         onSubmit={handleExpenseSubmit}
+      />
+
+      <BudgetForm
+        item={editingBudgetItem}
+        open={showBudgetForm}
+        onClose={() => {
+          setShowBudgetForm(false);
+          setEditingBudgetItem(null);
+        }}
+        onSubmit={handleBudgetItemSubmit}
       />
     </div>
   );
