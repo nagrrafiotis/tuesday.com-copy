@@ -18,13 +18,13 @@ import { Plus } from "lucide-react";
 
 export default function BudgetForm({ item, open, onClose, onSubmit }) {
   const [formData, setFormData] = useState(item || {
-    category: "labor",
+    category: "",
     subcategory: "",
     payee: "",
     description: "",
     payment_source: "",
     quantity: 1,
-    unit: "piece",
+    unit: "",
     unit_cost: 0,
     total_cost: 0,
   });
@@ -42,25 +42,25 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
     if (open) {
       if (item) {
         setFormData({
-          category: item.category || "labor",
+          category: item.category || "",
           subcategory: item.subcategory || "",
           payee: item.payee || "",
           description: item.description || "",
           payment_source: item.payment_source || "",
           quantity: item.quantity || 1,
-          unit: item.unit || "piece",
+          unit: item.unit || "",
           unit_cost: item.unit_cost || 0,
           total_cost: item.total_cost || 0,
         });
       } else {
         setFormData({
-          category: "labor",
+          category: "",
           subcategory: "",
           payee: "",
           description: "",
           payment_source: "",
           quantity: 1,
-          unit: "piece",
+          unit: "",
           unit_cost: 0,
           total_cost: 0,
         });
@@ -123,14 +123,10 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
   });
 
   const unitsList = dropdownLists.find(l => l.list_name === "units");
-  const units = unitsList?.options || ["piece", "m", "m2", "m3", "kg", "ton", "hour", "day"];
+  const units = unitsList?.options || [];
 
   const expenseCategoriesList = dropdownLists.find(l => l.list_name === "expense_categories");
-  const categoryOptions = expenseCategoriesList?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"];
-  const categories = categoryOptions.map(cat => ({
-    value: cat,
-    label: cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-  }));
+  const categories = expenseCategoriesList?.options || [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -139,13 +135,13 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
     console.log("Form data before submit:", formData);
     
     const dataToSubmit = {
-      category: formData.category || "labor",
+      category: formData.category || "",
       subcategory: formData.subcategory || "",
       payee: formData.payee || "",
       description: formData.description || "",
       payment_source: formData.payment_source || "",
       quantity: Number(formData.quantity) || 0,
-      unit: formData.unit || "piece",
+      unit: formData.unit || "",
       unit_cost: Number(formData.unit_cost) || 0,
       total_cost: (Number(formData.quantity) || 0) * (Number(formData.unit_cost) || 0),
     };
@@ -172,7 +168,7 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
             <div>
               <Label>Category</Label>
               <Select 
-                value={formData.category || "labor"} 
+                value={formData.category} 
                 onValueChange={(value) => setFormData(prev => ({...prev, category: value}))}
               >
                 <SelectTrigger>
@@ -180,8 +176,8 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map(cat => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -263,7 +259,7 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
             <div>
               <Label>Unit</Label>
               <Select 
-                value={formData.unit || "piece"} 
+                value={formData.unit} 
                 onValueChange={(value) => setFormData(prev => ({...prev, unit: value}))}
               >
                 <SelectTrigger>
