@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Calendar, DollarSign, MoreHorizontal } from "lucide-react";
+import { MapPin, Calendar, DollarSign, MoreHorizontal, Ruler, Home } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -95,6 +95,39 @@ export default function ProjectCard({ project, onEdit, onDelete, index = 0 }) {
           </div>
           <Progress value={project.progress || 0} className="h-2 bg-gray-100" />
         </div>
+
+        {(project.land_size || project.built_area) && (
+          <div className="bg-gray-50 rounded-lg p-3 mb-4 space-y-2">
+            {project.land_size && (
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Ruler className="w-3.5 h-3.5" />
+                  <span>Land Size</span>
+                </div>
+                <span className="font-semibold text-gray-900">{project.land_size} m²</span>
+              </div>
+            )}
+            {project.land_size && project.building_coefficient && (
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <span className="ml-5">Max Buildable</span>
+                </div>
+                <span className="font-medium text-blue-600">
+                  {(project.land_size * project.building_coefficient).toFixed(0)} m²
+                </span>
+              </div>
+            )}
+            {project.built_area && (
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Home className="w-3.5 h-3.5" />
+                  <span>Built Area</span>
+                </div>
+                <span className="font-semibold text-[#1e3a5f]">{project.built_area} m²</span>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           <div className="flex items-center gap-4 text-sm text-gray-500">
