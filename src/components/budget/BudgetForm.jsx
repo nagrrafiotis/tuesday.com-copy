@@ -126,7 +126,11 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
   const units = unitsList?.options || ["piece", "m", "m2", "m3", "kg", "ton", "hour", "day"];
 
   const expenseCategoriesList = dropdownLists.find(l => l.list_name === "expense_categories");
-  const categories = expenseCategoriesList?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"];
+  const categoryOptions = expenseCategoriesList?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"];
+  const categories = categoryOptions.map(cat => ({
+    value: cat,
+    label: cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -176,8 +180,8 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map(cat => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
