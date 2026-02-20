@@ -1,9 +1,8 @@
-import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -12,12 +11,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Users, Wrench, Package, Truck, Receipt, Plus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { Plus } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+const categoryIcons = {
+  labor: Users,
+  subcontractor: Wrench,
+  materials: Package,
+  equipment: Truck,
+  general_expenses: Receipt,
+};
 
 export default function BudgetForm({ item, open, onClose, onSubmit }) {
-  const [formData, setFormData] = useState(item || {
+  const [formData, setFormData] = useState({
     category: "",
     subcategory: "",
     payee: "",
@@ -38,7 +51,7 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
 
   const queryClient = useQueryClient();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) {
       if (item) {
         setFormData({
@@ -68,6 +81,11 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
     }
   }, [item, open]);
 
+  useEffect(() => {
+    const total = (Number(formData.quantity) || 0) * (Number(formData.unit_cost) || 0);
+    setFormData(prev => ({ ...prev, total_cost: total }));
+  }, [formData.quantity, formData.unit_cost]);
+
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => base44.entities.Contact.list("name"),
@@ -76,7 +94,7 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
 
   const { data: subcategories = [] } = useQuery({
     queryKey: ["subcategories"],
-    queryFn: () => base44.entities.Subcategory.list(),
+    queryFn: () => base44.entities.Subcategory.list("name"),
     enabled: open,
   });
 
@@ -91,6 +109,16 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
     queryFn: () => base44.entities.DropdownList.list(),
     enabled: open,
   });
+
+  const unitsList = dropdownLists.find(l => l.list_name === "units");
+  const units = unitsList?.options || [];
+
+  const expenseCategoriesList = dropdownLists.find(l => l.list_name === "expense_categories");
+  const categories = (expenseCategoriesList?.options || []).map(cat => ({
+    value: cat,
+    label: cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+    icon: categoryIcons[cat] || Receipt,
+  }));
 
   const createSubcategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Subcategory.create(data),
@@ -122,19 +150,10 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
     },
   });
 
-  const unitsList = dropdownLists.find(l => l.list_name === "units");
-  const units = unitsList?.options || [];
-
-  const expenseCategoriesList = dropdownLists.find(l => l.list_name === "expense_categories");
-  const categories = expenseCategoriesList?.options || [];
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    
-    console.log("Form data before submit:", formData);
-    
-    const dataToSubmit = {
+    await onSubmit({
       category: formData.category || "",
       subcategory: formData.subcategory || "",
       payee: formData.payee || "",
@@ -144,40 +163,37 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
       unit: formData.unit || "",
       unit_cost: Number(formData.unit_cost) || 0,
       total_cost: (Number(formData.quantity) || 0) * (Number(formData.unit_cost) || 0),
-    };
-    
-    console.log("Data to submit:", dataToSubmit);
-
-    await onSubmit(dataToSubmit);
+    });
     setSaving(false);
   };
 
-  React.useEffect(() => {
-    const total = (Number(formData.quantity) || 0) * (Number(formData.unit_cost) || 0);
-    setFormData(prev => ({ ...prev, total_cost: total }));
-  }, [formData.quantity, formData.unit_cost]);
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{item ? "Edit Budget Item" : "New Budget Item"}</DialogTitle>
+          <DialogTitle className="text-xl font-semibold text-[#1e3a5f]">
+            {item ? "Edit Budget Item" : "Add Budget Item"}
+          </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Category</Label>
-              <Select 
-                value={formData.category} 
-                onValueChange={(value) => setFormData(prev => ({...prev, category: value}))}
+              <Label>Category *</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(v) => setFormData({ ...formData, category: v, subcategory: "" })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="mt-1.5">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map(cat => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      <div className="flex items-center gap-2">
+                        <cat.icon className="w-4 h-4" />
+                        {cat.label}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -186,198 +202,192 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
 
             <div>
               <Label>Subcategory</Label>
-              <div className="flex gap-2">
-                <div className="flex-1">
+              {!showNewSubcategory ? (
+                <div className="flex gap-2 mt-1.5">
                   <SearchableSelect
-                    value={formData.subcategory || ""}
-                    onValueChange={(value) => setFormData(prev => ({...prev, subcategory: value || ""}))}
-                    placeholder="Select subcategory"
+                    value={formData.subcategory}
+                    onValueChange={(v) => setFormData({ ...formData, subcategory: v })}
                     items={subcategories.map(s => ({ value: s.name, label: s.name }))}
+                    placeholder="Search subcategory..."
+                    className="flex-1"
                   />
+                  <Button type="button" variant="outline" size="icon" onClick={() => setShowNewSubcategory(true)}>
+                    <Plus className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Button type="button" size="icon" variant="outline" onClick={() => setShowNewSubcategory(true)}>
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
+              ) : (
+                <div className="flex gap-2 mt-1.5">
+                  <Input
+                    value={newSubcategoryName}
+                    onChange={(e) => setNewSubcategoryName(e.target.value)}
+                    placeholder="New subcategory"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newSubcategoryName.trim()) createSubcategoryMutation.mutate({ name: newSubcategoryName });
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    onClick={() => { if (newSubcategoryName.trim()) createSubcategoryMutation.mutate({ name: newSubcategoryName }); }}
+                    disabled={!newSubcategoryName.trim() || createSubcategoryMutation.isPending}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                  <Button type="button" variant="outline" size="icon" onClick={() => { setShowNewSubcategory(false); setNewSubcategoryName(""); }}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
           <div>
-            <Label>Payee</Label>
-            <div className="flex gap-2">
-              <div className="flex-1">
+            <Label>Payee / Vendor *</Label>
+            {!showNewContact ? (
+              <div className="flex gap-2 mt-1.5">
                 <SearchableSelect
-                  value={formData.payee || ""}
-                  onValueChange={(value) => setFormData(prev => ({...prev, payee: value || ""}))}
-                  placeholder="Select payee"
-                  items={contacts.map(c => ({ value: c.name, label: c.name }))}
+                  value={formData.payee}
+                  onValueChange={(v) => setFormData({ ...formData, payee: v })}
+                  items={contacts.map(c => ({ value: c.name, label: c.name, subtitle: [c.phone, c.company].filter(Boolean).join(' • ') }))}
+                  placeholder="Search payee..."
+                  className="flex-1"
                 />
+                <Button type="button" variant="outline" onClick={() => setShowNewContact(true)} className="shrink-0">
+                  <Plus className="w-4 h-4" />
+                </Button>
               </div>
-              <Button type="button" size="icon" variant="outline" onClick={() => setShowNewContact(true)}>
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
+            ) : (
+              <div className="space-y-2 mt-1.5">
+                <Input
+                  value={newContactName}
+                  onChange={(e) => setNewContactName(e.target.value)}
+                  placeholder="Contact name"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => { if (newContactName.trim()) createContactMutation.mutate({ name: newContactName, category: "supplier" }); }}
+                    disabled={!newContactName.trim() || createContactMutation.isPending}
+                  >
+                    Add
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => { setShowNewContact(false); setNewContactName(""); }}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
             <Label>Description</Label>
             <Textarea
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              placeholder="Item description..."
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Brief description..."
+              className="mt-1.5"
             />
           </div>
 
-          <div>
-            <Label>Payment Source</Label>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <SearchableSelect
-                  value={formData.payment_source || ""}
-                  onValueChange={(value) => setFormData(prev => ({...prev, payment_source: value || ""}))}
-                  placeholder="Select payment source"
-                  items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
-                />
-              </div>
-              <Button type="button" size="icon" variant="outline" onClick={() => setShowNewPaymentSource(true)}>
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 gap-3">
             <div>
               <Label>Quantity</Label>
               <Input
                 type="number"
                 value={formData.quantity}
-                onChange={(e) => setFormData({...formData, quantity: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                 step="0.01"
+                className="mt-1.5"
               />
             </div>
-
             <div>
               <Label>Unit</Label>
-              <Select 
-                value={formData.unit} 
-                onValueChange={(value) => setFormData(prev => ({...prev, unit: value}))}
-              >
-                <SelectTrigger>
+              <Select value={formData.unit} onValueChange={(v) => setFormData({ ...formData, unit: v })}>
+                <SelectTrigger className="mt-1.5">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {units.map(unit => (
-                    <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                  {units.map(u => (
+                    <SelectItem key={u} value={u}>{u}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label>Unit Cost (€)</Label>
               <Input
                 type="number"
                 value={formData.unit_cost}
-                onChange={(e) => setFormData({...formData, unit_cost: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, unit_cost: e.target.value })}
                 step="0.01"
+                className="mt-1.5"
               />
             </div>
-
             <div>
               <Label>Total (€)</Label>
               <Input
                 type="number"
                 value={formData.total_cost}
                 disabled
-                className="bg-gray-50"
+                className="mt-1.5 bg-gray-50"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
+          <div>
+            <Label>Payment Source</Label>
+            {!showNewPaymentSource ? (
+              <div className="flex gap-2 mt-1.5">
+                <SearchableSelect
+                  value={formData.payment_source}
+                  onValueChange={(v) => setFormData({ ...formData, payment_source: v })}
+                  items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
+                  placeholder="Search payment source..."
+                  className="flex-1"
+                />
+                <Button type="button" variant="outline" onClick={() => setShowNewPaymentSource(true)} className="shrink-0">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2 mt-1.5">
+                <Input
+                  value={newPaymentSourceName}
+                  onChange={(e) => setNewPaymentSourceName(e.target.value)}
+                  placeholder="e.g., Bank 01, Cash"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (newPaymentSourceName.trim()) createPaymentSourceMutation.mutate({ name: newPaymentSourceName });
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={() => { if (newPaymentSourceName.trim()) createPaymentSourceMutation.mutate({ name: newPaymentSourceName }); }}
+                  disabled={!newPaymentSourceName.trim() || createPaymentSourceMutation.isPending}
+                >
+                  Add
+                </Button>
+                <Button type="button" variant="outline" onClick={() => { setShowNewPaymentSource(false); setNewPaymentSourceName(""); }}>
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit" disabled={saving} className="bg-[#1e3a5f] hover:bg-[#152a45]">
-              {saving ? "Saving..." : item ? "Update" : "Create"}
+              {saving ? "Saving..." : item ? "Update Budget Item" : "Add Budget Item"}
             </Button>
           </div>
         </form>
-
-        {/* New Subcategory Dialog */}
-        <Dialog open={showNewSubcategory} onOpenChange={setShowNewSubcategory}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>New Subcategory</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Name</Label>
-                <Input
-                  value={newSubcategoryName}
-                  onChange={(e) => setNewSubcategoryName(e.target.value)}
-                  placeholder="Enter subcategory name..."
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowNewSubcategory(false)}>Cancel</Button>
-                <Button onClick={() => createSubcategoryMutation.mutate({ name: newSubcategoryName })}>
-                  Create
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* New Contact Dialog */}
-        <Dialog open={showNewContact} onOpenChange={setShowNewContact}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>New Contact</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Name</Label>
-                <Input
-                  value={newContactName}
-                  onChange={(e) => setNewContactName(e.target.value)}
-                  placeholder="Enter contact name..."
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowNewContact(false)}>Cancel</Button>
-                <Button onClick={() => createContactMutation.mutate({ name: newContactName })}>
-                  Create
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* New Payment Source Dialog */}
-        <Dialog open={showNewPaymentSource} onOpenChange={setShowNewPaymentSource}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>New Payment Source</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Name</Label>
-                <Input
-                  value={newPaymentSourceName}
-                  onChange={(e) => setNewPaymentSourceName(e.target.value)}
-                  placeholder="Enter payment source name..."
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowNewPaymentSource(false)}>Cancel</Button>
-                <Button onClick={() => createPaymentSourceMutation.mutate({ name: newPaymentSourceName })}>
-                  Create
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </DialogContent>
     </Dialog>
   );
