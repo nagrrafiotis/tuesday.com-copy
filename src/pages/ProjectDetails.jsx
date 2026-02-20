@@ -588,7 +588,7 @@ export default function ProjectDetails() {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={phaseChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" stroke="#666" />
+                <XAxis dataKey="name" stroke="#666" angle={-45} textAnchor="end" interval={0} tick={{ fontSize: 11 }} height={80} />
                 <YAxis stroke="#666" />
                 <Tooltip 
                   formatter={(value) => `€${value.toLocaleString()}`}
