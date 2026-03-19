@@ -86,6 +86,13 @@ export default function Income() {
     },
   });
 
+  const handleInlineUpdate = async (id, field, value) => {
+    const income = incomes.find(i => i.id === id);
+    if (!income) return;
+    await base44.entities.Income.update(id, { ...income, [field]: value });
+    queryClient.invalidateQueries({ queryKey: ["incomes"] });
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Income.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["incomes"] }),
@@ -372,6 +379,7 @@ export default function Income() {
                 setEditingIncome(income);
                 setShowForm(true);
               }}
+              onUpdate={handleInlineUpdate}
               onDelete={handleDelete}
               onViewContact={(contact) => setViewingContact(contact)}
             />

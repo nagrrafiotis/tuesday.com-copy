@@ -89,6 +89,13 @@ export default function Expenses() {
     },
   });
 
+  const handleInlineUpdate = async (id, field, value) => {
+    const expense = expenses.find(e => e.id === id);
+    if (!expense) return;
+    await base44.entities.Expense.update(id, { ...expense, [field]: value });
+    queryClient.invalidateQueries({ queryKey: ["expenses"] });
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Expense.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["expenses"] }),
@@ -488,6 +495,7 @@ export default function Expenses() {
                 setEditingExpense(expense);
                 setShowForm(true);
               }}
+              onUpdate={handleInlineUpdate}
               onDelete={handleDelete}
               onViewContact={(contact) => setViewingContact(contact)}
             />
