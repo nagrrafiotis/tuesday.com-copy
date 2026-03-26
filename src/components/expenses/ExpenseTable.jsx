@@ -13,9 +13,6 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -70,7 +67,7 @@ function InlineNumber({ value, onSave }) {
 }
 
 export default function ExpenseTable({ expenses, projects, contacts = [], onEdit, onDelete, onUpdate, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense, onViewContact }) {
-  const [editingCell, setEditingCell] = useState(null); // {id, field}
+  const [editingCell, setEditingCell] = useState(null);
 
   const { data: subcategories = [] } = useQuery({ queryKey: ["subcategories"], queryFn: () => base44.entities.Subcategory.list() });
   const { data: phases = [] } = useQuery({ queryKey: ["phases"], queryFn: () => base44.entities.ProjectPhase.list("order") });
@@ -145,7 +142,6 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                     <Checkbox checked={selectedExpenses.includes(expense.id)} onCheckedChange={() => onSelectExpense(expense.id)} />
                   </TableCell>
 
-                  {/* Date */}
                   <TableCell className="font-medium text-gray-600 cursor-pointer" onClick={(e) => startEdit(expense.id, 'date', e)}>
                     {isEditing(expense.id, 'date') ? (
                       <Popover open onOpenChange={(open) => !open && setEditingCell(null)}>
@@ -167,7 +163,6 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                     )}
                   </TableCell>
 
-                  {/* Phase (read-only derived) */}
                   <TableCell>
                     {(() => {
                       const phase = getProjectPhase(expense.subcategory);
@@ -175,7 +170,6 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                     })()}
                   </TableCell>
 
-                  {/* Category */}
                   <TableCell className="cursor-pointer" onClick={(e) => startEdit(expense.id, 'category', e)}>
                     {isEditing(expense.id, 'category') ? (
                       <SearchableSelect
@@ -190,7 +184,6 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                     )}
                   </TableCell>
 
-                  {/* Subcategory */}
                   <TableCell className="text-gray-600 cursor-pointer" onClick={(e) => startEdit(expense.id, 'subcategory', e)}>
                     {isEditing(expense.id, 'subcategory') ? (
                       <SearchableSelect
@@ -205,7 +198,6 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                     )}
                   </TableCell>
 
-                  {/* Project */}
                   {showProject && (
                     <TableCell className="text-gray-600 cursor-pointer" onClick={(e) => startEdit(expense.id, 'project_id', e)}>
                       {isEditing(expense.id, 'project_id') ? (
@@ -224,7 +216,6 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                     </TableCell>
                   )}
 
-                  {/* Payee */}
                   <TableCell className="font-medium text-gray-900 cursor-pointer" onClick={(e) => startEdit(expense.id, 'payee', e)}>
                     {isEditing(expense.id, 'payee') ? (
                       <SearchableSelect
@@ -246,7 +237,6 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                     )}
                   </TableCell>
 
-                  {/* Description */}
                   <TableCell className="text-gray-500 cursor-pointer" onClick={(e) => startEdit(expense.id, 'description', e)}>
                     {isEditing(expense.id, 'description') ? (
                       <InlineText value={expense.description} onSave={(v) => handleUpdate(expense.id, 'description', v)} />
@@ -264,7 +254,6 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                     )}
                   </TableCell>
 
-                  {/* Payment Source */}
                   <TableCell className="text-gray-600 cursor-pointer" onClick={(e) => startEdit(expense.id, 'payment_source', e)}>
                     {isEditing(expense.id, 'payment_source') ? (
                       <SearchableSelect
@@ -279,7 +268,6 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                     )}
                   </TableCell>
 
-                  {/* Amount */}
                   <TableCell className="text-right font-semibold text-[#1e3a5f] cursor-pointer" onClick={(e) => startEdit(expense.id, 'amount', e)}>
                     {isEditing(expense.id, 'amount') ? (
                       <div className="flex justify-end">
