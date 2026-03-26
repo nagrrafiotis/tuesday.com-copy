@@ -190,7 +190,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                     )}
                   </TableCell>
 
-                  {/* Subcategory */
+                  {/* Subcategory */}
                   <TableCell className="text-gray-600 cursor-pointer" onClick={(e) => startEdit(expense.id, 'subcategory', e)}>
                     {isEditing(expense.id, 'subcategory') ? (
                       <SearchableSelect
