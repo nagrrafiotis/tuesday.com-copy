@@ -196,7 +196,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                       <Select value={expense.subcategory || ""} onValueChange={(v) => handleUpdate(expense.id, 'subcategory', v)} open onOpenChange={(open) => !open && setEditingCell(null)}>
                         <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue placeholder="Select..." /></SelectTrigger>
                         <SelectContent>
-                          {subcategories.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                          {[...subcategories].sort((a, b) => a.name.localeCompare(b.name)).map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     ) : (
