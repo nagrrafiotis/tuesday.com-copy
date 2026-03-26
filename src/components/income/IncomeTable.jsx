@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { MoreHorizontal, TrendingUp, CalendarIcon } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -138,12 +139,13 @@ export default function IncomeTable({ incomes, projects, contacts = [], onEdit, 
                 {/* Category */}
                 <TableCell className="cursor-pointer" onClick={(e) => startEdit(income.id, 'category', e)}>
                   {isEditing(income.id, 'category') ? (
-                    <Select value={income.category || ""} onValueChange={(v) => handleUpdate(income.id, 'category', v)} open onOpenChange={(open) => !open && setEditingCell(null)}>
-                      <SelectTrigger className="h-7 text-xs w-[130px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {incomeCategories.map(cat => <SelectItem key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      value={income.category || ""}
+                      onValueChange={(v) => handleUpdate(income.id, 'category', v)}
+                      items={incomeCategories.map(cat => ({ value: cat, label: cat.charAt(0).toUpperCase() + cat.slice(1) }))}
+                      placeholder="Category"
+                      triggerClassName="h-7 text-xs w-[130px]"
+                    />
                   ) : (
                     <Badge className={`${config.color} border-0 hover:opacity-80`}>{config.label}</Badge>
                   )}
@@ -153,12 +155,13 @@ export default function IncomeTable({ incomes, projects, contacts = [], onEdit, 
                 {showProject && (
                   <TableCell className="text-gray-600 cursor-pointer" onClick={(e) => startEdit(income.id, 'project_id', e)}>
                     {isEditing(income.id, 'project_id') ? (
-                      <Select value={income.project_id || ""} onValueChange={(v) => handleUpdate(income.id, 'project_id', v)} open onOpenChange={(open) => !open && setEditingCell(null)}>
-                        <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {projects?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        value={income.project_id || ""}
+                        onValueChange={(v) => handleUpdate(income.id, 'project_id', v)}
+                        items={(projects || []).map(p => ({ value: p.id, label: p.name }))}
+                        placeholder="Project"
+                        triggerClassName="h-7 text-xs w-[150px]"
+                      />
                     ) : (
                       <span className="hover:text-[#1e3a5f] hover:underline decoration-dotted">
                         {projects?.find(p => p.id === income.project_id)?.name || "—"}
@@ -170,12 +173,13 @@ export default function IncomeTable({ incomes, projects, contacts = [], onEdit, 
                 {/* Source */}
                 <TableCell className="font-medium text-gray-900 cursor-pointer" onClick={(e) => startEdit(income.id, 'source', e)}>
                   {isEditing(income.id, 'source') ? (
-                    <Select value={income.source || ""} onValueChange={(v) => handleUpdate(income.id, 'source', v)} open onOpenChange={(open) => !open && setEditingCell(null)}>
-                      <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue placeholder="Select..." /></SelectTrigger>
-                      <SelectContent>
-                        {contacts.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      value={income.source || ""}
+                      onValueChange={(v) => handleUpdate(income.id, 'source', v)}
+                      items={contacts.map(c => ({ value: c.name, label: c.name }))}
+                      placeholder="Source"
+                      triggerClassName="h-7 text-xs w-[150px]"
+                    />
                   ) : (
                     (() => {
                       const contact = contacts.find(c => c.name === income.source);
@@ -200,12 +204,13 @@ export default function IncomeTable({ incomes, projects, contacts = [], onEdit, 
                 {/* Payment Source */}
                 <TableCell className="text-gray-600 cursor-pointer" onClick={(e) => startEdit(income.id, 'payment_source', e)}>
                   {isEditing(income.id, 'payment_source') ? (
-                    <Select value={income.payment_source || ""} onValueChange={(v) => handleUpdate(income.id, 'payment_source', v)} open onOpenChange={(open) => !open && setEditingCell(null)}>
-                      <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue placeholder="Select..." /></SelectTrigger>
-                      <SelectContent>
-                        {paymentSources.map(ps => <SelectItem key={ps.id} value={ps.name}>{ps.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      value={income.payment_source || ""}
+                      onValueChange={(v) => handleUpdate(income.id, 'payment_source', v)}
+                      items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
+                      placeholder="Payment Source"
+                      triggerClassName="h-7 text-xs w-[150px]"
+                    />
                   ) : (
                     <span className="hover:text-[#1e3a5f] hover:underline decoration-dotted">{income.payment_source || "—"}</span>
                   )}

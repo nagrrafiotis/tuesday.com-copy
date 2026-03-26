@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import {
@@ -177,28 +178,28 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                   {/* Category */}
                   <TableCell className="cursor-pointer" onClick={(e) => startEdit(expense.id, 'category', e)}>
                     {isEditing(expense.id, 'category') ? (
-                      <Select value={expense.category} onValueChange={(v) => handleUpdate(expense.id, 'category', v)} open onOpenChange={(open) => !open && setEditingCell(null)}>
-                        <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {expenseCategories.map(cat => (
-                            <SelectItem key={cat} value={cat}>{cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        value={expense.category}
+                        onValueChange={(v) => handleUpdate(expense.id, 'category', v)}
+                        items={expenseCategories.map(cat => ({ value: cat, label: cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') }))}
+                        placeholder="Category"
+                        triggerClassName="h-7 text-xs w-[150px]"
+                      />
                     ) : (
                       <Badge className={`${color} border-0 gap-1.5 hover:opacity-80`}><Icon className="w-3 h-3" />{label}</Badge>
                     )}
                   </TableCell>
 
-                  {/* Subcategory */}
+                  {/* Subcategory */
                   <TableCell className="text-gray-600 cursor-pointer" onClick={(e) => startEdit(expense.id, 'subcategory', e)}>
                     {isEditing(expense.id, 'subcategory') ? (
-                      <Select value={expense.subcategory || ""} onValueChange={(v) => handleUpdate(expense.id, 'subcategory', v)} open onOpenChange={(open) => !open && setEditingCell(null)}>
-                        <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue placeholder="Select..." /></SelectTrigger>
-                        <SelectContent>
-                          {[...subcategories].sort((a, b) => a.name.localeCompare(b.name)).map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        value={expense.subcategory || ""}
+                        onValueChange={(v) => handleUpdate(expense.id, 'subcategory', v)}
+                        items={[...subcategories].sort((a, b) => a.name.localeCompare(b.name)).map(s => ({ value: s.name, label: s.name }))}
+                        placeholder="Subcategory"
+                        triggerClassName="h-7 text-xs w-[150px]"
+                      />
                     ) : (
                       <span className="hover:text-[#1e3a5f] hover:underline decoration-dotted">{expense.subcategory || "—"}</span>
                     )}
@@ -208,12 +209,13 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                   {showProject && (
                     <TableCell className="text-gray-600 cursor-pointer" onClick={(e) => startEdit(expense.id, 'project_id', e)}>
                       {isEditing(expense.id, 'project_id') ? (
-                        <Select value={expense.project_id || ""} onValueChange={(v) => handleUpdate(expense.id, 'project_id', v)} open onOpenChange={(open) => !open && setEditingCell(null)}>
-                          <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {projects?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          value={expense.project_id || ""}
+                          onValueChange={(v) => handleUpdate(expense.id, 'project_id', v)}
+                          items={(projects || []).map(p => ({ value: p.id, label: p.name }))}
+                          placeholder="Project"
+                          triggerClassName="h-7 text-xs w-[150px]"
+                        />
                       ) : (
                         <span className="hover:text-[#1e3a5f] hover:underline decoration-dotted">
                           {projects?.find(p => p.id === expense.project_id)?.name || "—"}
@@ -225,12 +227,13 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                   {/* Payee */}
                   <TableCell className="font-medium text-gray-900 cursor-pointer" onClick={(e) => startEdit(expense.id, 'payee', e)}>
                     {isEditing(expense.id, 'payee') ? (
-                      <Select value={expense.payee || ""} onValueChange={(v) => handleUpdate(expense.id, 'payee', v)} open onOpenChange={(open) => !open && setEditingCell(null)}>
-                        <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue placeholder="Select..." /></SelectTrigger>
-                        <SelectContent>
-                          {contacts.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        value={expense.payee || ""}
+                        onValueChange={(v) => handleUpdate(expense.id, 'payee', v)}
+                        items={contacts.map(c => ({ value: c.name, label: c.name }))}
+                        placeholder="Payee"
+                        triggerClassName="h-7 text-xs w-[150px]"
+                      />
                     ) : (
                       (() => {
                         const contact = contacts.find(c => c.name === expense.payee);
@@ -264,12 +267,13 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                   {/* Payment Source */}
                   <TableCell className="text-gray-600 cursor-pointer" onClick={(e) => startEdit(expense.id, 'payment_source', e)}>
                     {isEditing(expense.id, 'payment_source') ? (
-                      <Select value={expense.payment_source || ""} onValueChange={(v) => handleUpdate(expense.id, 'payment_source', v)} open onOpenChange={(open) => !open && setEditingCell(null)}>
-                        <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue placeholder="Select..." /></SelectTrigger>
-                        <SelectContent>
-                          {paymentSources.map(ps => <SelectItem key={ps.id} value={ps.name}>{ps.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        value={expense.payment_source || ""}
+                        onValueChange={(v) => handleUpdate(expense.id, 'payment_source', v)}
+                        items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
+                        placeholder="Payment Source"
+                        triggerClassName="h-7 text-xs w-[150px]"
+                      />
                     ) : (
                       <span className="hover:text-[#1e3a5f] hover:underline decoration-dotted">{expense.payment_source || "—"}</span>
                     )}
