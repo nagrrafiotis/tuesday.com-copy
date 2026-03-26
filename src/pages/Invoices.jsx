@@ -275,7 +275,7 @@ export default function Invoices() {
           onTransferred={() => {
             queryClient.invalidateQueries({ queryKey: ["invoices"] });
             queryClient.invalidateQueries({ queryKey: ["expenses"] });
-            queryClient.invalidateQueries({ queryKey: ["income"] });
+            queryClient.invalidateQueries({ queryKey: ["incomes"] });
             setTransferInvoice(null);
           }}
         />
