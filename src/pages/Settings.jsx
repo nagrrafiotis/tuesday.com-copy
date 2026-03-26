@@ -978,7 +978,7 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
-                {subcategories.map((subcat) => {
+                 {[...subcategories].sort((a, b) => a.name.localeCompare(b.name)).map((subcat) => {
                   const phase = phases.find(p => p.id === subcat.phase_id);
                   return (
                   <div
