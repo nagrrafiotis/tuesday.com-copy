@@ -1,0 +1,111 @@
+{
+  "name": "Invoice",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "Associated project ID"
+    },
+    "invoice_number": {
+      "type": "string",
+      "description": "Invoice number"
+    },
+    "vendor_client": {
+      "type": "string",
+      "description": "Vendor or client name"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Invoice date"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Due date"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "expense",
+        "income"
+      ],
+      "description": "Whether this is an expense or income invoice"
+    },
+    "category": {
+      "type": "string",
+      "description": "Category (expense category or income category)"
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "Subcategory"
+    },
+    "payment_source": {
+      "type": "string",
+      "description": "Payment source"
+    },
+    "description": {
+      "type": "string",
+      "description": "General description"
+    },
+    "items": {
+      "type": "array",
+      "description": "Line items from the invoice",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unit_price": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "subtotal": {
+      "type": "number",
+      "description": "Subtotal before tax"
+    },
+    "tax_amount": {
+      "type": "number",
+      "description": "Tax amount"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Total invoice amount"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes from invoice"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Uploaded invoice image URL"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "transferred"
+      ],
+      "default": "pending",
+      "description": "Whether this invoice has been transferred to expenses/income"
+    }
+  },
+  "required": [
+    "vendor_client",
+    "total_amount",
+    "date",
+    "type"
+  ]
+}

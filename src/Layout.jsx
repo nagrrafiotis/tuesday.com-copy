@@ -21,6 +21,7 @@ import {
   BarChart3,
   Mail,
   Upload,
+  FileText,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -42,6 +43,7 @@ const navItems = [
   { name: "Expenses", icon: Receipt, page: "Expenses" },
   { name: "Income", icon: TrendingUp, page: "Income" },
   { name: "Financial Overview", icon: DollarSign, page: "FinancialOverview" },
+  { name: "Invoices", icon: FileText, page: "Invoices" },
   { name: "Contacts", icon: Users, page: "Contacts" },
   { name: "Settings", icon: Settings, page: "Settings" },
 ];

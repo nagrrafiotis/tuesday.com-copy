@@ -58,6 +58,7 @@ import FinancialOverview from './pages/FinancialOverview';
 import Gantt from './pages/Gantt';
 import Home from './pages/Home';
 import Income from './pages/Income';
+import Invoices from './pages/Invoices';
 import ProjectDetails from './pages/ProjectDetails';
 import Projects from './pages/Projects';
 import Settings from './pages/Settings';
@@ -81,6 +82,7 @@ export const PAGES = {
     "Projects": Projects,
     "Settings": Settings,
     "Tasks": Tasks,
+    "Invoices": Invoices,
 }
 
 export const pagesConfig = {
