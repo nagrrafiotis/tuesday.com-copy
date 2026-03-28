@@ -69,7 +69,12 @@ export default function Settings() {
   const [selectedListItems, setSelectedListItems] = useState({});
   const [lastSaved, setLastSaved] = useState(null);
 
-  const markSaved = () => setLastSaved(new Date());
+  const markSaved = async () => {
+    const now = new Date();
+    setLastSaved(now);
+    await base44.auth.updateMe({ last_settings_saved_date: now.toISOString() });
+    refetchUser();
+  };
 
   const { data: lists = [], isLoading } = useQuery({
     queryKey: ["dropdown-lists"],

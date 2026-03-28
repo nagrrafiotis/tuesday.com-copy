@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -22,6 +24,7 @@ import {
   Mail,
   Upload,
   FileText,
+  Clock,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -50,43 +53,37 @@ const navItems = [
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [user, setUser] = useState(null);
   const [logoUrl, setLogoUrl] = useState(null);
   const [showLogoDialog, setShowLogoDialog] = useState(false);
   const [uploading, setUploading] = useState(false);
   const location = useLocation();
 
+  const { data: user } = useQuery({
+    queryKey: ["current-user-layout"],
+    queryFn: () => base44.auth.me(),
+    staleTime: 10000,
+    refetchOnWindowFocus: true,
+  });
+
   useEffect(() => {
-    base44.auth.me().then((userData) => {
-      setUser(userData);
-      setLogoUrl(userData.logo_url);
-    }).catch(() => {});
-  }, []);
+    if (user?.logo_url !== undefined) setLogoUrl(user.logo_url);
+  }, [user?.logo_url]);
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      await base44.auth.updateMe({ logo_url: file_url });
-      setLogoUrl(file_url);
-      setShowLogoDialog(false);
-    } catch (error) {
-      console.error("Error uploading logo:", error);
-    }
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    await base44.auth.updateMe({ logo_url: file_url });
+    setLogoUrl(file_url);
+    setShowLogoDialog(false);
     setUploading(false);
   };
 
   const handleRemoveLogo = async () => {
-    try {
-      await base44.auth.updateMe({ logo_url: null });
-      setLogoUrl(null);
-      setShowLogoDialog(false);
-    } catch (error) {
-      console.error("Error removing logo:", error);
-    }
+    await base44.auth.updateMe({ logo_url: null });
+    setLogoUrl(null);
+    setShowLogoDialog(false);
   };
 
   const getInitials = (name) => {
@@ -158,21 +155,38 @@ export default function Layout({ children, currentPageName }) {
           {navItems.map((item) => {
             const isActive = currentPageName === item.page;
             return (
-              <Link
-                key={item.page}
-                to={createPageUrl(item.page)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? "bg-[#1e3a5f] text-white shadow-lg shadow-[#1e3a5f]/20"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-[#1e3a5f]"
-                }`}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.name}</span>
-              </Link>
+              <div key={item.page}>
+                <Link
+                  to={createPageUrl(item.page)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                    isActive
+                      ? "bg-[#1e3a5f] text-white shadow-lg shadow-[#1e3a5f]/20"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-[#1e3a5f]"
+                  }`}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="font-medium">{item.name}</span>
+                </Link>
+                {item.page === "Settings" && (user?.last_settings_saved_date || user?.last_backup_download_date) && (
+                  <div className="px-4 pb-1 space-y-0.5">
+                    {user?.last_settings_saved_date && (
+                      <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                        <Clock className="w-2.5 h-2.5 shrink-0" />
+                        <span>Saved: {format(new Date(user.last_settings_saved_date), 'dd/MM HH:mm')}</span>
+                      </div>
+                    )}
+                    {user?.last_backup_download_date && (
+                      <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                        <Clock className="w-2.5 h-2.5 shrink-0" />
+                        <span>Backup: {format(new Date(user.last_backup_download_date), 'dd/MM HH:mm')}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })}
-        </nav>
+          </nav>
 
         {/* User Section */}
         <div className="p-4 border-t border-gray-100">
