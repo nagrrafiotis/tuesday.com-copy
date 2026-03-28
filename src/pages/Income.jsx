@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Plus, Search, Download, Upload, Trash2, RotateCcw } from "lucide-react";
-import { useRef } from "react";
 
 export default function Income() {
   const [showForm, setShowForm] = useState(false);
