@@ -7,9 +7,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import {
   ScanLine, Plus, ChevronDown, ChevronUp, ArrowRight, Receipt, TrendingUp,
-  FileText, Calendar, Building2, Hash, Loader2, Trash2, CheckCircle2
+  FileText, Calendar, Building2, Hash, Loader2, Trash2, CheckCircle2, Pencil
 } from "lucide-react";
 import ScanInvoiceDialog from "../components/invoices/ScanInvoiceDialog";
+import EditInvoiceDialog from "../components/invoices/EditInvoiceDialog";
 import TransferInvoiceDialog from "../components/invoices/TransferInvoiceDialog";
 
 const formatCurrency = (v) =>
@@ -19,6 +20,7 @@ export default function Invoices() {
   const queryClient = useQueryClient();
   const [scanOpen, setScanOpen] = useState(false);
   const [transferInvoice, setTransferInvoice] = useState(null);
+  const [editInvoice, setEditInvoice] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
 
   const { data: invoices = [], isLoading } = useQuery({
@@ -132,6 +134,13 @@ export default function Invoices() {
                       <ArrowRight className="w-3 h-3" /> Transfer
                     </Button>
                   )}
+
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditInvoice(invoice); }}
+                    className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-colors"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
 
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteInvoice.mutate(invoice.id); }}
@@ -265,6 +274,14 @@ export default function Invoices() {
         onClose={() => setScanOpen(false)}
         projects={projects}
         onCreated={() => queryClient.invalidateQueries({ queryKey: ["invoices"] })}
+      />
+
+      <EditInvoiceDialog
+        open={!!editInvoice}
+        onClose={() => setEditInvoice(null)}
+        invoice={editInvoice}
+        projects={projects}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["invoices"] })}
       />
 
       {transferInvoice && (
