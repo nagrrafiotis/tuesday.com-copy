@@ -67,6 +67,9 @@ export default function Settings() {
   const [selectedPaymentSources, setSelectedPaymentSources] = useState([]);
   const [selectedPhases, setSelectedPhases] = useState([]);
   const [selectedListItems, setSelectedListItems] = useState({});
+  const [lastSaved, setLastSaved] = useState(null);
+
+  const markSaved = () => setLastSaved(new Date());
 
   const { data: lists = [], isLoading } = useQuery({
     queryKey: ["dropdown-lists"],
@@ -124,6 +127,7 @@ export default function Settings() {
     mutationFn: (data) => base44.entities.DropdownList.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dropdown-lists"] });
+      markSaved();
     },
   });
 
@@ -131,6 +135,7 @@ export default function Settings() {
     mutationFn: ({ id, data }) => base44.entities.DropdownList.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dropdown-lists"] });
+      markSaved();
     },
   });
 
@@ -141,7 +146,7 @@ export default function Settings() {
 
   const createSubcategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Subcategory.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subcategories"] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["subcategories"] }); markSaved(); },
   });
 
   const deleteSubcategoryMutation = useMutation({
@@ -160,7 +165,7 @@ export default function Settings() {
 
   const createPaymentSourceMutation = useMutation({
     mutationFn: (data) => base44.entities.PaymentSource.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["paymentSources"] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["paymentSources"] }); markSaved(); },
   });
 
   const deletePaymentSourceMutation = useMutation({
@@ -457,9 +462,17 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-[#fafafa] p-6">
       <div className="max-w-[1600px] mx-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <SettingsIcon className="w-8 h-8 text-[#1e3a5f]" />
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <SettingsIcon className="w-8 h-8 text-[#1e3a5f]" />
+            <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+          </div>
+          {lastSaved && (
+            <div className="flex items-center gap-1.5 text-sm text-gray-500">
+              <Clock className="w-4 h-4" />
+              Last saved: {format(lastSaved, 'dd/MM/yyyy HH:mm:ss')}
+            </div>
+          )}
         </div>
 
         {/* Google Account Connection */}

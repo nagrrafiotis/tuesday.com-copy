@@ -17,7 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Plus, Search, Download, Upload, Trash2 } from "lucide-react";
+import { Plus, Search, Download, Upload, Trash2, RotateCcw } from "lucide-react";
+import { useRef } from "react";
 
 export default function Income() {
   const [showForm, setShowForm] = useState(false);
@@ -28,6 +29,8 @@ export default function Income() {
   const [selectedIncomes, setSelectedIncomes] = useState([]);
   const [viewingContact, setViewingContact] = useState(null);
   const [editingContact, setEditingContact] = useState(null);
+  const [undoItem, setUndoItem] = useState(null);
+  const undoTimerRef = useRef(null);
 
   const queryClient = useQueryClient();
 
@@ -108,8 +111,19 @@ export default function Income() {
 
   const handleDelete = async (income) => {
     if (window.confirm(`Delete this income from ${income.source}?`)) {
+      setUndoItem({ ...income });
       await deleteMutation.mutateAsync(income.id);
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = setTimeout(() => setUndoItem(null), 10000);
     }
+  };
+
+  const handleUndo = async () => {
+    if (!undoItem) return;
+    const { id, created_date, updated_date, created_by, ...data } = undoItem;
+    await createMutation.mutateAsync(data);
+    setUndoItem(null);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
   };
 
   const handleBulkDelete = async () => {
@@ -391,6 +405,20 @@ export default function Income() {
           </div>
         </div>
       </div>
+
+      {/* Undo Bar */}
+      {undoItem && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-xl">
+          <span className="text-sm">Income from <strong>{undoItem.source}</strong> deleted</span>
+          <button
+            onClick={handleUndo}
+            className="flex items-center gap-1.5 bg-white text-gray-900 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Undo
+          </button>
+          <button onClick={() => setUndoItem(null)} className="text-gray-400 hover:text-white text-lg leading-none">&times;</button>
+        </div>
+      )}
 
       {/* Form */}
       <IncomeForm
