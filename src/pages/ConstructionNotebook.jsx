@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
+import VoiceNoteAnalyzer from "../components/notebook/VoiceNoteAnalyzer";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -616,6 +617,22 @@ export default function ConstructionNotebook() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+            <VoiceNoteAnalyzer
+              onAnalysisComplete={(data) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  work_performed: data.work_performed ? (prev.work_performed ? prev.work_performed + "\n" + data.work_performed : data.work_performed) : prev.work_performed,
+                  issues: data.issues ? (prev.issues ? prev.issues + "\n" + data.issues : data.issues) : prev.issues,
+                  safety_observations: data.safety_observations ? (prev.safety_observations ? prev.safety_observations + "\n" + data.safety_observations : data.safety_observations) : prev.safety_observations,
+                  notes: data.notes ? (prev.notes ? prev.notes + "\n" + data.notes : data.notes) : prev.notes,
+                  technicians: [...new Set([...prev.technicians, ...(data.technicians || [])])],
+                  engineers: [...new Set([...prev.engineers, ...(data.engineers || [])])],
+                  subcontractors: [...new Set([...prev.subcontractors, ...(data.subcontractors || [])])],
+                  equipment_used: [...new Set([...prev.equipment_used, ...(data.equipment_used || [])])],
+                  materials_delivered: [...prev.materials_delivered, ...(data.materials_delivered || [])],
+                }));
+              }}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Project *</Label>
