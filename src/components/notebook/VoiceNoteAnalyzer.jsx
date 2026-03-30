@@ -13,7 +13,14 @@ export default function VoiceNoteAnalyzer({ onAnalysisComplete }) {
 
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const mediaRecorder = new MediaRecorder(stream);
+    // Pick a supported MIME type
+    const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
+      ? "audio/mp4"
+      : MediaRecorder.isTypeSupported("audio/ogg")
+      ? "audio/ogg"
+      : "audio/webm";
+    const ext = mimeType === "audio/mp4" ? "mp4" : mimeType === "audio/ogg" ? "ogg" : "webm";
+    const mediaRecorder = new MediaRecorder(stream, { mimeType });
     mediaRecorderRef.current = mediaRecorder;
     chunksRef.current = [];
 
@@ -23,8 +30,8 @@ export default function VoiceNoteAnalyzer({ onAnalysisComplete }) {
 
     mediaRecorder.onstop = async () => {
       stream.getTracks().forEach((t) => t.stop());
-      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      await analyzeAudio(blob, "recording.webm");
+      const blob = new Blob(chunksRef.current, { type: mimeType });
+      await analyzeAudio(blob, `recording.${ext}`);
     };
 
     mediaRecorder.start();
