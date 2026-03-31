@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import {
-  ScanLine, Plus, ChevronDown, ChevronUp, ArrowRight, Receipt, TrendingUp,
-  FileText, Calendar, Building2, Hash, Loader2, Trash2, CheckCircle2, Pencil
+  ScanLine, ChevronDown, ChevronUp, ArrowRight, Receipt, TrendingUp,
+  FileText, Calendar, Building2, Hash, Loader2, Trash2, CheckCircle2, Pencil, Search, X
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import ScanInvoiceDialog from "../components/invoices/ScanInvoiceDialog";
 import EditInvoiceDialog from "../components/invoices/EditInvoiceDialog";
 import TransferInvoiceDialog from "../components/invoices/TransferInvoiceDialog";
@@ -22,6 +23,7 @@ export default function Invoices() {
   const [transferInvoice, setTransferInvoice] = useState(null);
   const [editInvoice, setEditInvoice] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [searchVendor, setSearchVendor] = useState("");
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["invoices"],
@@ -42,6 +44,10 @@ export default function Invoices() {
 
   const getProjectName = (id) => projects.find(p => p.id === id)?.name || "—";
 
+  const filteredInvoices = searchVendor.trim()
+    ? invoices.filter(inv => inv.vendor_client?.toLowerCase().includes(searchVendor.toLowerCase()))
+    : invoices;
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -53,6 +59,21 @@ export default function Invoices() {
           <ScanLine className="w-4 h-4" />
           Scan Invoice
         </Button>
+      </div>
+
+      <div className="relative mb-4 max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Input
+          value={searchVendor}
+          onChange={(e) => setSearchVendor(e.target.value)}
+          placeholder="Filter by vendor / client name..."
+          className="pl-9 pr-8"
+        />
+        {searchVendor && (
+          <button onClick={() => setSearchVendor("")} className="absolute right-2 top-1/2 -translate-y-1/2">
+            <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+          </button>
+        )}
       </div>
 
       {isLoading ? (
@@ -70,7 +91,10 @@ export default function Invoices() {
         </div>
       ) : (
         <div className="space-y-3">
-          {invoices.map((invoice) => (
+          {filteredInvoices.length === 0 && (
+            <div className="text-center py-10 text-gray-400">No invoices found for "{searchVendor}"</div>
+          )}
+          {filteredInvoices.map((invoice) => (
             <div key={invoice.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
               {/* Row */}
               <div
