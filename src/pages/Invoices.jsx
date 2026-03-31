@@ -17,6 +17,13 @@ import TransferInvoiceDialog from "../components/invoices/TransferInvoiceDialog"
 const formatCurrency = (v) =>
   new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(v || 0);
 
+const safeFormat = (dateStr, fmt) => {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "—";
+  return format(d, fmt);
+};
+
 export default function Invoices() {
   const queryClient = useQueryClient();
   const [scanOpen, setScanOpen] = useState(false);
@@ -134,7 +141,7 @@ export default function Invoices() {
                     {invoice.date && (
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {format(new Date(invoice.date), "dd/MM/yyyy")}
+                        {safeFormat(invoice.date, "dd/MM/yyyy")}
                       </span>
                     )}
                     {invoice.project_id && (
@@ -212,7 +219,7 @@ export default function Invoices() {
                             {invoice.due_date && (
                               <div>
                                 <span className="text-gray-400 text-xs">Due Date</span>
-                                <p className="font-medium">{format(new Date(invoice.due_date), "dd/MM/yyyy")}</p>
+                                <p className="font-medium">{safeFormat(invoice.due_date, "dd/MM/yyyy")}</p>
                               </div>
                             )}
                             {invoice.payment_source && (
