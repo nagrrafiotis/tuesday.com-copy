@@ -14,6 +14,7 @@ export default function ScanInvoiceDialog({ open, onClose, projects, onCreated }
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [fileError, setFileError] = useState(null);
   const fileRef = useRef();
 
   const { data: paymentSources = [] } = useQuery({
@@ -29,8 +30,14 @@ export default function ScanInvoiceDialog({ open, onClose, projects, onCreated }
   const handleFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setFileError(null);
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (isPdf && file.size > 9.5 * 1024 * 1024) {
+      setFileError("PDF file is too large (max 10MB). Please compress it or use a smaller file.");
+      return;
+    }
     setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setImagePreview(isPdf ? null : URL.createObjectURL(file));
     setResult(null);
   };
 
@@ -123,15 +130,24 @@ Be precise with numbers. Use null for fields not found.`,
           >
             {imagePreview ? (
               <img src={imagePreview} alt="Invoice" className="max-h-48 mx-auto rounded-lg object-contain" />
+            ) : imageFile ? (
+              <div className="flex flex-col items-center gap-2 text-gray-500">
+                <ScanLine className="w-10 h-10" />
+                <p className="text-sm font-medium">{imageFile.name}</p>
+                <p className="text-xs text-gray-400">{(imageFile.size / 1024 / 1024).toFixed(2)} MB</p>
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-2 text-gray-400">
                 <ImageIcon className="w-10 h-10" />
                 <p className="text-sm">Click to upload invoice image</p>
-                <p className="text-xs">JPG, PNG, PDF</p>
+                <p className="text-xs">JPG, PNG, PDF (max 10MB)</p>
               </div>
             )}
           </div>
           <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFile} />
+          {fileError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{fileError}</p>
+          )}
 
           {imageFile && !result && (
             <Button onClick={handleScan} disabled={scanning} className="w-full bg-[#1e3a5f] hover:bg-[#152a45] gap-2">
