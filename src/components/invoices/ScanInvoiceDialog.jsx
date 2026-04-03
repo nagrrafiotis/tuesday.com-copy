@@ -44,10 +44,12 @@ export default function ScanInvoiceDialog({ open, onClose, projects, onCreated }
   const handleScan = async () => {
     if (!imageFile) return;
     setScanning(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
+    setFileError(null);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
 
-    const extracted = await base44.integrations.Core.InvokeLLM({
-      prompt: `Analyze this invoice image and extract all information. Return a JSON with:
+      const extracted = await base44.integrations.Core.InvokeLLM({
+        prompt: `Analyze this invoice image and extract all information. Return a JSON with:
 - invoice_number (string or null)
 - vendor_client (string - the company/person name on the invoice)
 - date (ISO date string YYYY-MM-DD or null)
@@ -62,40 +64,44 @@ export default function ScanInvoiceDialog({ open, onClose, projects, onCreated }
 - description (brief one-line summary)
 
 Be precise with numbers. Use null for fields not found.`,
-      file_urls: [file_url],
-      response_json_schema: {
-        type: "object",
-        properties: {
-          invoice_number: { type: "string" },
-          vendor_client: { type: "string" },
-          date: { type: "string" },
-          due_date: { type: "string" },
-          items: {
-            type: "array",
+        file_urls: [file_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            invoice_number: { type: "string" },
+            vendor_client: { type: "string" },
+            date: { type: "string" },
+            due_date: { type: "string" },
             items: {
-              type: "object",
-              properties: {
-                description: { type: "string" },
-                quantity: { type: "number" },
-                unit: { type: "string" },
-                unit_price: { type: "number" },
-                total: { type: "number" }
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  description: { type: "string" },
+                  quantity: { type: "number" },
+                  unit: { type: "string" },
+                  unit_price: { type: "number" },
+                  total: { type: "number" }
+                }
               }
-            }
-          },
-          subtotal: { type: "number" },
-          tax_amount: { type: "number" },
-          total_amount: { type: "number" },
-          notes: { type: "string" },
-          type: { type: "string" },
-          category: { type: "string" },
-          description: { type: "string" }
+            },
+            subtotal: { type: "number" },
+            tax_amount: { type: "number" },
+            total_amount: { type: "number" },
+            notes: { type: "string" },
+            type: { type: "string" },
+            category: { type: "string" },
+            description: { type: "string" }
+          }
         }
-      }
-    });
+      });
 
-    setResult({ ...extracted, image_url: file_url, status: "pending" });
-    setScanning(false);
+      setResult({ ...extracted, image_url: file_url, status: "pending" });
+    } catch (err) {
+      setFileError("Failed to analyze invoice. The file may be too large or unsupported. Try a smaller or compressed file.");
+    } finally {
+      setScanning(false);
+    }
   };
 
   const handleSave = async () => {
