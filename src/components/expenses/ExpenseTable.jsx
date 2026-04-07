@@ -68,6 +68,7 @@ function InlineNumber({ value, onSave }) {
 
 export default function ExpenseTable({ expenses, projects, contacts = [], onEdit, onDelete, onUpdate, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense, onViewContact }) {
   const [editingCell, setEditingCell] = useState(null);
+  const isBulkSelected = (id) => selectedExpenses.length > 1 && selectedExpenses.includes(id);
 
   const { data: subcategories = [] } = useQuery({ queryKey: ["subcategories"], queryFn: () => base44.entities.Subcategory.list() });
   const { data: phases = [] } = useQuery({ queryKey: ["phases"], queryFn: () => base44.entities.ProjectPhase.list("order") });
@@ -89,7 +90,11 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
 
   const handleUpdate = (id, field, value) => {
     setEditingCell(null);
-    onUpdate?.(id, field, value);
+    if (isBulkSelected(id)) {
+      selectedExpenses.forEach(sid => onUpdate?.(sid, field, value));
+    } else {
+      onUpdate?.(id, field, value);
+    }
   };
 
   const isEditing = (id, field) => editingCell?.id === id && editingCell?.field === field;
@@ -111,23 +116,29 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-xl shadow-sm border border-gray-100 w-full">
+      {selectedExpenses.length > 1 && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f]/5 border-b border-[#1e3a5f]/10 text-sm text-[#1e3a5f] font-medium rounded-t-xl">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1e3a5f] text-white text-xs">{selectedExpenses.length}</span>
+          rows selected — click any cell on a selected row to apply the change to all selected rows
+        </div>
+      )}
       <div className="overflow-auto max-h-[calc(100vh-300px)] w-full relative">
-        <Table>
+        <Table className="w-auto min-w-full">
           <TableHeader className="sticky top-0 z-20 bg-gray-50 shadow-sm">
             <TableRow className="bg-gray-50">
-              <TableHead className="w-12 bg-gray-50">
+              <TableHead className="w-10 bg-gray-50">
                 <Checkbox checked={selectedExpenses.length === expenses.length && expenses.length > 0} onCheckedChange={onSelectAll} />
               </TableHead>
-              <TableHead className="bg-gray-50">Date</TableHead>
-              <TableHead className="bg-gray-50">Phase</TableHead>
-              <TableHead className="bg-gray-50">Category</TableHead>
-              <TableHead className="bg-gray-50">Subcategory</TableHead>
-              {showProject && <TableHead className="bg-gray-50">Project</TableHead>}
-              <TableHead className="bg-gray-50">Payee</TableHead>
-              <TableHead className="bg-gray-50">Description</TableHead>
-              <TableHead className="bg-gray-50">Payment Source</TableHead>
-              <TableHead className="text-right bg-gray-50">Amount</TableHead>
-              <TableHead className="w-12 bg-gray-50"></TableHead>
+              <TableHead className="bg-gray-50 whitespace-nowrap">Date</TableHead>
+              <TableHead className="bg-gray-50 whitespace-nowrap">Phase</TableHead>
+              <TableHead className="bg-gray-50 whitespace-nowrap">Category</TableHead>
+              <TableHead className="bg-gray-50 whitespace-nowrap">Subcategory</TableHead>
+              {showProject && <TableHead className="bg-gray-50 whitespace-nowrap">Project</TableHead>}
+              <TableHead className="bg-gray-50 whitespace-nowrap">Payee</TableHead>
+              <TableHead className="bg-gray-50 whitespace-nowrap">Description</TableHead>
+              <TableHead className="bg-gray-50 whitespace-nowrap">Payment Source</TableHead>
+              <TableHead className="text-right bg-gray-50 whitespace-nowrap">Amount</TableHead>
+              <TableHead className="w-10 bg-gray-50"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -137,7 +148,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               const label = expense.category ? expense.category.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "General";
 
               return (
-                <motion.tr key={expense.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }} className="hover:bg-gray-50/50 transition-colors group">
+                <motion.tr key={expense.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }} className={`hover:bg-gray-50/50 transition-colors group ${isBulkSelected(expense.id) ? 'bg-blue-50/40' : ''}`}>
                   <TableCell>
                     <Checkbox checked={selectedExpenses.includes(expense.id)} onCheckedChange={() => onSelectExpense(expense.id)} />
                   </TableCell>
@@ -177,7 +188,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                         onValueChange={(v) => handleUpdate(expense.id, 'category', v)}
                         items={expenseCategories.map(cat => ({ value: cat, label: cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') }))}
                         placeholder="Category"
-                        triggerClassName="h-7 text-xs w-[150px]"
+                        triggerClassName="h-7 text-xs min-w-[120px]"
                       />
                     ) : (
                       <Badge className={`${color} border-0 gap-1.5 hover:opacity-80`}><Icon className="w-3 h-3" />{label}</Badge>
@@ -191,7 +202,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                         onValueChange={(v) => handleUpdate(expense.id, 'subcategory', v)}
                         items={[...subcategories].sort((a, b) => a.name.localeCompare(b.name)).map(s => ({ value: s.name, label: s.name }))}
                         placeholder="Subcategory"
-                        triggerClassName="h-7 text-xs w-[150px]"
+                        triggerClassName="h-7 text-xs min-w-[120px]"
                       />
                     ) : (
                       <span className="hover:text-[#1e3a5f] hover:underline decoration-dotted">{expense.subcategory || "—"}</span>
@@ -202,11 +213,11 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                     <TableCell className="text-gray-600 cursor-pointer" onClick={(e) => startEdit(expense.id, 'project_id', e)}>
                       {isEditing(expense.id, 'project_id') ? (
                         <SearchableSelect
-                          value={expense.project_id || ""}
-                          onValueChange={(v) => handleUpdate(expense.id, 'project_id', v)}
-                          items={(projects || []).map(p => ({ value: p.id, label: p.name }))}
-                          placeholder="Project"
-                          triggerClassName="h-7 text-xs w-[150px]"
+                        value={expense.project_id || ""}
+                        onValueChange={(v) => handleUpdate(expense.id, 'project_id', v)}
+                        items={(projects || []).map(p => ({ value: p.id, label: p.name }))}
+                        placeholder="Project"
+                        triggerClassName="h-7 text-xs min-w-[120px]"
                         />
                       ) : (
                         <span className="hover:text-[#1e3a5f] hover:underline decoration-dotted">
@@ -223,7 +234,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                         onValueChange={(v) => handleUpdate(expense.id, 'payee', v)}
                         items={contacts.map(c => ({ value: c.name, label: c.name }))}
                         placeholder="Payee"
-                        triggerClassName="h-7 text-xs w-[150px]"
+                        triggerClassName="h-7 text-xs min-w-[120px]"
                       />
                     ) : (
                       (() => {
@@ -261,7 +272,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
                         onValueChange={(v) => handleUpdate(expense.id, 'payment_source', v)}
                         items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
                         placeholder="Payment Source"
-                        triggerClassName="h-7 text-xs w-[150px]"
+                        triggerClassName="h-7 text-xs min-w-[120px]"
                       />
                     ) : (
                       <span className="hover:text-[#1e3a5f] hover:underline decoration-dotted">{expense.payment_source || "—"}</span>
