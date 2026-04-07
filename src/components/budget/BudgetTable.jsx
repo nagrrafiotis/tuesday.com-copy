@@ -63,11 +63,12 @@ function InlineSelect({ value, onSave, items, placeholder = "Select", renderDisp
 
   return (
     <div className="relative">
+      <div className="fixed inset-0 z-40" onMouseDown={() => setEditing(false)} />
       <div className="absolute z-50 top-0 left-0 bg-white border border-[#1e3a5f] rounded shadow-lg min-w-[160px] max-h-[220px] overflow-y-auto">
         {items.map(item => (
           <div
             key={item.value}
-            onMouseDown={() => { onSave(item.value); setEditing(false); }}
+            onMouseDown={(e) => { e.stopPropagation(); onSave(item.value); setEditing(false); }}
             className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-[#1e3a5f] hover:text-white ${
               item.value === value ? "bg-blue-50 font-medium" : ""
             }`}
@@ -76,7 +77,6 @@ function InlineSelect({ value, onSave, items, placeholder = "Select", renderDisp
           </div>
         ))}
       </div>
-      <div className="fixed inset-0 z-40" onMouseDown={() => setEditing(false)} />
     </div>
   );
 }
