@@ -750,6 +750,13 @@ export default function ProjectDetails() {
                   setShowBudgetForm(true);
                 }}
                 onDelete={handleDeleteBudgetItem}
+                onUpdate={(item, changes) => {
+                  const updatedItems = (project.budget_items || []).map(i =>
+                    i.id === item.id ? { ...i, ...changes } : i
+                  );
+                  const totalBudget = updatedItems.reduce((sum, i) => sum + (i.total_cost || 0), 0);
+                  updateProjectMutation.mutate({ budget_items: updatedItems, budget: totalBudget });
+                }}
               />
             </TabsContent>
           </Tabs>

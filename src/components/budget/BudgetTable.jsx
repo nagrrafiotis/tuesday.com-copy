@@ -37,7 +37,25 @@ const categoryColors = {
   general_expenses: "bg-gray-100 text-gray-700",
 };
 
-export default function BudgetTable({ budgetItems, onEdit, onDelete, selectedItems = [], onSelectAll, onSelectItem }) {
+function InlineText({ value, onSave, className = "" }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value || "");
+  if (!editing) return (
+    <span onClick={() => { setVal(value || ""); setEditing(true); }} className={`cursor-pointer hover:bg-blue-50 rounded px-1 -mx-1 min-w-[40px] inline-block ${className}`}>{value || <span className="text-gray-300">—</span>}</span>
+  );
+  return <input autoFocus className="w-full border border-[#1e3a5f] rounded px-1 py-0.5 text-sm outline-none" value={val} onChange={e => setVal(e.target.value)} onBlur={() => { onSave(val); setEditing(false); }} onKeyDown={e => { if (e.key === "Enter") { onSave(val); setEditing(false); } if (e.key === "Escape") setEditing(false); }} />;
+}
+
+function InlineNumber({ value, onSave, className = "" }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value ?? "");
+  if (!editing) return (
+    <span onClick={() => { setVal(value ?? ""); setEditing(true); }} className={`cursor-pointer hover:bg-blue-50 rounded px-1 -mx-1 min-w-[40px] inline-block ${className}`}>{value != null ? value : <span className="text-gray-300">—</span>}</span>
+  );
+  return <input autoFocus type="number" className="w-full border border-[#1e3a5f] rounded px-1 py-0.5 text-sm outline-none" value={val} onChange={e => setVal(e.target.value)} onBlur={() => { onSave(parseFloat(val)); setEditing(false); }} onKeyDown={e => { if (e.key === "Enter") { onSave(parseFloat(val)); setEditing(false); } if (e.key === "Escape") setEditing(false); }} />;
+}
+
+export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, selectedItems = [], onSelectAll, onSelectItem }) {
   const [columnWidths, setColumnWidths] = useState({
     phase: 140,
     category: 150,
@@ -247,28 +265,28 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, selectedIte
                   </Badge>
                 </TableCell>
                 <TableCell className="text-gray-600">
-                  {item.subcategory || "—"}
+                 <InlineText value={item.subcategory} onSave={v => onUpdate?.(item, { subcategory: v })} />
                 </TableCell>
                 <TableCell className="font-medium text-gray-900">
-                  {item.payee || "—"}
+                 <InlineText value={item.payee} onSave={v => onUpdate?.(item, { payee: v })} />
                 </TableCell>
                 <TableCell className="text-gray-500">
-                  {item.description || "—"}
+                 <InlineText value={item.description} onSave={v => onUpdate?.(item, { description: v })} />
                 </TableCell>
                 <TableCell className="text-gray-600">
-                  {item.payment_source || "—"}
+                 <InlineText value={item.payment_source} onSave={v => onUpdate?.(item, { payment_source: v })} />
                 </TableCell>
                 <TableCell className="text-right text-gray-600">
-                  {item.quantity || 0}
+                 <InlineNumber value={item.quantity} onSave={v => { const uc = item.unit_cost || 0; onUpdate?.(item, { quantity: v, total_cost: v * uc }); }} />
                 </TableCell>
                 <TableCell className="text-gray-600">
-                  {item.unit || "—"}
+                 <InlineText value={item.unit} onSave={v => onUpdate?.(item, { unit: v })} />
                 </TableCell>
                 <TableCell className="text-right text-gray-600">
-                  {formatCurrency(item.unit_cost || 0)}
+                 <InlineNumber value={item.unit_cost} onSave={v => { const qty = item.quantity || 0; onUpdate?.(item, { unit_cost: v, total_cost: qty * v }); }} className="text-right" />
                 </TableCell>
                 <TableCell className="text-right font-semibold text-[#c9a962]">
-                  {formatCurrency(item.total_cost || 0)}
+                 {formatCurrency(item.total_cost || 0)}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
