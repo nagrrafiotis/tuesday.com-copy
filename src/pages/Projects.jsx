@@ -235,6 +235,7 @@ export default function Projects() {
                   index={index}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onUpdate={(id, data) => updateMutation.mutate({ id, data })}
                 />
               ))}
             </AnimatePresence>

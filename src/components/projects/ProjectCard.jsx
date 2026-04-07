@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -13,7 +13,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export default function ProjectCard({ project, onEdit, onDelete, index = 0 }) {
+export default function ProjectCard({ project, onEdit, onDelete, onUpdate, index = 0 }) {
+  const [editingBudget, setEditingBudget] = useState(false);
+  const [budgetValue, setBudgetValue] = useState("");
+
+  const handleBudgetClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setBudgetValue(project.budget || "");
+    setEditingBudget(true);
+  };
+
+  const handleBudgetSave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const num = parseFloat(budgetValue);
+    if (!isNaN(num) && num !== project.budget) {
+      onUpdate?.(project.id, { budget: num });
+    }
+    setEditingBudget(false);
+  };
+
+  const handleBudgetKeyDown = (e) => {
+    if (e.key === "Enter") handleBudgetSave(e);
+    if (e.key === "Escape") { e.stopPropagation(); setEditingBudget(false); }
+  };
   const statusColors = {
     planning: "bg-blue-100 text-blue-700",
     in_progress: "bg-amber-100 text-amber-700",
@@ -137,11 +161,38 @@ export default function ProjectCard({ project, onEdit, onDelete, index = 0 }) {
                 <span>{format(new Date(project.target_completion), "MMM yyyy")}</span>
               </div>
             )}
-            {project.budget && (
-              <div className="flex items-center gap-1">
+            {editingBudget ? (
+              <div className="flex items-center gap-1" onClick={e => e.preventDefault()}>
                 <DollarSign className="w-4 h-4" />
-                <span>€{(project.budget / 1000000).toFixed(1)}M</span>
+                <input
+                  autoFocus
+                  type="number"
+                  value={budgetValue}
+                  onChange={e => setBudgetValue(e.target.value)}
+                  onBlur={handleBudgetSave}
+                  onKeyDown={handleBudgetKeyDown}
+                  onClick={e => e.stopPropagation()}
+                  className="w-28 text-sm border border-[#1e3a5f] rounded px-1 py-0.5 outline-none"
+                />
               </div>
+            ) : project.budget ? (
+              <button
+                onClick={handleBudgetClick}
+                className="flex items-center gap-1 hover:text-[#1e3a5f] transition-colors group/budget"
+                title="Click to edit budget"
+              >
+                <DollarSign className="w-4 h-4" />
+                <span className="group-hover/budget:underline">€{(project.budget / 1000000).toFixed(1)}M</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleBudgetClick}
+                className="flex items-center gap-1 text-gray-400 hover:text-[#1e3a5f] transition-colors"
+                title="Click to set budget"
+              >
+                <DollarSign className="w-4 h-4" />
+                <span className="text-xs">Set budget</span>
+              </button>
             )}
           </div>
 
