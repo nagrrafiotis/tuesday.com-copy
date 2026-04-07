@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { base44 } from "@/api/base44Client";
 import {
   Table,
@@ -46,6 +47,26 @@ function InlineText({ value, onSave, className = "" }) {
   return <input autoFocus className="w-full border border-[#1e3a5f] rounded px-1 py-0.5 text-sm outline-none" value={val} onChange={e => setVal(e.target.value)} onBlur={() => { onSave(val); setEditing(false); }} onKeyDown={e => { if (e.key === "Enter") { onSave(val); setEditing(false); } if (e.key === "Escape") setEditing(false); }} />;
 }
 
+function InlineSelect({ value, onSave, items, placeholder = "Select", renderDisplay }) {
+  const [editing, setEditing] = useState(false);
+  if (!editing) return (
+    <span onClick={() => setEditing(true)} className="cursor-pointer hover:bg-blue-50 rounded px-1 -mx-1 min-w-[40px] inline-block">
+      {renderDisplay ? renderDisplay(value) : (value || <span className="text-gray-300">—</span>)}
+    </span>
+  );
+  return (
+    <SearchableSelect
+      value={value || ""}
+      onValueChange={(v) => { onSave(v); setEditing(false); }}
+      items={items}
+      placeholder={placeholder}
+      triggerClassName="h-7 text-xs min-w-[120px]"
+      open
+      onOpenChange={(open) => { if (!open) setEditing(false); }}
+    />
+  );
+}
+
 function InlineNumber({ value, onSave, className = "" }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value ?? "");
@@ -79,6 +100,18 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
     queryKey: ["phases"],
     queryFn: () => base44.entities.ProjectPhase.list("order"),
   });
+
+  const { data: paymentSources = [] } = useQuery({
+    queryKey: ["paymentSources"],
+    queryFn: () => base44.entities.PaymentSource.list("name"),
+  });
+
+  const { data: dropdownLists = [] } = useQuery({
+    queryKey: ["dropdown-lists"],
+    queryFn: () => base44.entities.DropdownList.list(),
+  });
+
+  const expenseCategories = dropdownLists.find(l => l.list_name === "expense_categories")?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"];
 
   const getProjectPhase = (subcategoryName) => {
     if (!subcategoryName) return null;
@@ -259,13 +292,26 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
                   })()}
                 </TableCell>
                 <TableCell>
-                  <Badge className={`${color} border-0 gap-1.5`}>
-                    <Icon className="w-3 h-3" />
-                    {label}
-                  </Badge>
+                  <InlineSelect
+                    value={item.category}
+                    onSave={v => onUpdate?.(item, { category: v })}
+                    items={expenseCategories.map(cat => ({ value: cat, label: cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') }))}
+                    placeholder="Category"
+                    renderDisplay={(v) => {
+                      const Ic = categoryIcons[v] || Receipt;
+                      const cl = categoryColors[v] || "bg-gray-100 text-gray-700";
+                      const lbl = v ? v.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "General";
+                      return <Badge className={`${cl} border-0 gap-1.5`}><Ic className="w-3 h-3" />{lbl}</Badge>;
+                    }}
+                  />
                 </TableCell>
                 <TableCell className="text-gray-600">
-                 <InlineText value={item.subcategory} onSave={v => onUpdate?.(item, { subcategory: v })} />
+                  <InlineSelect
+                    value={item.subcategory}
+                    onSave={v => onUpdate?.(item, { subcategory: v })}
+                    items={[...subcategories].sort((a, b) => a.name.localeCompare(b.name)).map(s => ({ value: s.name, label: s.name }))}
+                    placeholder="Subcategory"
+                  />
                 </TableCell>
                 <TableCell className="font-medium text-gray-900">
                  <InlineText value={item.payee} onSave={v => onUpdate?.(item, { payee: v })} />
@@ -274,7 +320,12 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
                  <InlineText value={item.description} onSave={v => onUpdate?.(item, { description: v })} />
                 </TableCell>
                 <TableCell className="text-gray-600">
-                 <InlineText value={item.payment_source} onSave={v => onUpdate?.(item, { payment_source: v })} />
+                  <InlineSelect
+                    value={item.payment_source}
+                    onSave={v => onUpdate?.(item, { payment_source: v })}
+                    items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
+                    placeholder="Payment Source"
+                  />
                 </TableCell>
                 <TableCell className="text-right text-gray-600">
                  <InlineNumber value={item.quantity} onSave={v => { const uc = item.unit_cost || 0; onUpdate?.(item, { quantity: v, total_cost: v * uc }); }} />
