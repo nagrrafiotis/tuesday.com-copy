@@ -66,8 +66,7 @@ function InlineSelect({ value, onSave, items, placeholder = "Select", renderDisp
       ref={ref}
       defaultValue={value || ""}
       onChange={e => { onSave(e.target.value); setEditing(false); }}
-      onBlur={() => setEditing(false)}
-      onKeyDown={e => { if (e.key === "Escape") setEditing(false); }}
+      onKeyDown={e => { if (e.key === "Escape") setEditing(false); if (e.key === "Enter") { onSave(ref.current.value); setEditing(false); } }}
       className="border border-[#1e3a5f] rounded bg-white text-sm w-full outline-none px-1 py-0.5"
     >
       <option value="">{placeholder}</option>
