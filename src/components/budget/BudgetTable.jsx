@@ -49,21 +49,32 @@ function InlineText({ value, onSave, className = "" }) {
 
 function InlineSelect({ value, onSave, items, placeholder = "Select", renderDisplay }) {
   const [editing, setEditing] = useState(false);
+  const ref = useRef();
+
+  useEffect(() => {
+    if (editing && ref.current) ref.current.focus();
+  }, [editing]);
+
   if (!editing) return (
     <span onClick={() => setEditing(true)} className="cursor-pointer hover:bg-blue-50 rounded px-1 -mx-1 min-w-[40px] inline-block">
       {renderDisplay ? renderDisplay(value) : (value || <span className="text-gray-300">—</span>)}
     </span>
   );
+
   return (
-    <SearchableSelect
-      value={value || ""}
-      onValueChange={(v) => { onSave(v); setEditing(false); }}
-      items={items}
-      placeholder={placeholder}
-      triggerClassName="h-7 text-xs min-w-[120px]"
-      open
-      onOpenChange={(open) => { if (!open) setEditing(false); }}
-    />
+    <select
+      ref={ref}
+      defaultValue={value || ""}
+      onChange={e => { onSave(e.target.value); setEditing(false); }}
+      onBlur={() => setEditing(false)}
+      onKeyDown={e => { if (e.key === "Escape") setEditing(false); }}
+      className="border border-[#1e3a5f] rounded bg-white text-sm w-full outline-none px-1 py-0.5"
+    >
+      <option value="">{placeholder}</option>
+      {items.map(item => (
+        <option key={item.value} value={item.value}>{item.label}</option>
+      ))}
+    </select>
   );
 }
 
