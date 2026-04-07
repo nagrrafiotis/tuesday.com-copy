@@ -2,120 +2,125 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet, DollarSign, Download } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  TrendingUp, TrendingDown, Wallet, DollarSign, Download,
+  Building2, BarChart3, ArrowUpRight, ArrowDownRight, Target
+} from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, PieChart, Pie, Cell
+} from "recharts";
+
+const COLORS = ["#1e3a5f", "#c9a962", "#10b981", "#ef4444", "#8b5cf6", "#f59e0b"];
 
 export default function FinancialOverview() {
-  const [projectFilter, setProjectFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("overall");
 
   const { data: expenses = [], isLoading: expensesLoading } = useQuery({
     queryKey: ["expenses"],
     queryFn: () => base44.entities.Expense.list("-date"),
     staleTime: 60000,
-    refetchOnWindowFocus: false,
   });
-
   const { data: incomes = [], isLoading: incomesLoading } = useQuery({
     queryKey: ["incomes"],
     queryFn: () => base44.entities.Income.list("-date"),
     staleTime: 60000,
-    refetchOnWindowFocus: false,
   });
-
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list("-created_date"),
     staleTime: 60000,
-    refetchOnWindowFocus: false,
   });
-
   const { data: paymentSources = [] } = useQuery({
     queryKey: ["paymentSources"],
     queryFn: () => base44.entities.PaymentSource.list("name"),
     staleTime: 60000,
-    refetchOnWindowFocus: false,
   });
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("de-DE", {
-      style: "currency",
-      currency: "EUR",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const fmt = (amount) =>
+    new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(amount || 0);
 
-  const filteredExpenses = projectFilter === "all" 
-    ? expenses 
-    : expenses.filter(e => e.project_id === projectFilter);
-
-  const filteredIncomes = projectFilter === "all"
-    ? incomes
-    : incomes.filter(i => i.project_id === projectFilter);
-
-  const totalIncome = filteredIncomes.reduce((sum, i) => sum + (i.amount || 0), 0);
-  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const totalIncome = incomes.reduce((sum, i) => sum + (i.amount || 0), 0);
+  const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   const netProfit = totalIncome - totalExpenses;
+  const totalBudget = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
 
-  const byPaymentSource = paymentSources.map((ps) => {
-    const income = filteredIncomes
-      .filter(i => i.payment_source === ps.name)
-      .reduce((sum, i) => sum + (i.amount || 0), 0);
-    
-    const expense = filteredExpenses
-      .filter(e => e.payment_source === ps.name)
-      .reduce((sum, e) => sum + (e.amount || 0), 0);
-
+  // Per project stats
+  const projectStats = projects.map((p) => {
+    const pExpenses = expenses.filter(e => e.project_id === p.id).reduce((s, e) => s + (e.amount || 0), 0);
+    const pIncome = incomes.filter(i => i.project_id === p.id).reduce((s, i) => s + (i.amount || 0), 0);
+    const budget = p.budget || 0;
+    const budgetUsed = budget > 0 ? (pExpenses / budget) * 100 : 0;
     return {
-      name: ps.name,
-      income,
-      expense,
-      balance: income - expense,
+      id: p.id,
+      name: p.name,
+      status: p.status,
+      budget,
+      expenses: pExpenses,
+      income: pIncome,
+      net: pIncome - pExpenses,
+      budgetUsed,
+      budgetRemaining: budget - pExpenses,
     };
   });
 
-  const exportToExcel = () => {
-    const csvData = [
-      ["Payment Source", "Income (€)", "Expenses (€)", "Balance (€)"],
-      ...byPaymentSource.map((ps) => [
-        ps.name,
-        ps.income,
-        ps.expense,
-        ps.balance,
-      ]),
-      ["", "", "", ""],
-      ["Summary", "", "", ""],
-      ["Total Income", totalIncome, "", ""],
-      ["Total Expenses", totalExpenses, "", ""],
-      ["Net Profit/Loss", netProfit, "", ""],
-    ];
+  // By payment source
+  const byPaymentSource = paymentSources.map((ps) => ({
+    name: ps.name,
+    income: incomes.filter(i => i.payment_source === ps.name).reduce((s, i) => s + (i.amount || 0), 0),
+    expense: expenses.filter(e => e.payment_source === ps.name).reduce((s, e) => s + (e.amount || 0), 0),
+  })).map(ps => ({ ...ps, balance: ps.income - ps.expense }));
 
-    const csvContent = csvData.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `financial_overview_${new Date().toISOString().split("T")[0]}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Expense by category (overall)
+  const expByCat = {};
+  expenses.forEach(e => { expByCat[e.category || "other"] = (expByCat[e.category || "other"] || 0) + (e.amount || 0); });
+  const expCatData = Object.entries(expByCat).map(([name, value]) => ({ name, value }));
+
+  // Income by category
+  const incByCat = {};
+  incomes.forEach(i => { incByCat[i.category || "other"] = (incByCat[i.category || "other"] || 0) + (i.amount || 0); });
+  const incCatData = Object.entries(incByCat).map(([name, value]) => ({ name, value }));
+
+  // Project chart data
+  const projectChartData = projectStats.map(p => ({
+    name: p.name.length > 15 ? p.name.slice(0, 15) + "…" : p.name,
+    Budget: p.budget,
+    Expenses: p.expenses,
+    Income: p.income,
+  }));
+
+  const exportCSV = () => {
+    const rows = [
+      ["Project", "Budget (€)", "Expenses (€)", "Income (€)", "Net (€)", "Budget Used %"],
+      ...projectStats.map(p => [p.name, p.budget, p.expenses, p.income, p.net, p.budgetUsed.toFixed(1)]),
+      [],
+      ["OVERALL", totalBudget, totalExpenses, totalIncome, netProfit, ""],
+    ];
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `financial_overview_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+  };
+
+  const statusColors = {
+    planning: "bg-blue-100 text-blue-700",
+    in_progress: "bg-amber-100 text-amber-700",
+    on_hold: "bg-gray-100 text-gray-700",
+    completed: "bg-emerald-100 text-emerald-700",
   };
 
   if (expensesLoading || incomesLoading) {
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-[#1e3a5f]/20"></div>
-          <p className="text-gray-500">Loading financial data...</p>
-        </div>
+        <div className="w-8 h-8 border-4 border-[#1e3a5f]/20 border-t-[#1e3a5f] rounded-full animate-spin" />
       </div>
     );
   }
@@ -124,119 +129,167 @@ export default function FinancialOverview() {
     <div className="min-h-screen bg-[#fafafa]">
       <div className="max-w-[1600px] mx-auto px-6 py-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8"
-        >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-[#1e3a5f]">Financial Overview</h1>
-            <p className="text-gray-500 mt-1">Track income, expenses, and balances</p>
+            <p className="text-gray-500 mt-1">Overall & per-project income, expenses and budget analysis</p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={exportToExcel}
-              variant="outline"
-              className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-            <Select value={projectFilter} onValueChange={setProjectFilter}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Filter by project" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Projects</SelectItem>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </motion.div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Card className="bg-emerald-50 border-emerald-200">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-emerald-700">
-                  Total Income
-                </CardTitle>
-                <TrendingUp className="h-4 w-4 text-emerald-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-emerald-900">
-                  {formatCurrency(totalIncome)}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card className="bg-red-50 border-red-200">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-red-700">
-                  Total Expenses
-                </CardTitle>
-                <TrendingDown className="h-4 w-4 text-red-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-900">
-                  {formatCurrency(totalExpenses)}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card className={`${netProfit >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-orange-50 border-orange-200'}`}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className={`text-sm font-medium ${netProfit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
-                  Net Profit/Loss
-                </CardTitle>
-                <DollarSign className={`h-4 w-4 ${netProfit >= 0 ? 'text-blue-600' : 'text-orange-600'}`} />
-              </CardHeader>
-              <CardContent>
-                <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
-                  {formatCurrency(netProfit)}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+          <Button onClick={exportCSV} variant="outline" className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
+            <Download className="w-4 h-4 mr-2" />Export CSV
+          </Button>
         </div>
 
-        {/* By Payment Source */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
-        >
-          <h2 className="text-xl font-semibold text-[#1e3a5f] mb-6">Balance by Payment Source</h2>
-          <div className="space-y-4">
-            {byPaymentSource.map((ps, index) => (
-              <motion.div
-                key={ps.name}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + index * 0.05 }}
-                className="border border-gray-100 rounded-xl p-4 hover:border-[#c9a962]/30 transition-colors"
+        {/* Top KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[
+            { label: "Total Income", value: fmt(totalIncome), icon: TrendingUp, color: "bg-emerald-50 border-emerald-200 text-emerald-700", iconColor: "text-emerald-600" },
+            { label: "Total Expenses", value: fmt(totalExpenses), icon: TrendingDown, color: "bg-red-50 border-red-200 text-red-700", iconColor: "text-red-600" },
+            { label: "Net Profit / Loss", value: fmt(netProfit), icon: DollarSign, color: netProfit >= 0 ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-orange-50 border-orange-200 text-orange-700", iconColor: netProfit >= 0 ? "text-blue-600" : "text-orange-600" },
+            { label: "Total Budget", value: fmt(totalBudget), icon: Target, color: "bg-purple-50 border-purple-200 text-purple-700", iconColor: "text-purple-600" },
+          ].map((k, i) => (
+            <motion.div key={k.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
+              <Card className={`border ${k.color}`}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-5">
+                  <CardTitle className="text-xs font-medium">{k.label}</CardTitle>
+                  <k.icon className={`h-4 w-4 ${k.iconColor}`} />
+                </CardHeader>
+                <CardContent className="px-5 pb-4">
+                  <div className="text-xl font-bold">{k.value}</div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="overall">Overall</TabsTrigger>
+            <TabsTrigger value="perproject">Per Project</TabsTrigger>
+            <TabsTrigger value="sources">Payment Sources</TabsTrigger>
+          </TabsList>
+
+          {/* OVERALL TAB */}
+          <TabsContent value="overall" className="space-y-6">
+            {/* Project comparison chart */}
+            {projectChartData.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-[#1e3a5f] mb-4">Budget vs Expenses vs Income by Project</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={projectChartData} margin={{ top: 5, right: 20, left: 20, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} tick={{ fontSize: 11 }} />
+                    <YAxis tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
+                    <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 8 }} />
+                    <Legend />
+                    <Bar dataKey="Budget" fill="#c9a962" radius={[4,4,0,0]} />
+                    <Bar dataKey="Expenses" fill="#ef4444" radius={[4,4,0,0]} />
+                    <Bar dataKey="Income" fill="#10b981" radius={[4,4,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Expenses by category */}
+              {expCatData.length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h2 className="text-lg font-semibold text-[#1e3a5f] mb-4">Expenses by Category</h2>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={expCatData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>
+                        {expCatData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={v => fmt(v)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Income by category */}
+              {incCatData.length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h2 className="text-lg font-semibold text-[#1e3a5f] mb-4">Income by Category</h2>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={incCatData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>
+                        {incCatData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={v => fmt(v)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* PER PROJECT TAB */}
+          <TabsContent value="perproject" className="space-y-4">
+            {projectStats.length === 0 && (
+              <div className="text-center py-16 text-gray-400">No projects found</div>
+            )}
+            {projectStats.map((p, i) => (
+              <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6"
+              >
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#1e3a5f]/10">
+                      <Building2 className="w-5 h-5 text-[#1e3a5f]" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-lg">{p.name}</h3>
+                      <Badge className={`${statusColors[p.status] || "bg-gray-100 text-gray-700"} border-0 text-xs mt-0.5`}>
+                        {p.status?.replace("_", " ")}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className={`text-xl font-bold flex items-center gap-1 ${p.net >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    {p.net >= 0 ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+                    {fmt(p.net)}
+                    <span className="text-sm font-normal text-gray-400 ml-1">net</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div className="bg-purple-50 rounded-xl p-3">
+                    <p className="text-xs text-purple-600 font-medium">Budget</p>
+                    <p className="text-lg font-bold text-purple-900">{fmt(p.budget)}</p>
+                  </div>
+                  <div className="bg-red-50 rounded-xl p-3">
+                    <p className="text-xs text-red-600 font-medium">Expenses</p>
+                    <p className="text-lg font-bold text-red-900">{fmt(p.expenses)}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-xl p-3">
+                    <p className="text-xs text-emerald-600 font-medium">Income</p>
+                    <p className="text-lg font-bold text-emerald-900">{fmt(p.income)}</p>
+                  </div>
+                  <div className={`rounded-xl p-3 ${p.budgetRemaining >= 0 ? "bg-blue-50" : "bg-orange-50"}`}>
+                    <p className={`text-xs font-medium ${p.budgetRemaining >= 0 ? "text-blue-600" : "text-orange-600"}`}>Budget Remaining</p>
+                    <p className={`text-lg font-bold ${p.budgetRemaining >= 0 ? "text-blue-900" : "text-orange-900"}`}>{fmt(p.budgetRemaining)}</p>
+                  </div>
+                </div>
+
+                {p.budget > 0 && (
+                  <div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>Budget used</span>
+                      <span className={p.budgetUsed > 100 ? "text-red-600 font-semibold" : "text-gray-600"}>{p.budgetUsed.toFixed(1)}%</span>
+                    </div>
+                    <Progress value={Math.min(p.budgetUsed, 100)} className={`h-2 ${p.budgetUsed > 100 ? "[&>div]:bg-red-500" : "[&>div]:bg-[#1e3a5f]"}`} />
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </TabsContent>
+
+          {/* PAYMENT SOURCES TAB */}
+          <TabsContent value="sources" className="space-y-4">
+            {byPaymentSource.length === 0 && (
+              <div className="text-center py-16 text-gray-400">No payment sources configured</div>
+            )}
+            {byPaymentSource.map((ps, i) => (
+              <motion.div key={ps.name} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -245,24 +298,24 @@ export default function FinancialOverview() {
                     </div>
                     <h3 className="font-semibold text-gray-900">{ps.name}</h3>
                   </div>
-                  <div className={`text-lg font-bold ${ps.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {formatCurrency(ps.balance)}
+                  <div className={`text-xl font-bold ${ps.balance >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    {fmt(ps.balance)}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-500">Income</p>
-                    <p className="font-semibold text-emerald-600">{formatCurrency(ps.income)}</p>
+                  <div className="bg-emerald-50 rounded-lg p-3">
+                    <p className="text-emerald-600 text-xs font-medium">Income</p>
+                    <p className="font-bold text-emerald-900">{fmt(ps.income)}</p>
                   </div>
-                  <div>
-                    <p className="text-gray-500">Expenses</p>
-                    <p className="font-semibold text-red-600">{formatCurrency(ps.expense)}</p>
+                  <div className="bg-red-50 rounded-lg p-3">
+                    <p className="text-red-600 text-xs font-medium">Expenses</p>
+                    <p className="font-bold text-red-900">{fmt(ps.expense)}</p>
                   </div>
                 </div>
               </motion.div>
             ))}
-          </div>
-        </motion.div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
