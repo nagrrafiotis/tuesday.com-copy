@@ -62,18 +62,22 @@ function InlineSelect({ value, onSave, items, placeholder = "Select", renderDisp
   );
 
   return (
-    <select
-      ref={ref}
-      defaultValue={value || ""}
-      onChange={e => { onSave(e.target.value); setEditing(false); }}
-      onKeyDown={e => { if (e.key === "Escape") setEditing(false); if (e.key === "Enter") { onSave(ref.current.value); setEditing(false); } }}
-      className="border border-[#1e3a5f] rounded bg-white text-sm w-full outline-none px-1 py-0.5"
-    >
-      <option value="">{placeholder}</option>
-      {items.map(item => (
-        <option key={item.value} value={item.value}>{item.label}</option>
-      ))}
-    </select>
+    <div className="relative">
+      <div className="absolute z-50 top-0 left-0 bg-white border border-[#1e3a5f] rounded shadow-lg min-w-[160px] max-h-[220px] overflow-y-auto">
+        {items.map(item => (
+          <div
+            key={item.value}
+            onMouseDown={() => { onSave(item.value); setEditing(false); }}
+            className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-[#1e3a5f] hover:text-white ${
+              item.value === value ? "bg-blue-50 font-medium" : ""
+            }`}
+          >
+            {item.label}
+          </div>
+        ))}
+      </div>
+      <div className="fixed inset-0 z-40" onMouseDown={() => setEditing(false)} />
+    </div>
   );
 }
 
