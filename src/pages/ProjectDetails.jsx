@@ -95,6 +95,8 @@ export default function ProjectDetails() {
       return projects[0];
     },
     enabled: !!projectId,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 
 
@@ -150,15 +152,6 @@ export default function ProjectDetails() {
 
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
-    onSuccess: (updatedProject) => {
-      queryClient.setQueryData(["project", projectId], (old) => {
-        if (!updatedProject) return old;
-        const filtered = Object.fromEntries(
-          Object.entries(updatedProject).filter(([_, v]) => v != null)
-        );
-        return { ...old, ...filtered };
-      });
-    },
   });
 
   const createTaskMutation = useMutation({
@@ -260,53 +253,39 @@ export default function ProjectDetails() {
     );
   };
 
+  const updateBudgetItems = (updatedItems) => {
+    const totalBudget = updatedItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
+    const updatePayload = { budget_items: updatedItems, budget: totalBudget };
+    queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
+    updateProjectMutation.mutate(updatePayload);
+  };
+
   const handleBudgetItemSubmit = async (data) => {
-      const currentBudgetItems = project.budget_items || [];
-      let updatedBudgetItems;
-
-      if (editingBudgetItem) {
-        updatedBudgetItems = currentBudgetItems.map(item =>
-          item.id === editingBudgetItem.id ? { ...item, ...data } : item
-        );
-      } else {
-        updatedBudgetItems = [...currentBudgetItems, { ...data, id: Date.now().toString() }];
-      }
-
-      const totalBudget = updatedBudgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
-      const updatePayload = { budget_items: updatedBudgetItems, budget: totalBudget };
-
-      // Optimistic update first
-      queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
-
-      setShowBudgetForm(false);
-      setEditingBudgetItem(null);
-
-      // Persist to backend (invalidate will refresh after)
-      await updateProjectMutation.mutateAsync(updatePayload);
+    const currentBudgetItems = project.budget_items || [];
+    let updatedBudgetItems;
+    if (editingBudgetItem) {
+      updatedBudgetItems = currentBudgetItems.map(item =>
+        item.id === editingBudgetItem.id ? { ...item, ...data } : item
+      );
+    } else {
+      updatedBudgetItems = [...currentBudgetItems, { ...data, id: Date.now().toString() }];
+    }
+    setShowBudgetForm(false);
+    setEditingBudgetItem(null);
+    updateBudgetItems(updatedBudgetItems);
   };
 
   const handleDeleteBudgetItem = async (item) => {
     if (window.confirm(`Delete this budget item?`)) {
       const updatedBudgetItems = (project.budget_items || []).filter(i => i.id !== item.id);
-      const totalBudget = updatedBudgetItems.reduce((sum, i) => sum + (i.total_cost || 0), 0);
-      
-      await updateProjectMutation.mutateAsync({
-        budget_items: updatedBudgetItems,
-        budget: totalBudget
-      });
+      updateBudgetItems(updatedBudgetItems);
     }
   };
 
   const handleBulkDeleteBudgetItems = async () => {
     if (window.confirm(`Delete ${selectedBudgetItems.length} selected budget items?`)) {
       const updatedBudgetItems = (project.budget_items || []).filter(item => !selectedBudgetItems.includes(item.id));
-      const totalBudget = updatedBudgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
-      
-      await updateProjectMutation.mutateAsync({
-        budget_items: updatedBudgetItems,
-        budget: totalBudget
-      });
-      
+      updateBudgetItems(updatedBudgetItems);
       setSelectedBudgetItems([]);
     }
   };
@@ -749,13 +728,10 @@ export default function ProjectDetails() {
                 }}
                 onDelete={handleDeleteBudgetItem}
                 onUpdate={(item, changes) => {
-                  const updatedItems = (project.budget_items || []).map((i, idx) =>
-                    (item.id && i.id === item.id) || (!item.id && idx === (project.budget_items || []).indexOf(item)) ? { ...i, ...changes } : i
+                  const updatedItems = (project.budget_items || []).map((i) =>
+                    i.id === item.id ? { ...i, ...changes } : i
                   );
-                  const totalBudget = updatedItems.reduce((sum, i) => sum + (i.total_cost || 0), 0);
-                  const updatePayload = { budget_items: updatedItems, budget: totalBudget };
-                  queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
-                  updateProjectMutation.mutate(updatePayload);
+                  updateBudgetItems(updatedItems);
                 }}
               />
             </TabsContent>
