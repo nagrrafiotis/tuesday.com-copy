@@ -40,6 +40,7 @@ export default function ScanContributionsDialog({ projectId, onClose }) {
 - employer_amount: συνολικές εργοδοτικές εισφορές σε ευρώ (αριθμός)
 - employee_amount: συνολικές ασφαλιστικές εισφορές εργαζομένου σε ευρώ (αριθμός)
 - total_amount: συνολικό ποσό εισφορών (αριθμός)
+- num_stamps: αριθμός ενσήμων (ημερομισθίων) — συνήθως εμφανίζεται ως "Ημέρες Ασφάλισης" ή "Ένσημα" ή παρόμοιο πεδίο (αριθμός)
 - notes: οποιαδήποτε χρήσιμη πληροφορία (π.χ. ΑΜΕ, αριθμός εργαζομένων κλπ)`,
       file_urls: [file_url],
       response_json_schema: {
@@ -49,6 +50,7 @@ export default function ScanContributionsDialog({ projectId, onClose }) {
           employer_amount: { type: "number" },
           employee_amount: { type: "number" },
           total_amount: { type: "number" },
+          num_stamps: { type: "number" },
           notes: { type: "string" }
         }
       }
@@ -118,6 +120,10 @@ export default function ScanContributionsDialog({ projectId, onClose }) {
                   <label className="text-sm font-medium text-gray-700">Εισφορές εργαζόμενου (€)</label>
                   <Input type="number" value={extracted.employee_amount || ""} onChange={e => update("employee_amount", parseFloat(e.target.value) || 0)} className="mt-1" />
                 </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Αρ. Ενσήμων</label>
+                <Input type="number" value={extracted.num_stamps || ""} onChange={e => update("num_stamps", parseFloat(e.target.value) || 0)} className="mt-1" />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Σύνολο (€)</label>
