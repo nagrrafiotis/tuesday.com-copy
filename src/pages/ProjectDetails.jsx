@@ -151,11 +151,10 @@ export default function ProjectDetails() {
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
     onSuccess: (updatedProject) => {
-      if (updatedProject) {
-        queryClient.setQueryData(["project", projectId], updatedProject);
-      } else {
-        queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-      }
+      queryClient.setQueryData(["project", projectId], (old) => ({
+        ...old,
+        ...(updatedProject || {}),
+      }));
     },
   });
 
