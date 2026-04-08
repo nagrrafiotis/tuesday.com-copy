@@ -114,7 +114,8 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
   const units = unitsList?.options || [];
 
   const expenseCategoriesList = dropdownLists.find(l => l.list_name === "expense_categories");
-  const categories = (expenseCategoriesList?.options || []).map(cat => ({
+  const defaultCategories = ["labor", "subcontractor", "materials", "equipment", "general_expenses"];
+  const categories = (expenseCategoriesList?.options || defaultCategories).map(cat => ({
     value: cat,
     label: cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
     icon: categoryIcons[cat] || Receipt,
