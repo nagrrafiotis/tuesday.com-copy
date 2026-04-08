@@ -747,7 +747,9 @@ export default function ProjectDetails() {
                     (item.id && i.id === item.id) || (!item.id && idx === (project.budget_items || []).indexOf(item)) ? { ...i, ...changes } : i
                   );
                   const totalBudget = updatedItems.reduce((sum, i) => sum + (i.total_cost || 0), 0);
-                  updateProjectMutation.mutate({ budget_items: updatedItems, budget: totalBudget });
+                  const updatePayload = { budget_items: updatedItems, budget: totalBudget };
+                  queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
+                  updateProjectMutation.mutate(updatePayload);
                 }}
               />
             </TabsContent>
