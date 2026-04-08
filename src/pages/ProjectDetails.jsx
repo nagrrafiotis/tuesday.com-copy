@@ -580,7 +580,7 @@ export default function ProjectDetails() {
         )}
 
         {/* Phase Chart */}
-        {projectPhases.length > 0 && expenses.length > 0 && (
+        {projectPhases.length > 0 && phaseChartData.some(d => d.Budget > 0 || d.Expenses > 0) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -757,8 +757,8 @@ export default function ProjectDetails() {
                 }}
                 onDelete={handleDeleteBudgetItem}
                 onUpdate={(item, changes) => {
-                  const updatedItems = (project.budget_items || []).map(i =>
-                    i.id === item.id ? { ...i, ...changes } : i
+                  const updatedItems = (project.budget_items || []).map((i, idx) =>
+                    (item.id && i.id === item.id) || (!item.id && idx === (project.budget_items || []).indexOf(item)) ? { ...i, ...changes } : i
                   );
                   const totalBudget = updatedItems.reduce((sum, i) => sum + (i.total_cost || 0), 0);
                   updateProjectMutation.mutate({ budget_items: updatedItems, budget: totalBudget });
