@@ -234,6 +234,14 @@ export default function InsurancePanel({ projectId }) {
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="bg-gray-50 border-t border-gray-200 font-semibold text-sm">
+                <tr>
+                  <td className="px-4 py-3 text-gray-700" colSpan={3}>Σύνολο</td>
+                  <td className="px-4 py-3 text-right font-mono text-[#1e3a5f]">{employees.reduce((s,e)=>s+(e.num_stamps||0),0)}</td>
+                  <td className="px-4 py-3 text-right text-[#1e3a5f]">{fmt(totalSalary)}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}
@@ -298,6 +306,14 @@ export default function InsurancePanel({ projectId }) {
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="bg-gray-50 border-t border-gray-200 font-semibold text-sm">
+                <tr>
+                  <td className="px-4 py-3 text-gray-700">Σύνολο</td>
+                  <td className="px-4 py-3 text-right text-[#1e3a5f]">{fmt(contributions.reduce((s,c)=>s+(c.total_amount||0),0))}</td>
+                  <td className="px-4 py-3 text-right font-mono text-[#1e3a5f]">{contributions.reduce((s,c)=>s+(c.num_stamps||0),0)}</td>
+                  <td colSpan={2}></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}
