@@ -41,6 +41,7 @@ const categoryColors = {
 function InlineText({ value, onSave, className = "" }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value || "");
+  useEffect(() => { if (!editing) setVal(value || ""); }, [value, editing]);
   if (!editing) return (
     <span onClick={() => { setVal(value || ""); setEditing(true); }} className={`cursor-pointer hover:bg-blue-50 rounded px-1 -mx-1 min-w-[40px] inline-block ${className}`}>{value || <span className="text-gray-300">—</span>}</span>
   );
@@ -84,6 +85,7 @@ function InlineSelect({ value, onSave, items, placeholder = "Select", renderDisp
 function InlineNumber({ value, onSave, className = "" }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value ?? "");
+  useEffect(() => { if (!editing) setVal(value ?? ""); }, [value, editing]);
   if (!editing) return (
     <span onClick={() => { setVal(value ?? ""); setEditing(true); }} className={`cursor-pointer hover:bg-blue-50 rounded px-1 -mx-1 min-w-[40px] inline-block ${className}`}>{value != null ? value : <span className="text-gray-300">—</span>}</span>
   );
