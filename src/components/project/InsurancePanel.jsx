@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Pencil, Trash2, ShieldCheck, ScanLine, Users } from "lucide-react";
 import { format } from "date-fns";
 import ScanContributionsDialog from "./ScanContributionsDialog";
+import ScanEmployeesDialog from "./ScanEmployeesDialog";
 
 const fmt = (n) => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(n || 0);
 
@@ -129,6 +130,7 @@ export default function InsurancePanel({ projectId }) {
   const [showContribForm, setShowContribForm] = useState(false);
   const [editingContrib, setEditingContrib] = useState(null);
   const [showScan, setShowScan] = useState(false);
+  const [showEmpScan, setShowEmpScan] = useState(false);
   const queryClient = useQueryClient();
 
   // Employees query
@@ -190,9 +192,14 @@ export default function InsurancePanel({ projectId }) {
               <span className="text-sm text-gray-500 ml-2">Σύνολο μισθοδοσίας: <span className="font-semibold text-[#1e3a5f]">{fmt(totalSalary)}</span></span>
             )}
           </div>
-          <Button className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={() => { setEditingEmp(null); setShowEmpForm(true); }}>
-            <Plus className="w-4 h-4 mr-2" /> Νέα Εγγραφή
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowEmpScan(true)}>
+              <ScanLine className="w-4 h-4 mr-2" /> Σάρωση PDF
+            </Button>
+            <Button className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={() => { setEditingEmp(null); setShowEmpForm(true); }}>
+              <Plus className="w-4 h-4 mr-2" /> Νέα Εγγραφή
+            </Button>
+          </div>
         </div>
 
         {employees.length === 0 ? (
@@ -338,6 +345,7 @@ export default function InsurancePanel({ projectId }) {
       )}
 
       {showScan && <ScanContributionsDialog projectId={projectId} onClose={() => setShowScan(false)} />}
+      {showEmpScan && <ScanEmployeesDialog projectId={projectId} onClose={() => setShowEmpScan(false)} />}
     </div>
   );
 }
