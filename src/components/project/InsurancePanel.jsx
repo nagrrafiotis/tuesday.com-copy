@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, ShieldCheck, ScanLine, Users } from "lucide-react";
+import { useQuery as useContactsQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import ScanContributionsDialog from "./ScanContributionsDialog";
 import ScanEmployeesDialog from "./ScanEmployeesDialog";
@@ -16,11 +17,16 @@ function EmployeeForm({ item, projectId, onClose, onSubmit }) {
   const [form, setForm] = useState({
     project_id: projectId,
     full_name: item?.full_name || "",
+    payee: item?.payee || "",
     work_phase: item?.work_phase || "",
     work_month: item?.work_month || "",
     num_stamps: item?.num_stamps || "",
     salary_amount: item?.salary_amount || "",
     notes: item?.notes || "",
+  });
+  const { data: contacts = [] } = useContactsQuery({
+    queryKey: ["contacts-for-emp-form"],
+    queryFn: () => base44.entities.Contact.list(),
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -34,6 +40,17 @@ function EmployeeForm({ item, projectId, onClose, onSubmit }) {
           <div>
             <label className="text-sm font-medium text-gray-700">Ονοματεπώνυμο *</label>
             <Input value={form.full_name} onChange={e => set("full_name", e.target.value)} className="mt-1" placeholder="Όνομα Επώνυμο" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Δικαιούχος (Payee)</label>
+            <select
+              value={form.payee}
+              onChange={e => set("payee", e.target.value)}
+              className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">— Επιλογή —</option>
+              {contacts.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+            </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -213,6 +230,7 @@ export default function InsurancePanel({ projectId }) {
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                 <tr>
                   <th className="px-4 py-3 text-left">Ονοματεπώνυμο</th>
+                  <th className="px-4 py-3 text-left">Δικαιούχος</th>
                   <th className="px-4 py-3 text-left">Φάση</th>
                   <th className="px-4 py-3 text-left">Μήνας</th>
                   <th className="px-4 py-3 text-right">Αρ. Ενσήμων</th>
@@ -224,6 +242,7 @@ export default function InsurancePanel({ projectId }) {
                 {employees.map(emp => (
                   <tr key={emp.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-800">{emp.full_name}</td>
+                    <td className="px-4 py-3 text-gray-600">{emp.payee || "—"}</td>
                     <td className="px-4 py-3 text-gray-600">{emp.work_phase || "—"}</td>
                     <td className="px-4 py-3 text-gray-600">{emp.work_month}</td>
                     <td className="px-4 py-3 text-right font-mono">{emp.num_stamps ?? "—"}</td>
@@ -243,7 +262,7 @@ export default function InsurancePanel({ projectId }) {
               </tbody>
               <tfoot className="bg-gray-50 border-t border-gray-200 font-semibold text-sm">
                 <tr>
-                  <td className="px-4 py-3 text-gray-700" colSpan={3}>Σύνολο</td>
+                  <td className="px-4 py-3 text-gray-700" colSpan={4}>Σύνολο</td>
                   <td className="px-4 py-3 text-right font-mono text-[#1e3a5f]">{employees.reduce((s,e)=>s+(e.num_stamps||0),0)}</td>
                   <td className="px-4 py-3 text-right text-[#1e3a5f]">{fmt(totalSalary)}</td>
                   <td></td>

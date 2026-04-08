@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,6 +11,10 @@ export default function ScanEmployeesDialog({ projectId, onClose }) {
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState("idle");
   const [employees, setEmployees] = useState([]);
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts-scan-emp"],
+    queryFn: () => base44.entities.Contact.list(),
+  });
   const inputRef = useRef();
   const queryClient = useQueryClient();
 
@@ -123,6 +128,7 @@ export default function ScanEmployeesDialog({ projectId, onClose }) {
                   <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
                     <tr>
                       <th className="px-2 py-2 text-left">Ονοματεπώνυμο</th>
+                      <th className="px-2 py-2 text-left">Δικαιούχος</th>
                       <th className="px-2 py-2 text-left">Μήνας</th>
                       <th className="px-2 py-2 text-right">Ένσημα</th>
                       <th className="px-2 py-2 text-right">Μισθός (€)</th>
@@ -134,6 +140,16 @@ export default function ScanEmployeesDialog({ projectId, onClose }) {
                       <tr key={idx}>
                         <td className="px-2 py-2">
                           <Input value={emp.full_name || ""} onChange={e => updateField(idx, "full_name", e.target.value)} className="h-7 text-xs" />
+                        </td>
+                        <td className="px-2 py-2">
+                          <select
+                            value={emp.payee || ""}
+                            onChange={e => updateField(idx, "payee", e.target.value)}
+                            className="h-7 text-xs w-full rounded-md border border-input bg-transparent px-2 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          >
+                            <option value="">—</option>
+                            {contacts.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                          </select>
                         </td>
                         <td className="px-2 py-2">
                           <Input value={emp.work_month || ""} onChange={e => updateField(idx, "work_month", e.target.value)} className="h-7 text-xs" />
