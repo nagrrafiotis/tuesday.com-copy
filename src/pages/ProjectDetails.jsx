@@ -114,11 +114,11 @@ export default function ProjectDetails() {
 
 
 
-  const { data: phasesList = [] } = useQuery({
+  const { data: phasesList = {} } = useQuery({
     queryKey: ["phases-list"],
     queryFn: async () => {
       const lists = await base44.entities.DropdownList.list();
-      return lists.find(l => l.list_name === "project_phases");
+      return lists.find(l => l.list_name === "project_phases") || {};
     },
   });
   
