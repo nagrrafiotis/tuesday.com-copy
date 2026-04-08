@@ -79,9 +79,8 @@ function ContributionForm({ item, projectId, onClose, onSubmit }) {
   const [form, setForm] = useState({
     project_id: projectId,
     month: item?.month || "",
-    employer_amount: item?.employer_amount || "",
-    employee_amount: item?.employee_amount || "",
     total_amount: item?.total_amount || "",
+    num_stamps: item?.num_stamps || "",
     notes: item?.notes || "",
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -99,17 +98,13 @@ function ContributionForm({ item, projectId, onClose, onSubmit }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-700">Εργοδοτικές (€)</label>
-              <Input type="number" value={form.employer_amount} onChange={e => set("employer_amount", parseFloat(e.target.value) || "")} className="mt-1" />
+              <label className="text-sm font-medium text-gray-700">Σύνολο Εισφορών Εργοδότη (€)</label>
+              <Input type="number" value={form.total_amount} onChange={e => set("total_amount", parseFloat(e.target.value) || "")} className="mt-1" />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">Εισφορές Εργαζόμενου (€)</label>
-              <Input type="number" value={form.employee_amount} onChange={e => set("employee_amount", parseFloat(e.target.value) || "")} className="mt-1" />
+              <label className="text-sm font-medium text-gray-700">Αρ. Ενσήμων</label>
+              <Input type="number" value={form.num_stamps} onChange={e => set("num_stamps", parseFloat(e.target.value) || "")} className="mt-1" />
             </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">Σύνολο (€)</label>
-            <Input type="number" value={form.total_amount} onChange={e => set("total_amount", parseFloat(e.target.value) || "")} className="mt-1" />
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Σημειώσεις</label>
@@ -252,8 +247,7 @@ export default function InsurancePanel({ projectId }) {
             <h3 className="font-semibold text-gray-800">Εισφορές ανά Μήνα</h3>
             {contributions.length > 0 && (
               <span className="text-sm text-gray-500 ml-2">
-                Εργοδ.: <span className="font-semibold text-[#1e3a5f]">{fmt(totalEmployer)}</span>
-                {" · "}Εργαζ.: <span className="font-semibold text-[#1e3a5f]">{fmt(totalEmployee)}</span>
+                Σύνολο: <span className="font-semibold text-[#1e3a5f]">{fmt(contributions.reduce((s,c) => s+(c.total_amount||0),0))}</span>
               </span>
             )}
           </div>
@@ -278,9 +272,8 @@ export default function InsurancePanel({ projectId }) {
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                 <tr>
                   <th className="px-4 py-3 text-left">Μήνας</th>
-                  <th className="px-4 py-3 text-right">Εργοδοτικές (€)</th>
-                  <th className="px-4 py-3 text-right">Εισφορές Εργαζ. (€)</th>
-                  <th className="px-4 py-3 text-right">Σύνολο (€)</th>
+                  <th className="px-4 py-3 text-right">Σύνολο Εισφορών Εργοδότη (€)</th>
+                  <th className="px-4 py-3 text-right">Αρ. Ενσήμων</th>
                   <th className="px-4 py-3 text-left">Σημ.</th>
                   <th className="px-4 py-3"></th>
                 </tr>
@@ -289,9 +282,8 @@ export default function InsurancePanel({ projectId }) {
                 {contributions.map(c => (
                   <tr key={c.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-800">{c.month}</td>
-                    <td className="px-4 py-3 text-right text-orange-600">{c.employer_amount ? fmt(c.employer_amount) : "—"}</td>
-                    <td className="px-4 py-3 text-right text-blue-600">{c.employee_amount ? fmt(c.employee_amount) : "—"}</td>
                     <td className="px-4 py-3 text-right font-semibold text-[#1e3a5f]">{c.total_amount ? fmt(c.total_amount) : "—"}</td>
+                    <td className="px-4 py-3 text-right font-mono">{c.num_stamps ?? "—"}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs max-w-[120px] truncate">{c.notes || ""}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 justify-end">
