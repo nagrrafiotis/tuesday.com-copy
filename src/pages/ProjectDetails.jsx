@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -59,10 +59,10 @@ import {
 } from "@/components/ui/table";
 
 export default function ProjectDetails() {
-  const [user, setUser] = React.useState(null);
-  const [authChecking, setAuthChecking] = React.useState(true);
+  const [user, setUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     base44.auth.me()
       .then(setUser)
       .catch(() => base44.auth.redirectToLogin(window.location.href))
@@ -152,7 +152,6 @@ export default function ProjectDetails() {
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-      setShowProjectForm(false);
     },
   });
 
@@ -256,41 +255,28 @@ export default function ProjectDetails() {
   };
 
   const handleBudgetItemSubmit = async (data) => {
-    try {
-      console.log("Budget item submit - data received:", data);
-      console.log("Editing item:", editingBudgetItem);
-      
       const currentBudgetItems = project.budget_items || [];
-      console.log("Current budget items:", currentBudgetItems);
-      
       let updatedBudgetItems;
 
       if (editingBudgetItem) {
-        updatedBudgetItems = currentBudgetItems.map(item => 
-          item.id === editingBudgetItem.id ? { ...data, id: item.id } : item
+        updatedBudgetItems = currentBudgetItems.map(item =>
+          item.id === editingBudgetItem.id ? { ...item, ...data } : item
         );
-        console.log("Updated budget items (edit):", updatedBudgetItems);
       } else {
         updatedBudgetItems = [...currentBudgetItems, { ...data, id: Date.now().toString() }];
-        console.log("Updated budget items (create):", updatedBudgetItems);
       }
 
       const totalBudget = updatedBudgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
-      
-      const updatePayload = {
-        budget_items: updatedBudgetItems,
-        budget: totalBudget
-      };
-      console.log("Updating project with payload:", updatePayload);
-      
-      await updateProjectMutation.mutateAsync(updatePayload);
-      
+      const updatePayload = { budget_items: updatedBudgetItems, budget: totalBudget };
+
+      // Optimistic update first
+      queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
+
       setShowBudgetForm(false);
       setEditingBudgetItem(null);
-    } catch (error) {
-      console.error("Failed to save budget item:", error);
-      alert("Failed to save budget item. Please try again.");
-    }
+
+      // Persist to backend (invalidate will refresh after)
+      await updateProjectMutation.mutateAsync(updatePayload);
   };
 
   const handleDeleteBudgetItem = async (item) => {
@@ -797,7 +783,7 @@ export default function ProjectDetails() {
         project={project}
         open={showProjectForm}
         onClose={() => setShowProjectForm(false)}
-        onSubmit={(data) => updateProjectMutation.mutateAsync(data)}
+        onSubmit={async (data) => { await updateProjectMutation.mutateAsync(data); setShowProjectForm(false); }}
       />
 
       <ExpenseForm
