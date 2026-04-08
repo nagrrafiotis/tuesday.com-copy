@@ -21,7 +21,7 @@ import BudgetForm from "@/components/budget/BudgetForm";
 import ProjectUpdatesPanel from "@/components/project/ProjectUpdatesPanel";
 import InsurancePanel from "@/components/project/InsurancePanel";
 import WorkDaysPanel from "@/components/project/WorkDaysPanel";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   ArrowLeft,
   MapPin,
@@ -560,7 +560,7 @@ export default function ProjectDetails() {
           >
             <h2 className="text-xl font-semibold text-[#1e3a5f] mb-6">Budget vs Expenses by Phase</h2>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={phaseChartData}>
+              <BarChart data={phaseChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" stroke="#666" angle={-45} textAnchor="end" interval={0} tick={{ fontSize: 11 }} height={80} />
                 <YAxis stroke="#666" />
@@ -569,23 +569,9 @@ export default function ProjectDetails() {
                   contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="Budget" 
-                  stroke="#c9a962" 
-                  strokeWidth={3}
-                  dot={{ fill: '#c9a962', r: 5 }}
-                  activeDot={{ r: 7 }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="Expenses" 
-                  stroke="#1e3a5f" 
-                  strokeWidth={3}
-                  dot={{ fill: '#1e3a5f', r: 5 }}
-                  activeDot={{ r: 7 }}
-                />
-              </LineChart>
+                <Bar dataKey="Budget" fill="#c9a962" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Expenses" fill="#1e3a5f" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </motion.div>
         )}
