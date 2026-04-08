@@ -20,6 +20,7 @@ import BudgetTable from "@/components/budget/BudgetTable";
 import BudgetForm from "@/components/budget/BudgetForm";
 import ProjectUpdatesPanel from "@/components/project/ProjectUpdatesPanel";
 import InsurancePanel from "@/components/project/InsurancePanel";
+import WorkDaysPanel from "@/components/project/WorkDaysPanel";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   ArrowLeft,
@@ -632,7 +633,8 @@ export default function ProjectDetails() {
                 <TabsTrigger value="budget">Budget</TabsTrigger>
                 <TabsTrigger value="updates">Ενημερώσεις</TabsTrigger>
                 <TabsTrigger value="insurance">Ασφαλιστικές</TabsTrigger>
-              </TabsList>
+                <TabsTrigger value="workdays">Ένσημα ΕΦΚΑ</TabsTrigger>
+                </TabsList>
 
               {activeTab === "board" ? (
                 <Button
@@ -770,6 +772,10 @@ export default function ProjectDetails() {
 
             <TabsContent value="insurance">
               <InsurancePanel projectId={projectId} />
+            </TabsContent>
+
+            <TabsContent value="workdays">
+              <WorkDaysPanel projectId={projectId} />
             </TabsContent>
           </Tabs>
         </motion.div>

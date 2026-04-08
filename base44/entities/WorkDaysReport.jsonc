@@ -1,0 +1,66 @@
+{
+  "name": "WorkDaysReport",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "Associated project ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Document date"
+    },
+    "protocol_number": {
+      "type": "string",
+      "description": "\u0391\u03c1. \u03a0\u03c1\u03c9\u03c4."
+    },
+    "project_registry_number": {
+      "type": "string",
+      "description": "\u0391\u039c \u039f\u03b9\u03ba\u03bf\u03b4\u03bf\u03bc\u03b9\u03ba\u03bf\u03cd \u0388\u03c1\u03b3\u03bf\u03c5"
+    },
+    "project_owner": {
+      "type": "string",
+      "description": "\u039a\u03cd\u03c1\u03b9\u03bf\u03c2 \u0388\u03c1\u03b3\u03bf\u03c5"
+    },
+    "total_work_days": {
+      "type": "number",
+      "description": "\u03a3\u03cd\u03bd\u03bf\u03bb\u03bf \u03b7\u03bc\u03b5\u03c1\u03ce\u03bd \u03b5\u03c1\u03b3\u03b1\u03c3\u03af\u03b1\u03c2"
+    },
+    "phases": {
+      "type": "array",
+      "description": "\u0391\u03bd\u03ac\u03bb\u03c5\u03c3\u03b7 \u03b1\u03bd\u03ac \u03c6\u03ac\u03c3\u03b7",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "building_type": {
+            "type": "string"
+          },
+          "work_days": {
+            "type": "number"
+          },
+          "reduction": {
+            "type": "number"
+          },
+          "final_work_days": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL \u03c4\u03bf\u03c5 \u03b1\u03bd\u03b5\u03b2\u03b1\u03c3\u03bc\u03ad\u03bd\u03bf\u03c5 PDF"
+    }
+  },
+  "required": [
+    "project_id",
+    "date"
+  ]
+}
