@@ -1,0 +1,47 @@
+{
+  "name": "InsuranceContribution",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "Associated project ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Payment date"
+    },
+    "period": {
+      "type": "string",
+      "description": "Period covered (e.g. \u0399\u03b1\u03bd 2025)"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "\u0399\u039a\u0391",
+        "\u03a4\u03a3\u039c\u0395\u0394\u0395",
+        "\u0395\u03a6\u039a\u0391",
+        "\u0386\u03bb\u03bb\u03bf"
+      ],
+      "default": "\u0399\u039a\u0391",
+      "description": "Insurance type"
+    },
+    "payee": {
+      "type": "string",
+      "description": "Payee / employee name"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Amount paid"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  },
+  "required": [
+    "project_id",
+    "date",
+    "amount"
+  ]
+}

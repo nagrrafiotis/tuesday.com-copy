@@ -18,6 +18,8 @@ import ExpenseTable from "@/components/expenses/ExpenseTable";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
 import BudgetTable from "@/components/budget/BudgetTable";
 import BudgetForm from "@/components/budget/BudgetForm";
+import ProjectUpdatesPanel from "@/components/project/ProjectUpdatesPanel";
+import InsurancePanel from "@/components/project/InsurancePanel";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   ArrowLeft,
@@ -625,9 +627,11 @@ export default function ProjectDetails() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="flex items-center justify-between mb-6">
               <TabsList>
-                <TabsTrigger value="board">Tasks</TabsTrigger>
+              <TabsTrigger value="board">Tasks</TabsTrigger>
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
                 <TabsTrigger value="budget">Budget</TabsTrigger>
+                <TabsTrigger value="updates">Ενημερώσεις</TabsTrigger>
+                <TabsTrigger value="insurance">Ασφαλιστικές</TabsTrigger>
               </TabsList>
 
               {activeTab === "board" ? (
@@ -652,7 +656,7 @@ export default function ProjectDetails() {
                   <Plus className="w-4 h-4 mr-2" />
                   Add Expense
                 </Button>
-              ) : (
+              ) : activeTab === "budget" ? (
                 <Button
                   onClick={() => {
                     setEditingBudgetItem(null);
@@ -663,7 +667,7 @@ export default function ProjectDetails() {
                   <Plus className="w-4 h-4 mr-2" />
                   Add Budget Item
                 </Button>
-              )}
+              ) : null}
             </div>
 
             <TabsContent value="board">
@@ -758,6 +762,14 @@ export default function ProjectDetails() {
                   updateProjectMutation.mutate({ budget_items: updatedItems, budget: totalBudget });
                 }}
               />
+            </TabsContent>
+
+            <TabsContent value="updates">
+              <ProjectUpdatesPanel projectId={projectId} />
+            </TabsContent>
+
+            <TabsContent value="insurance">
+              <InsurancePanel projectId={projectId} />
             </TabsContent>
           </Tabs>
         </motion.div>

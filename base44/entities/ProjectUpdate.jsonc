@@ -1,0 +1,39 @@
+{
+  "name": "ProjectUpdate",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "Associated project ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Update date"
+    },
+    "title": {
+      "type": "string",
+      "description": "Update title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Update description"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "general",
+        "milestone",
+        "issue",
+        "reminder"
+      ],
+      "default": "general",
+      "description": "Type of update"
+    }
+  },
+  "required": [
+    "project_id",
+    "date",
+    "title"
+  ]
+}
