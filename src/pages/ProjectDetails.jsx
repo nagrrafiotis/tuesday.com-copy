@@ -631,7 +631,7 @@ export default function ProjectDetails() {
               <TabsTrigger value="board">Tasks</TabsTrigger>
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
                 <TabsTrigger value="budget">Budget</TabsTrigger>
-                <TabsTrigger value="updates">Ενημερώσεις</TabsTrigger>
+
                 <TabsTrigger value="insurance">Ασφαλιστικές</TabsTrigger>
                 <TabsTrigger value="workdays">Ένσημα ΕΦΚΑ</TabsTrigger>
                 </TabsList>
@@ -766,9 +766,7 @@ export default function ProjectDetails() {
               />
             </TabsContent>
 
-            <TabsContent value="updates">
-              <ProjectUpdatesPanel projectId={projectId} />
-            </TabsContent>
+
 
             <TabsContent value="insurance">
               <InsurancePanel projectId={projectId} />
