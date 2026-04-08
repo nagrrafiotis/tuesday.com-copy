@@ -313,10 +313,11 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
                     items={expenseCategories.map(cat => ({ value: cat, label: cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') }))}
                     placeholder="Category"
                     renderDisplay={(v) => {
+                      if (!v) return <span className="text-gray-300">—</span>;
                       const Ic = categoryIcons[v] || Receipt;
                       const cl = categoryColors[v] || "bg-gray-100 text-gray-700";
-                      const lbl = v ? v.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "General";
-                      return <Badge className={`${cl} border-0 gap-1.5`}><Ic className="w-3 h-3" />{lbl}</Badge>;
+                      const lbl = v.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                      return <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${cl}`}><Ic className="w-3 h-3" />{lbl}</span>;
                     }}
                   />
                 </TableCell>
