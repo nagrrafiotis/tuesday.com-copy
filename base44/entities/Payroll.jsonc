@@ -1,0 +1,130 @@
+{
+  "name": "Payroll",
+  "type": "object",
+  "properties": {
+    "employee_name": {
+      "type": "string",
+      "description": "\u039f\u03bd\u03bf\u03bc\u03b1\u03c4\u03b5\u03c0\u03ce\u03bd\u03c5\u03bc\u03bf \u03b5\u03c1\u03b3\u03b1\u03b6\u03bf\u03bc\u03ad\u03bd\u03bf\u03c5"
+    },
+    "employee_afm": {
+      "type": "string",
+      "description": "\u0391\u03a6\u039c \u03b5\u03c1\u03b3\u03b1\u03b6\u03bf\u03bc\u03ad\u03bd\u03bf\u03c5"
+    },
+    "employee_amka": {
+      "type": "string",
+      "description": "\u0391\u039c\u039a\u0391 \u03b5\u03c1\u03b3\u03b1\u03b6\u03bf\u03bc\u03ad\u03bd\u03bf\u03c5"
+    },
+    "specialty": {
+      "type": "string",
+      "description": "\u0395\u03b9\u03b4\u03b9\u03ba\u03cc\u03c4\u03b7\u03c4\u03b1"
+    },
+    "contract_type": {
+      "type": "string",
+      "description": "\u03a3\u03cd\u03bc\u03b2\u03b1\u03c3\u03b7 \u03b5\u03c1\u03b3\u03b1\u03c3\u03af\u03b1\u03c2"
+    },
+    "period": {
+      "type": "string",
+      "description": "\u039c\u03b9\u03c3\u03b8\u03bf\u03b4\u03bf\u03c4\u03b9\u03ba\u03ae \u03c0\u03b5\u03c1\u03af\u03bf\u03b4\u03bf\u03c2 (\u03c0.\u03c7. \u0399\u03b1\u03bd\u03bf\u03c5\u03ac\u03c1\u03b9\u03bf\u03c2 2025)"
+    },
+    "period_type": {
+      "type": "string",
+      "enum": [
+        "regular",
+        "christmas_bonus",
+        "easter_bonus",
+        "vacation_allowance",
+        "other"
+      ],
+      "default": "regular",
+      "description": "\u03a4\u03cd\u03c0\u03bf\u03c2 \u03bc\u03b9\u03c3\u03b8\u03bf\u03b4\u03bf\u03c3\u03af\u03b1\u03c2"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date",
+      "description": "\u0397\u03bc\u03b5\u03c1\u03bf\u03bc\u03b7\u03bd\u03af\u03b1 \u03c0\u03bb\u03b7\u03c1\u03c9\u03bc\u03ae\u03c2"
+    },
+    "basic_salary": {
+      "type": "number",
+      "description": "\u0392\u03b1\u03c3\u03b9\u03ba\u03cc\u03c2 \u03bc\u03b9\u03c3\u03b8\u03cc\u03c2"
+    },
+    "gross_salary": {
+      "type": "number",
+      "description": "\u03a3\u03cd\u03bd\u03bf\u03bb\u03bf \u03b1\u03c0\u03bf\u03b4\u03bf\u03c7\u03ce\u03bd \u03c0\u03b5\u03c1\u03b9\u03cc\u03b4\u03bf\u03c5"
+    },
+    "ika_etam": {
+      "type": "number",
+      "description": "\u0399\u039a\u0391 \u039c\u0399\u039a\u03a4\u0391 - \u0395\u03a4\u0391\u039c (101)"
+    },
+    "efka_contribution": {
+      "type": "number",
+      "description": "\u03a0\u03cc\u03c1\u03bf\u03c2 \u03c5\u03c0\u03ad\u03c1 e-\u0395\u03a6\u039a\u0391 (2694)"
+    },
+    "total_insurance_deductions": {
+      "type": "number",
+      "description": "\u03a3\u03cd\u03bd\u03bf\u03bb\u03bf \u03b1\u03c3\u03c6\u03b1\u03bb\u03b9\u03c3\u03c4\u03b9\u03ba\u03ce\u03bd \u03ba\u03c1\u03b1\u03c4\u03ae\u03c3\u03b5\u03c9\u03bd \u03b5\u03c1\u03b3\u03b1\u03b6\u03bf\u03bc\u03ad\u03bd\u03bf\u03c5"
+    },
+    "income_tax": {
+      "type": "number",
+      "description": "\u039a\u03c1\u03b1\u03c4\u03ae\u03c3\u03b5\u03b9\u03c2 \u03a6\u039c\u03a5"
+    },
+    "net_salary": {
+      "type": "number",
+      "description": "\u03a0\u03bb\u03b7\u03c1\u03c9\u03c4\u03ad\u03b5\u03c2 \u03b1\u03c0\u03bf\u03b4\u03bf\u03c7\u03ad\u03c2 (\u03ba\u03b1\u03b8\u03b1\u03c1\u03ad\u03c2)"
+    },
+    "advance_payment": {
+      "type": "number",
+      "description": "\u03a0\u03c1\u03bf\u03ba\u03b1\u03c4\u03b1\u03b2\u03bf\u03bb\u03ae",
+      "default": 0
+    },
+    "final_payment": {
+      "type": "number",
+      "description": "\u03a5\u03c0\u03cc\u03bb\u03bf\u03b9\u03c0\u03bf \u03c0\u03bb\u03b7\u03c1\u03c9\u03c4\u03ad\u03c9\u03bd \u03b1\u03c0\u03bf\u03b4\u03bf\u03c7\u03ce\u03bd"
+    },
+    "insurance_days": {
+      "type": "number",
+      "description": "\u0397\u03bc\u03ad\u03c1\u03b5\u03c2 \u03b1\u03c3\u03c6\u03ac\u03bb\u03b9\u03c3\u03b7\u03c2"
+    },
+    "apd_insurance_days": {
+      "type": "number",
+      "description": "\u0397\u03bc\u03ad\u03c1\u03b5\u03c2 \u03b1\u03c3\u03c6\u03ac\u03bb\u03b9\u03c3\u03b7\u03c2 \u0391\u03a0\u0394"
+    },
+    "working_days": {
+      "type": "number",
+      "description": "\u0397\u03bc\u03ad\u03c1\u03b5\u03c2 \u03c0\u03b1\u03c1\u03bf\u03c5\u03c3\u03af\u03b1\u03c2"
+    },
+    "employer_insurance_amount": {
+      "type": "number",
+      "description": "\u0395\u03b9\u03c3\u03c6\u03bf\u03c1\u03ad\u03c2 \u03b5\u03c1\u03b3\u03bf\u03b4\u03cc\u03c4\u03b7 (\u20ac)"
+    },
+    "payment_source": {
+      "type": "string",
+      "description": "\u03a0\u03b7\u03b3\u03ae \u03c0\u03bb\u03b7\u03c1\u03c9\u03bc\u03ae\u03c2 (\u03c4\u03c1\u03ac\u03c0\u03b5\u03b6\u03b1/\u03bc\u03b5\u03c4\u03c1\u03b7\u03c4\u03ac)"
+    },
+    "bank_name": {
+      "type": "string",
+      "description": "\u03a4\u03c1\u03ac\u03c0\u03b5\u03b6\u03b1"
+    },
+    "bank_account": {
+      "type": "string",
+      "description": "\u0391\u03c1\u03b9\u03b8\u03bc\u03cc\u03c2 \u03bb\u03bf\u03b3\u03b1\u03c1\u03b9\u03b1\u03c3\u03bc\u03bf\u03cd"
+    },
+    "apd_file_url": {
+      "type": "string",
+      "description": "URL \u03b1\u03c1\u03c7\u03b5\u03af\u03bf\u03c5 \u0391\u03a0\u0394"
+    },
+    "payslip_file_url": {
+      "type": "string",
+      "description": "URL \u03b1\u03c0\u03cc\u03b4\u03b5\u03b9\u03be\u03b7\u03c2 \u03c0\u03bb\u03b7\u03c1\u03c9\u03bc\u03ae\u03c2"
+    },
+    "notes": {
+      "type": "string",
+      "description": "\u03a3\u03b7\u03bc\u03b5\u03b9\u03ce\u03c3\u03b5\u03b9\u03c2"
+    }
+  },
+  "required": [
+    "employee_name",
+    "period",
+    "net_salary",
+    "payment_date"
+  ]
+}

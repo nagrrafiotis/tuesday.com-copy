@@ -48,6 +48,7 @@ const navItems = [
   { name: "Financial Overview", icon: DollarSign, page: "FinancialOverview" },
   { name: "Invoices", icon: FileText, page: "Invoices" },
   { name: "Contacts", icon: Users, page: "Contacts" },
+  { name: "Μισθοδοσία", icon: Users, page: "Payroll" },
   { name: "Settings", icon: Settings, page: "Settings" },
 ];
 

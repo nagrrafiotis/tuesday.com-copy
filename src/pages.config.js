@@ -63,6 +63,7 @@ import ProjectDetails from './pages/ProjectDetails';
 import Projects from './pages/Projects';
 import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
+import Payroll from './pages/Payroll';
 import __Layout from './Layout.jsx';
 
 
@@ -83,6 +84,7 @@ export const PAGES = {
     "Settings": Settings,
     "Tasks": Tasks,
     "Invoices": Invoices,
+    "Payroll": Payroll,
 }
 
 export const pagesConfig = {
