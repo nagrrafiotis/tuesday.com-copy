@@ -10,6 +10,7 @@ import {
   FileText, Calendar, Building2, Hash, Loader2, Trash2, CheckCircle2, Pencil, Search, X
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ScanInvoiceDialog from "../components/invoices/ScanInvoiceDialog";
 import EditInvoiceDialog from "../components/invoices/EditInvoiceDialog";
 import TransferInvoiceDialog from "../components/invoices/TransferInvoiceDialog";
@@ -31,6 +32,9 @@ export default function Invoices() {
   const [editInvoice, setEditInvoice] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [searchVendor, setSearchVendor] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [sortOrder, setSortOrder] = useState("newest");
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["invoices"],
@@ -51,9 +55,18 @@ export default function Invoices() {
 
   const getProjectName = (id) => projects.find(p => p.id === id)?.name || "—";
 
-  const filteredInvoices = searchVendor.trim()
-    ? invoices.filter(inv => inv.vendor_client?.toLowerCase().includes(searchVendor.toLowerCase()))
-    : invoices;
+  const filteredInvoices = invoices
+    .filter(inv => {
+      const matchSearch = !searchVendor.trim() || inv.vendor_client?.toLowerCase().includes(searchVendor.toLowerCase());
+      const matchType = filterType === "all" || inv.type === filterType;
+      const matchStatus = filterStatus === "all" || inv.status === filterStatus || (filterStatus === "pending" && !inv.status);
+      return matchSearch && matchType && matchStatus;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.date || a.created_date || 0);
+      const dateB = new Date(b.date || b.created_date || 0);
+      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -68,19 +81,44 @@ export default function Invoices() {
         </Button>
       </div>
 
-      <div className="relative mb-4 max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <Input
-          value={searchVendor}
-          onChange={(e) => setSearchVendor(e.target.value)}
-          placeholder="Filter by vendor / client name..."
-          className="pl-9 pr-8"
-        />
-        {searchVendor && (
-          <button onClick={() => setSearchVendor("")} className="absolute right-2 top-1/2 -translate-y-1/2">
-            <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
-          </button>
-        )}
+      <div className="flex flex-wrap gap-3 mb-4 items-center">
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            value={searchVendor}
+            onChange={(e) => setSearchVendor(e.target.value)}
+            placeholder="Filter by vendor / client name..."
+            className="pl-9 pr-8"
+          />
+          {searchVendor && (
+            <button onClick={() => setSearchVendor("")} className="absolute right-2 top-1/2 -translate-y-1/2">
+              <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+            </button>
+          )}
+        </div>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="expense">Expense</SelectItem>
+            <SelectItem value="income">Income</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="transferred">Transferred</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortOrder} onValueChange={setSortOrder}>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Sort" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest First</SelectItem>
+            <SelectItem value="oldest">Oldest First</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
