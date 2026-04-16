@@ -99,9 +99,15 @@ export default function Payroll() {
 
   const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(n || 0);
 
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    if (!a.payment_date) return 1;
+    if (!b.payment_date) return -1;
+    return new Date(b.payment_date) - new Date(a.payment_date);
+  });
+
   return (
     <div className="min-h-screen bg-[#fafafa] p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-full">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
@@ -185,25 +191,25 @@ export default function Payroll() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Εργαζόμενος</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Περίοδος</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Τύπος</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">Σύνολο Αποδοχών</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">Κρατήσεις Εργ/νου</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">Εισφορές Εργοδ.</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">Καθαρές</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Πηγή</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Ημ/νία</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-500">Αρχεία</th>
-                    <th className="px-4 py-3"></th>
+                    <th className="text-left px-3 py-3 font-medium text-gray-500 w-[16%]">Εργαζόμενος</th>
+                    <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Περίοδος</th>
+                    <th className="text-left px-3 py-3 font-medium text-gray-500 w-[12%]">Τύπος</th>
+                    <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Σύν. Αποδ.</th>
+                    <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Κρατ. Εργ/νου</th>
+                    <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Εισφ. Εργοδ.</th>
+                    <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Καθαρές</th>
+                    <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Πηγή</th>
+                    <th className="text-left px-3 py-3 font-medium text-gray-500 w-[8%]">Ημ/νία</th>
+                    <th className="text-center px-3 py-3 font-medium text-gray-500 w-[6%]">Αρχεία</th>
+                    <th className="px-3 py-3 w-[8%]"></th>
                   </tr>
                 </thead>
                 <tbody>
                   <AnimatePresence>
-                    {filtered.map((r, i) => (
+                    {sortedFiltered.map((r, i) => (
                       <motion.tr
                         key={r.id}
                         initial={{ opacity: 0 }}
@@ -211,22 +217,22 @@ export default function Payroll() {
                         exit={{ opacity: 0 }}
                         className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
                       >
-                        <td className="px-4 py-3 font-medium text-[#1e3a5f]">{r.employee_name}</td>
-                        <td className="px-4 py-3 text-gray-600">{r.period}</td>
-                        <td className="px-4 py-3">
-                          <Badge className={`${periodTypeColors[r.period_type] || "bg-gray-100 text-gray-700"} border-0 text-xs`}>
+                        <td className="px-3 py-3 font-medium text-[#1e3a5f] truncate">{r.employee_name}</td>
+                        <td className="px-3 py-3 text-gray-600 truncate">{r.period}</td>
+                        <td className="px-3 py-3">
+                          <Badge className={`${periodTypeColors[r.period_type] || "bg-gray-100 text-gray-700"} border-0 text-xs whitespace-nowrap`}>
                             {periodTypeLabels[r.period_type] || r.period_type}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-700">{fmt(r.gross_salary)}</td>
-                        <td className="px-4 py-3 text-right text-amber-700">{fmt(r.total_insurance_deductions)}</td>
-                        <td className="px-4 py-3 text-right text-purple-700">{fmt(r.employer_insurance_amount)}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-emerald-700">{fmt(r.net_salary)}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{r.payment_source || "—"}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">
+                        <td className="px-3 py-3 text-right text-gray-700 tabular-nums">{fmt(r.gross_salary)}</td>
+                        <td className="px-3 py-3 text-right text-amber-700 tabular-nums">{fmt(r.total_insurance_deductions)}</td>
+                        <td className="px-3 py-3 text-right text-purple-700 tabular-nums">{fmt(r.employer_insurance_amount)}</td>
+                        <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(r.net_salary)}</td>
+                        <td className="px-3 py-3 text-gray-500 text-xs truncate">{r.payment_source || "—"}</td>
+                        <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">
                           {r.payment_date ? format(new Date(r.payment_date), "dd/MM/yyyy") : "—"}
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-3 py-3 text-center">
                           <div className="flex items-center justify-center gap-1">
                             {r.apd_file_url && (
                               <a href={r.apd_file_url} target="_blank" rel="noopener noreferrer" title="ΑΠΔ">
@@ -244,7 +250,7 @@ export default function Payroll() {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3">
                           <div className="flex items-center gap-1 justify-end">
                             <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => { setEditing(r); setShowForm(true); }}>
                               <Pencil className="w-3.5 h-3.5" />
@@ -260,11 +266,11 @@ export default function Payroll() {
                 </tbody>
                 <tfoot className="bg-gray-50 border-t border-gray-200">
                   <tr>
-                    <td colSpan={3} className="px-4 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} εγγραφές)</td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-700">{fmt(totalGross)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-amber-700">{fmt(totalEmployeeInsurance)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-purple-700">{fmt(totalEmployerInsurance)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-700">{fmt(totalNet)}</td>
+                    <td colSpan={3} className="px-3 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} εγγραφές)</td>
+                    <td className="px-3 py-3 text-right font-semibold text-gray-700 tabular-nums">{fmt(totalGross)}</td>
+                    <td className="px-3 py-3 text-right font-semibold text-amber-700 tabular-nums">{fmt(totalEmployeeInsurance)}</td>
+                    <td className="px-3 py-3 text-right font-semibold text-purple-700 tabular-nums">{fmt(totalEmployerInsurance)}</td>
+                    <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(totalNet)}</td>
                     <td colSpan={4}></td>
                   </tr>
                 </tfoot>
