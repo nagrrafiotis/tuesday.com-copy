@@ -54,7 +54,7 @@ export default function APDScanDialog({ open, onClose, onCreated }) {
   - work_system: Σύστημα εργασίας (π.χ. Πενθήμερο)
   - from_date: Από ημ/νία απασχόλησης (YYYY-MM-DD)
   - to_date: Έως ημ/νία απασχόλησης (YYYY-MM-DD)`,
-      model: "gemini_3_flash",
+      model: "gpt_5",
       file_urls: [file_url],
       response_json_schema: {
         type: "object",
