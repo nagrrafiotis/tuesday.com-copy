@@ -55,7 +55,6 @@ export default function APDScanDialog({ open, onClose, onCreated }) {
   - from_date: Από ημ/νία απασχόλησης (YYYY-MM-DD)
   - to_date: Έως ημ/νία απασχόλησης (YYYY-MM-DD)`,
       file_urls: [file_url],
-      model: "claude_sonnet_4_6",
       response_json_schema: {
         type: "object",
         properties: {
