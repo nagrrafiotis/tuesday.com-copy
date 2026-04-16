@@ -39,6 +39,7 @@ export default function PayrollScanDialog({ open, onClose, onExtracted }) {
       - apd_insurance_days: Ημέρες ασφάλισης ΑΠΔ (αριθμός)
       - working_days: Ημέρες παρουσίας (αριθμός)
       Αν κάποιο πεδίο δεν υπάρχει στο έγγραφο, άφησε null.`,
+      model: "gemini_3_flash",
       file_urls: [file_url],
       response_json_schema: {
         type: "object",
