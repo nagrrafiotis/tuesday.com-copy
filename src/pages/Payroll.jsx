@@ -6,15 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PayrollForm from "@/components/payroll/PayrollForm";
 import PayrollScanDialog from "@/components/payroll/PayrollScanDialog";
 import APDScanDialog from "@/components/payroll/APDScanDialog";
+import GeneralExpensesTable from "@/components/company-expenses/GeneralExpensesTable";
 import {
   Plus, Search, Trash2, Pencil, FileText, ScanLine,
   Users, DollarSign, TrendingDown, Building2, ExternalLink
 } from "lucide-react";
 import { format } from "date-fns";
-import { el } from "date-fns/locale";
 
 const periodTypeLabels = {
   regular: "Κανονικές Αποδοχές",
@@ -81,7 +82,6 @@ export default function Payroll() {
     }
   };
 
-  // Unique employees for filter
   const employees = [...new Set(records.map(r => r.employee_name))].sort();
 
   const filtered = records.filter(r => {
@@ -91,7 +91,6 @@ export default function Payroll() {
     return matchSearch && matchEmployee && matchType;
   });
 
-  // Stats
   const totalNet = filtered.reduce((s, r) => s + (r.net_salary || 0), 0);
   const totalEmployerInsurance = filtered.reduce((s, r) => s + (r.employer_insurance_amount || 0), 0);
   const totalEmployeeInsurance = filtered.reduce((s, r) => s + (r.total_insurance_deductions || 0), 0);
@@ -111,173 +110,180 @@ export default function Payroll() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-[#1e3a5f]">Μισθοδοσία</h1>
-            <p className="text-gray-500 text-sm mt-1">Διαχείριση μισθοδοσίας εταιρείας</p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={() => setShowScan(true)}>
-              <ScanLine className="w-4 h-4 mr-2" />
-              Σάρωση Μισθοδοσίας
-            </Button>
-            <Button variant="outline" onClick={() => setShowAPDScan(true)} className="border-blue-200 text-blue-700 hover:bg-blue-50">
-              <ScanLine className="w-4 h-4 mr-2" />
-              Σάρωση ΑΠΔ
-            </Button>
-            <Button
-              className="bg-[#1e3a5f] hover:bg-[#152a45]"
-              onClick={() => { setEditing(null); setPrefillData(null); setShowForm(true); }}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Νέα Εγγραφή
-            </Button>
+            <h1 className="text-2xl font-bold text-[#1e3a5f]">Company Expenses</h1>
+            <p className="text-gray-500 text-sm mt-1">Διαχείριση εξόδων εταιρείας</p>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: "Καθαρές Αποδοχές", value: fmt(totalNet), icon: DollarSign, color: "bg-emerald-100 text-emerald-700" },
-            { label: "Σύνολο Αποδοχών", value: fmt(totalGross), icon: TrendingDown, color: "bg-blue-100 text-blue-700" },
-            { label: "Κρατήσεις Εργαζομένου", value: fmt(totalEmployeeInsurance), icon: Users, color: "bg-amber-100 text-amber-700" },
-            { label: "Εισφορές Εργοδότη", value: fmt(totalEmployerInsurance), icon: Building2, color: "bg-purple-100 text-purple-700" },
-          ].map((stat, i) => (
-            <div key={i} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${stat.color}`}>
-                  <stat.icon className="w-5 h-5" />
+        <Tabs defaultValue="payroll">
+          <TabsList className="mb-6">
+            <TabsTrigger value="payroll">Payroll</TabsTrigger>
+            <TabsTrigger value="general">General Expenses</TabsTrigger>
+          </TabsList>
+
+          {/* ── PAYROLL TAB ── */}
+          <TabsContent value="payroll">
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              {[
+                { label: "Καθαρές Αποδοχές", value: fmt(totalNet), icon: DollarSign, color: "bg-emerald-100 text-emerald-700" },
+                { label: "Σύνολο Αποδοχών", value: fmt(totalGross), icon: TrendingDown, color: "bg-blue-100 text-blue-700" },
+                { label: "Κρατήσεις Εργαζομένου", value: fmt(totalEmployeeInsurance), icon: Users, color: "bg-amber-100 text-amber-700" },
+                { label: "Εισφορές Εργοδότη", value: fmt(totalEmployerInsurance), icon: Building2, color: "bg-purple-100 text-purple-700" },
+              ].map((stat, i) => (
+                <div key={i} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${stat.color}`}>
+                      <stat.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">{stat.label}</p>
+                      <p className="text-lg font-bold text-[#1e3a5f]">{stat.value}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500">{stat.label}</p>
-                  <p className="text-lg font-bold text-[#1e3a5f]">{stat.value}</p>
+              ))}
+            </div>
+
+            {/* Payroll Toolbar */}
+            <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
+              <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex flex-wrap gap-3 items-center flex-1">
+                <div className="relative flex-1 min-w-48">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input placeholder="Αναζήτηση εργαζομένου ή περιόδου..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
+                <Select value={filterEmployee} onValueChange={setFilterEmployee}>
+                  <SelectTrigger className="w-48"><SelectValue placeholder="Εργαζόμενος" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Όλοι οι εργαζόμενοι</SelectItem>
+                    {employees.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="w-48"><SelectValue placeholder="Τύπος" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Όλοι οι τύποι</SelectItem>
+                    {Object.entries(periodTypeLabels).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" onClick={() => setShowScan(true)}>
+                  <ScanLine className="w-4 h-4 mr-2" />Σάρωση Μισθοδοσίας
+                </Button>
+                <Button variant="outline" onClick={() => setShowAPDScan(true)} className="border-blue-200 text-blue-700 hover:bg-blue-50">
+                  <ScanLine className="w-4 h-4 mr-2" />Σάρωση ΑΠΔ
+                </Button>
+                <Button className="bg-[#1e3a5f] hover:bg-[#152a45]"
+                  onClick={() => { setEditing(null); setPrefillData(null); setShowForm(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />Νέα Εγγραφή
+                </Button>
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4 flex flex-wrap gap-3 items-center">
-          <div className="relative flex-1 min-w-48">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input placeholder="Αναζήτηση εργαζομένου ή περιόδου..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-          <Select value={filterEmployee} onValueChange={setFilterEmployee}>
-            <SelectTrigger className="w-48"><SelectValue placeholder="Εργαζόμενος" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Όλοι οι εργαζόμενοι</SelectItem>
-              {employees.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-48"><SelectValue placeholder="Τύπος" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Όλοι οι τύποι</SelectItem>
-              {Object.entries(periodTypeLabels).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+            {/* Payroll Table */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              {isLoading ? (
+                <div className="text-center py-16 text-gray-400">Φόρτωση...</div>
+              ) : filtered.length === 0 ? (
+                <div className="text-center py-16">
+                  <Users className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                  <p className="text-gray-400">Δεν βρέθηκαν εγγραφές μισθοδοσίας</p>
+                  <Button className="mt-4 bg-[#1e3a5f] hover:bg-[#152a45]" onClick={() => { setEditing(null); setShowForm(true); }}>
+                    <Plus className="w-4 h-4 mr-2" />Νέα Εγγραφή
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm table-fixed">
+                    <thead className="bg-gray-50 border-b border-gray-100">
+                      <tr>
+                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[16%]">Εργαζόμενος</th>
+                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Περίοδος</th>
+                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[12%]">Τύπος</th>
+                        <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Σύν. Αποδ.</th>
+                        <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Κρατ. Εργ/νου</th>
+                        <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Εισφ. Εργοδ.</th>
+                        <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Καθαρές</th>
+                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Πηγή</th>
+                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[8%]">Ημ/νία</th>
+                        <th className="text-center px-3 py-3 font-medium text-gray-500 w-[6%]">Αρχεία</th>
+                        <th className="px-3 py-3 w-[8%]"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <AnimatePresence>
+                        {sortedFiltered.map(r => (
+                          <motion.tr key={r.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                            <td className="px-3 py-3 font-medium text-[#1e3a5f] truncate">{r.employee_name}</td>
+                            <td className="px-3 py-3 text-gray-600 truncate">{r.period}</td>
+                            <td className="px-3 py-3">
+                              <Badge className={`${periodTypeColors[r.period_type] || "bg-gray-100 text-gray-700"} border-0 text-xs whitespace-nowrap`}>
+                                {periodTypeLabels[r.period_type] || r.period_type}
+                              </Badge>
+                            </td>
+                            <td className="px-3 py-3 text-right text-gray-700 tabular-nums">{fmt(r.gross_salary)}</td>
+                            <td className="px-3 py-3 text-right text-amber-700 tabular-nums">{fmt(r.total_insurance_deductions)}</td>
+                            <td className="px-3 py-3 text-right text-purple-700 tabular-nums">{fmt(r.employer_insurance_amount)}</td>
+                            <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(r.net_salary)}</td>
+                            <td className="px-3 py-3 text-gray-500 text-xs truncate">{r.payment_source || "—"}</td>
+                            <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">
+                              {r.payment_date ? format(new Date(r.payment_date), "dd/MM/yyyy") : "—"}
+                            </td>
+                            <td className="px-3 py-3 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                {r.apd_file_url && (
+                                  <a href={r.apd_file_url} target="_blank" rel="noopener noreferrer" title="ΑΠΔ">
+                                    <Button variant="ghost" size="icon" className="w-7 h-7 text-blue-600">
+                                      <FileText className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </a>
+                                )}
+                                {r.payslip_file_url && (
+                                  <a href={r.payslip_file_url} target="_blank" rel="noopener noreferrer" title="Απόδειξη">
+                                    <Button variant="ghost" size="icon" className="w-7 h-7 text-[#1e3a5f]">
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </a>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3">
+                              <div className="flex items-center gap-1 justify-end">
+                                <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => { setEditing(r); setShowForm(true); }}>
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="w-7 h-7 text-red-500 hover:text-red-700" onClick={() => handleDelete(r)}>
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          </motion.tr>
+                        ))}
+                      </AnimatePresence>
+                    </tbody>
+                    <tfoot className="bg-gray-50 border-t border-gray-200">
+                      <tr>
+                        <td colSpan={3} className="px-3 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} εγγραφές)</td>
+                        <td className="px-3 py-3 text-right font-semibold text-gray-700 tabular-nums">{fmt(totalGross)}</td>
+                        <td className="px-3 py-3 text-right font-semibold text-amber-700 tabular-nums">{fmt(totalEmployeeInsurance)}</td>
+                        <td className="px-3 py-3 text-right font-semibold text-purple-700 tabular-nums">{fmt(totalEmployerInsurance)}</td>
+                        <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(totalNet)}</td>
+                        <td colSpan={4}></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </div>
+          </TabsContent>
 
-        {/* Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          {isLoading ? (
-            <div className="text-center py-16 text-gray-400">Φόρτωση...</div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-16">
-              <Users className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-              <p className="text-gray-400">Δεν βρέθηκαν εγγραφές μισθοδοσίας</p>
-              <Button className="mt-4 bg-[#1e3a5f] hover:bg-[#152a45]" onClick={() => { setEditing(null); setShowForm(true); }}>
-                <Plus className="w-4 h-4 mr-2" />Νέα Εγγραφή
-              </Button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm table-fixed">
-                <thead className="bg-gray-50 border-b border-gray-100">
-                  <tr>
-                    <th className="text-left px-3 py-3 font-medium text-gray-500 w-[16%]">Εργαζόμενος</th>
-                    <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Περίοδος</th>
-                    <th className="text-left px-3 py-3 font-medium text-gray-500 w-[12%]">Τύπος</th>
-                    <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Σύν. Αποδ.</th>
-                    <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Κρατ. Εργ/νου</th>
-                    <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Εισφ. Εργοδ.</th>
-                    <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Καθαρές</th>
-                    <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Πηγή</th>
-                    <th className="text-left px-3 py-3 font-medium text-gray-500 w-[8%]">Ημ/νία</th>
-                    <th className="text-center px-3 py-3 font-medium text-gray-500 w-[6%]">Αρχεία</th>
-                    <th className="px-3 py-3 w-[8%]"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <AnimatePresence>
-                    {sortedFiltered.map((r, i) => (
-                      <motion.tr
-                        key={r.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-3 py-3 font-medium text-[#1e3a5f] truncate">{r.employee_name}</td>
-                        <td className="px-3 py-3 text-gray-600 truncate">{r.period}</td>
-                        <td className="px-3 py-3">
-                          <Badge className={`${periodTypeColors[r.period_type] || "bg-gray-100 text-gray-700"} border-0 text-xs whitespace-nowrap`}>
-                            {periodTypeLabels[r.period_type] || r.period_type}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-3 text-right text-gray-700 tabular-nums">{fmt(r.gross_salary)}</td>
-                        <td className="px-3 py-3 text-right text-amber-700 tabular-nums">{fmt(r.total_insurance_deductions)}</td>
-                        <td className="px-3 py-3 text-right text-purple-700 tabular-nums">{fmt(r.employer_insurance_amount)}</td>
-                        <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(r.net_salary)}</td>
-                        <td className="px-3 py-3 text-gray-500 text-xs truncate">{r.payment_source || "—"}</td>
-                        <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">
-                          {r.payment_date ? format(new Date(r.payment_date), "dd/MM/yyyy") : "—"}
-                        </td>
-                        <td className="px-3 py-3 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            {r.apd_file_url && (
-                              <a href={r.apd_file_url} target="_blank" rel="noopener noreferrer" title="ΑΠΔ">
-                                <Button variant="ghost" size="icon" className="w-7 h-7 text-blue-600">
-                                  <FileText className="w-3.5 h-3.5" />
-                                </Button>
-                              </a>
-                            )}
-                            {r.payslip_file_url && (
-                              <a href={r.payslip_file_url} target="_blank" rel="noopener noreferrer" title="Απόδειξη">
-                                <Button variant="ghost" size="icon" className="w-7 h-7 text-[#1e3a5f]">
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                </Button>
-                              </a>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <div className="flex items-center gap-1 justify-end">
-                            <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => { setEditing(r); setShowForm(true); }}>
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="w-7 h-7 text-red-500 hover:text-red-700" onClick={() => handleDelete(r)}>
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </AnimatePresence>
-                </tbody>
-                <tfoot className="bg-gray-50 border-t border-gray-200">
-                  <tr>
-                    <td colSpan={3} className="px-3 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} εγγραφές)</td>
-                    <td className="px-3 py-3 text-right font-semibold text-gray-700 tabular-nums">{fmt(totalGross)}</td>
-                    <td className="px-3 py-3 text-right font-semibold text-amber-700 tabular-nums">{fmt(totalEmployeeInsurance)}</td>
-                    <td className="px-3 py-3 text-right font-semibold text-purple-700 tabular-nums">{fmt(totalEmployerInsurance)}</td>
-                    <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(totalNet)}</td>
-                    <td colSpan={4}></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          )}
-        </div>
+          {/* ── GENERAL EXPENSES TAB ── */}
+          <TabsContent value="general">
+            <GeneralExpensesTable />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <PayrollForm
