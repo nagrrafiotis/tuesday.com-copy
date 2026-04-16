@@ -106,7 +106,7 @@ export default function APDScanDialog({ open, onClose, onCreated }) {
     if (!result?.employees?.length) return;
     
     for (const emp of result.employees) {
-      const paymentDate = emp.to_date && emp.to_date.match(/^\d{4}-\d{2}-\d{2}$/) ? emp.to_date : undefined;
+      const paymentDate = emp.to_date && emp.to_date.match(/^\d{4}-\d{2}-\d{2}$/) ? emp.to_date : new Date().toISOString().split("T")[0];
       await base44.entities.Payroll.create({
         employee_name: emp.full_name,
         employee_amka: emp.amka,
@@ -114,7 +114,7 @@ export default function APDScanDialog({ open, onClose, onCreated }) {
         specialty: emp.specialty_code,
         period: result.period,
         period_type: "regular",
-        ...(paymentDate ? { payment_date: paymentDate } : {}),
+        payment_date: paymentDate,
         gross_salary: emp.gross_salary,
         ika_etam: emp.employee_contributions_101,
         efka_contribution: emp.employee_contributions_2694,
