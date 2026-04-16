@@ -10,13 +10,15 @@ const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "
 export default function APDScanDialog({ open, onClose, onCreated }) {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null); // { period, employer, employees: [...] }
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
   const [expandedIndex, setExpandedIndex] = useState(null);
 
   const handleScan = async () => {
     if (!file) return;
     setLoading(true);
     setResult(null);
+    setError(null);
 
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
@@ -54,7 +56,7 @@ export default function APDScanDialog({ open, onClose, onCreated }) {
   - work_system: Σύστημα εργασίας (π.χ. Πενθήμερο)
   - from_date: Από ημ/νία απασχόλησης (YYYY-MM-DD)
   - to_date: Έως ημ/νία απασχόλησης (YYYY-MM-DD)`,
-      model: "gpt_5",
+      model: "gpt_5_4",
       file_urls: [file_url],
       response_json_schema: {
         type: "object",
@@ -92,7 +94,11 @@ export default function APDScanDialog({ open, onClose, onCreated }) {
       }
     });
 
-    setResult({ ...extracted, apd_file_url: file_url });
+    if (!extracted || !extracted.employees || extracted.employees.length === 0) {
+      setError("Δεν βρέθηκαν δεδομένα εργαζομένων στο PDF. Βεβαιωθείτε ότι ανεβάσατε ΑΠΔ από το e-ΕΦΚΑ.");
+    } else {
+      setResult({ ...extracted, apd_file_url: file_url });
+    }
     setLoading(false);
   };
 
@@ -142,6 +148,12 @@ export default function APDScanDialog({ open, onClose, onCreated }) {
           <DialogTitle>Σάρωση ΑΠΔ (e-ΕΦΚΑ)</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           {!result && (
             <label className="flex flex-col items-center gap-3 border-2 border-dashed border-gray-200 rounded-xl p-8 cursor-pointer hover:border-[#1e3a5f] transition-colors">
               <Upload className="w-8 h-8 text-gray-400" />
