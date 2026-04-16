@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PayrollForm from "@/components/payroll/PayrollForm";
 import PayrollScanDialog from "@/components/payroll/PayrollScanDialog";
+import APDScanDialog from "@/components/payroll/APDScanDialog";
 import {
   Plus, Search, Trash2, Pencil, FileText, ScanLine,
   Users, DollarSign, TrendingDown, Building2, ExternalLink
@@ -34,6 +35,7 @@ const periodTypeColors = {
 export default function Payroll() {
   const [showForm, setShowForm] = useState(false);
   const [showScan, setShowScan] = useState(false);
+  const [showAPDScan, setShowAPDScan] = useState(false);
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState("");
   const [filterEmployee, setFilterEmployee] = useState("all");
@@ -106,10 +108,14 @@ export default function Payroll() {
             <h1 className="text-2xl font-bold text-[#1e3a5f]">Μισθοδοσία</h1>
             <p className="text-gray-500 text-sm mt-1">Διαχείριση μισθοδοσίας εταιρείας</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => setShowScan(true)}>
               <ScanLine className="w-4 h-4 mr-2" />
-              Σάρωση PDF
+              Σάρωση Μισθοδοσίας
+            </Button>
+            <Button variant="outline" onClick={() => setShowAPDScan(true)} className="border-blue-200 text-blue-700 hover:bg-blue-50">
+              <ScanLine className="w-4 h-4 mr-2" />
+              Σάρωση ΑΠΔ
             </Button>
             <Button
               className="bg-[#1e3a5f] hover:bg-[#152a45]"
@@ -279,6 +285,12 @@ export default function Payroll() {
         open={showScan}
         onClose={() => setShowScan(false)}
         onExtracted={handleScanExtracted}
+      />
+
+      <APDScanDialog
+        open={showAPDScan}
+        onClose={() => setShowAPDScan(false)}
+        onCreated={() => queryClient.invalidateQueries({ queryKey: ["payroll"] })}
       />
     </div>
   );
