@@ -43,7 +43,7 @@ const navItems = [
   { name: "Tasks", icon: ClipboardList, page: "Tasks" },
   { name: "Gantt", icon: BarChart3, page: "Gantt" },
   { name: "Notebook", icon: Calendar, page: "ConstructionNotebook" },
-  { name: "Expenses", icon: Receipt, page: "Expenses" },
+  { name: "Project Expenses", icon: Receipt, page: "Expenses" },
   { name: "Income", icon: TrendingUp, page: "Income" },
   { name: "Financial Overview", icon: DollarSign, page: "FinancialOverview" },
   { name: "Invoices", icon: FileText, page: "Invoices" },
