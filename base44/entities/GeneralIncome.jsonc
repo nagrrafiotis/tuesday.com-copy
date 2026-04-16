@@ -1,0 +1,48 @@
+{
+  "name": "GeneralIncome",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": "string",
+      "description": "\u03a0\u03b5\u03c1\u03b9\u03b3\u03c1\u03b1\u03c6\u03ae \u03b5\u03c3\u03cc\u03b4\u03bf\u03c5"
+    },
+    "category": {
+      "type": "string",
+      "description": "\u039a\u03b1\u03c4\u03b7\u03b3\u03bf\u03c1\u03af\u03b1 \u03b5\u03c3\u03cc\u03b4\u03bf\u03c5"
+    },
+    "amount": {
+      "type": "number",
+      "description": "\u03a0\u03bf\u03c3\u03cc (\u20ac)"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "\u0397\u03bc\u03b5\u03c1\u03bf\u03bc\u03b7\u03bd\u03af\u03b1 \u03b5\u03c3\u03cc\u03b4\u03bf\u03c5"
+    },
+    "payment_source": {
+      "type": "string",
+      "description": "\u03a0\u03b7\u03b3\u03ae \u03c0\u03bb\u03b7\u03c1\u03c9\u03bc\u03ae\u03c2"
+    },
+    "payer": {
+      "type": "string",
+      "description": "\u03a0\u03b5\u03bb\u03ac\u03c4\u03b7\u03c2 / \u03a0\u03bb\u03b7\u03c1\u03c9\u03c4\u03ae\u03c2"
+    },
+    "invoice_number": {
+      "type": "string",
+      "description": "\u0391\u03c1\u03b9\u03b8\u03bc\u03cc\u03c2 \u03c4\u03b9\u03bc\u03bf\u03bb\u03bf\u03b3\u03af\u03bf\u03c5"
+    },
+    "notes": {
+      "type": "string",
+      "description": "\u03a3\u03b7\u03bc\u03b5\u03b9\u03ce\u03c3\u03b5\u03b9\u03c2"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL \u03b1\u03c1\u03c7\u03b5\u03af\u03bf\u03c5 (\u03c0\u03b1\u03c1\u03b1\u03c3\u03c4\u03b1\u03c4\u03b9\u03ba\u03cc)"
+    }
+  },
+  "required": [
+    "description",
+    "amount",
+    "date"
+  ]
+}

@@ -11,6 +11,7 @@ import PayrollForm from "@/components/payroll/PayrollForm";
 import PayrollScanDialog from "@/components/payroll/PayrollScanDialog";
 import APDScanDialog from "@/components/payroll/APDScanDialog";
 import GeneralExpensesTable from "@/components/company-expenses/GeneralExpensesTable";
+import GeneralIncomeTable from "@/components/company-expenses/GeneralIncomeTable";
 import {
   Plus, Search, Trash2, Pencil, FileText, ScanLine,
   Users, DollarSign, TrendingDown, Building2, ExternalLink
@@ -119,6 +120,7 @@ export default function Payroll() {
           <TabsList className="mb-6">
             <TabsTrigger value="payroll">Payroll</TabsTrigger>
             <TabsTrigger value="general">General Expenses</TabsTrigger>
+            <TabsTrigger value="income">General Income</TabsTrigger>
           </TabsList>
 
           {/* ── PAYROLL TAB ── */}
@@ -282,6 +284,11 @@ export default function Payroll() {
           {/* ── GENERAL EXPENSES TAB ── */}
           <TabsContent value="general">
             <GeneralExpensesTable />
+          </TabsContent>
+
+          {/* ── GENERAL INCOME TAB ── */}
+          <TabsContent value="income">
+            <GeneralIncomeTable />
           </TabsContent>
         </Tabs>
       </div>
