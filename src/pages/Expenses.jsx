@@ -645,8 +645,8 @@ export default function Expenses() {
                   className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 rounded-2xl transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-[#1e3a5f]" />
-                    <span className="font-semibold text-[#1e3a5f]">Invoices</span>
+                     <FileText className="w-5 h-5 text-[#1e3a5f]" />
+                     <span className="font-semibold text-[#1e3a5f]">Project Installments</span>
                     {invoices.length > 0 && <span className="text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{invoices.length}</span>}
                   </div>
                   <div className="flex items-center gap-3">
