@@ -15,6 +15,10 @@ import {
   CheckCircle2, ArrowRight, Pencil, Trash2, Building2, Calendar,
 } from "lucide-react";
 import { format } from "date-fns";
+import { Input } from "@/components/ui/input";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from "@/components/ui/select";
 
 const categoryIcons = {
   labor: Users, subcontractor: Wrench, materials: Package, equipment: Truck, general_expenses: Receipt,
@@ -239,8 +243,23 @@ export default function InvoiceTable({
                   />
                 </TableCell>
 
-                <TableCell className="text-gray-600 whitespace-nowrap">
-                  {safeFormatDate(invoice.date)}
+                <TableCell className="text-gray-600 whitespace-nowrap cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`date-${invoice.id}`); }}>
+                   {editingCell === `date-${invoice.id}` ? (
+                     <Input
+                       type="date"
+                       value={invoice.date || ""}
+                       onChange={e => {
+                         const newVal = e.target.value;
+                         updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, date: newVal } });
+                         setEditingCell(null);
+                       }}
+                       className="h-7 text-xs"
+                       autoFocus
+                       onBlur={() => setEditingCell(null)}
+                     />
+                   ) : (
+                     <span className="hover:text-[#1e3a5f]">{safeFormatDate(invoice.date)}</span>
+                   )}
                 </TableCell>
 
                 <TableCell className="cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`phase-${invoice.id}`); }}>
@@ -312,12 +331,44 @@ export default function InvoiceTable({
                   </span>
                 </TableCell>
 
-                <TableCell className="font-medium text-gray-900 text-sm">{invoice.vendor_client}</TableCell>
+                <TableCell className="font-medium text-gray-900 text-sm cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`vendor-${invoice.id}`); }}>
+                   {editingCell === `vendor-${invoice.id}` ? (
+                     <Input
+                       value={invoice.vendor_client || ""}
+                       onChange={e => {
+                         const newVal = e.target.value;
+                         updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, vendor_client: newVal } });
+                         setEditingCell(null);
+                       }}
+                       className="h-7 text-xs"
+                       autoFocus
+                       onBlur={() => setEditingCell(null)}
+                     />
+                   ) : (
+                     <span className="hover:text-[#1e3a5f]">{invoice.vendor_client || "—"}</span>
+                   )}
+                </TableCell>
 
-                <TableCell className="text-gray-400 text-xs">
-                  {invoice.invoice_number
-                    ? <span className="flex items-center gap-1"><Hash className="w-3 h-3" />{invoice.invoice_number}</span>
-                    : "—"}
+                <TableCell className="text-gray-400 text-xs cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`invoice-num-${invoice.id}`); }}>
+                   {editingCell === `invoice-num-${invoice.id}` ? (
+                     <Input
+                       value={invoice.invoice_number || ""}
+                       onChange={e => {
+                         const newVal = e.target.value;
+                         updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, invoice_number: newVal } });
+                         setEditingCell(null);
+                       }}
+                       className="h-7 text-xs"
+                       autoFocus
+                       onBlur={() => setEditingCell(null)}
+                     />
+                   ) : (
+                     <span className="flex items-center gap-1 hover:text-[#1e3a5f]">
+                       {invoice.invoice_number ? (
+                         <><Hash className="w-3 h-3" />{invoice.invoice_number}</>
+                       ) : "—"}
+                     </span>
+                   )}
                 </TableCell>
 
                 <TableCell>
@@ -332,12 +383,48 @@ export default function InvoiceTable({
                     : <Badge className="bg-yellow-100 text-yellow-700 border-0 text-xs">Pending</Badge>}
                 </TableCell>
 
-                <TableCell className="text-gray-600 text-sm">
-                  <span className="capitalize">{invoice.payment_method ? invoice.payment_method.replace('_', ' ') : "—"}</span>
+                <TableCell className="text-gray-600 text-sm cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`method-${invoice.id}`); }}>
+                   {editingCell === `method-${invoice.id}` ? (
+                     <Select
+                       value={invoice.payment_method || ""}
+                       onValueChange={(v) => {
+                         updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, payment_method: v } });
+                         setEditingCell(null);
+                       }}
+                     >
+                       <SelectTrigger className="h-7 text-xs min-w-[130px]"><SelectValue /></SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="cash">Cash</SelectItem>
+                         <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                         <SelectItem value="check">Check</SelectItem>
+                         <SelectItem value="credit_card">Credit Card</SelectItem>
+                         <SelectItem value="debit_card">Debit Card</SelectItem>
+                         <SelectItem value="other">Other</SelectItem>
+                       </SelectContent>
+                     </Select>
+                   ) : (
+                     <span className="capitalize hover:text-[#1e3a5f]">{invoice.payment_method ? invoice.payment_method.replace('_', ' ') : "—"}</span>
+                   )}
                 </TableCell>
 
-                <TableCell className="text-right font-semibold text-[#1e3a5f] whitespace-nowrap">
-                  {formatCurrency(invoice.total_amount)}
+                <TableCell className="text-right font-semibold text-[#1e3a5f] whitespace-nowrap cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`total-${invoice.id}`); }}>
+                   {editingCell === `total-${invoice.id}` ? (
+                     <Input
+                       type="number"
+                       step="0.01"
+                       value={invoice.total_amount || ""}
+                       onChange={e => {
+                         const newVal = Number(e.target.value);
+                         updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, total_amount: newVal } });
+                         setEditingCell(null);
+                       }}
+                       className="h-7 text-xs text-right"
+                       autoFocus
+                       onBlur={() => setEditingCell(null)}
+                     />
+                   ) : (
+                     <span className="hover:text-[#152a45]">{formatCurrency(invoice.total_amount)}</span>
+                   )}
                 </TableCell>
 
                 <TableCell onClick={e => e.stopPropagation()}>
