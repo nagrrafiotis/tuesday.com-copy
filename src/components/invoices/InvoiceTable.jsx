@@ -40,6 +40,7 @@ export default function InvoiceTable({
   onEdit, onDelete, onTransfer,
 }) {
   const [editingCell, setEditingCell] = useState(null);
+  const [bulkField, setBulkField] = useState(null); // "phase" | "category" | "subcategory"
   const queryClient = useQueryClient();
 
   const { data: subcategories = [] } = useQuery({ queryKey: ["subcategories"], queryFn: () => base44.entities.Subcategory.list() });
@@ -63,6 +64,21 @@ export default function InvoiceTable({
     updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, subcategory: value } });
   };
 
+  const handleBulkUpdate = (field, value) => {
+    const selected = invoices.filter(inv => selectedInvoices.includes(inv.id));
+    selected.forEach(inv => {
+      let update = { ...inv };
+      if (field === "category") update.category = value;
+      else if (field === "subcategory") update.subcategory = value;
+      else if (field === "phase") {
+        const firstSub = subcategories.find(s => s.phase_id === value);
+        update.subcategory = firstSub?.name || "";
+      }
+      updateInvoiceMutation.mutate({ id: inv.id, data: update });
+    });
+    setBulkField(null);
+  };
+
   const getProjectPhase = (subcategoryName) => {
     if (!subcategoryName) return null;
     const sub = subcategories.find(s => s.name === subcategoryName);
@@ -84,9 +100,62 @@ export default function InvoiceTable({
   return (
     <div className="overflow-auto max-h-[480px] w-full">
       {selectedInvoices.length > 1 && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f]/5 border-b border-[#1e3a5f]/10 text-sm text-[#1e3a5f] font-medium">
-          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1e3a5f] text-white text-xs">{selectedInvoices.length}</span>
-          invoices selected
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-[#1e3a5f]/5 border-b border-[#1e3a5f]/10 flex-wrap">
+          <span className="flex items-center gap-1.5 text-sm text-[#1e3a5f] font-semibold">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1e3a5f] text-white text-xs">{selectedInvoices.length}</span>
+            επιλεγμένα
+          </span>
+          <span className="text-gray-300 text-sm">|</span>
+          <span className="text-xs text-gray-500 font-medium">Εφαρμογή σε όλα:</span>
+
+          {/* Bulk Phase */}
+          {bulkField === "phase" ? (
+            <SearchableSelect
+              value=""
+              onValueChange={(v) => handleBulkUpdate("phase", v)}
+              items={phases.map(p => ({ value: p.id, label: p.name }))}
+              placeholder="Επιλογή Phase..."
+              triggerClassName="h-7 text-xs min-w-[150px]"
+            />
+          ) : (
+            <button onClick={() => setBulkField("phase")} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded border border-[#1e3a5f]/30 text-[#1e3a5f] hover:bg-[#1e3a5f]/10 transition-colors">
+              <Layers className="w-3 h-3" /> Phase
+            </button>
+          )}
+
+          {/* Bulk Category */}
+          {bulkField === "category" ? (
+            <SearchableSelect
+              value=""
+              onValueChange={(v) => handleBulkUpdate("category", v)}
+              items={expenseCategories.map(cat => ({ value: cat, label: cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') }))}
+              placeholder="Επιλογή Category..."
+              triggerClassName="h-7 text-xs min-w-[160px]"
+            />
+          ) : (
+            <button onClick={() => setBulkField("category")} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded border border-[#1e3a5f]/30 text-[#1e3a5f] hover:bg-[#1e3a5f]/10 transition-colors">
+              <Receipt className="w-3 h-3" /> Category
+            </button>
+          )}
+
+          {/* Bulk Subcategory */}
+          {bulkField === "subcategory" ? (
+            <SearchableSelect
+              value=""
+              onValueChange={(v) => handleBulkUpdate("subcategory", v)}
+              items={subcategories.map(s => ({ value: s.name, label: s.name }))}
+              placeholder="Επιλογή Subcategory..."
+              triggerClassName="h-7 text-xs min-w-[160px]"
+            />
+          ) : (
+            <button onClick={() => setBulkField("subcategory")} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded border border-[#1e3a5f]/30 text-[#1e3a5f] hover:bg-[#1e3a5f]/10 transition-colors">
+              <Wrench className="w-3 h-3" /> Subcategory
+            </button>
+          )}
+
+          {bulkField && (
+            <button onClick={() => setBulkField(null)} className="text-xs text-gray-400 hover:text-gray-600 ml-1">✕</button>
+          )}
         </div>
       )}
       <Table className="w-auto min-w-full">
