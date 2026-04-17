@@ -177,7 +177,7 @@ export default function FinancialOverview() {
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={projectChartData} margin={{ top: 5, right: 20, left: 20, bottom: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} tick={{ fontSize: 11 }} />
+                    <XAxis dataKey="name" angle={0} textAnchor="middle" interval={0} tick={{ fontSize: 11 }} />
                     <YAxis tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
                     <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 8 }} />
                     <Legend />
