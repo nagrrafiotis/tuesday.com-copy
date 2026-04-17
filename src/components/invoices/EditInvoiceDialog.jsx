@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Pencil, Loader2 } from "lucide-react";
@@ -20,6 +21,26 @@ export default function EditInvoiceDialog({ open, onClose, invoice, projects, on
     queryKey: ["paymentSources"],
     queryFn: () => base44.entities.PaymentSource.list("name"),
   });
+
+  const { data: subcategories = [] } = useQuery({
+    queryKey: ["subcategories"],
+    queryFn: () => base44.entities.Subcategory.list(),
+  });
+
+  const { data: phases = [] } = useQuery({
+    queryKey: ["phases"],
+    queryFn: () => base44.entities.ProjectPhase.list("order"),
+  });
+
+  const { data: dropdownLists = [] } = useQuery({
+    queryKey: ["dropdown-lists"],
+    queryFn: () => base44.entities.DropdownList.list(),
+  });
+
+  const expenseCategories = dropdownLists.find(l => l.list_name === "expense_categories")?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"];
+
+  const currentPhaseId = subcategories.find(s => s.name === form.subcategory)?.phase_id || "";
+  const filteredSubs = currentPhaseId ? subcategories.filter(s => s.phase_id === currentPhaseId) : subcategories;
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }));
 
@@ -82,7 +103,36 @@ export default function EditInvoiceDialog({ open, onClose, invoice, projects, on
             </div>
             <div>
               <Label className="text-xs">Category</Label>
-              <Input value={form.category || ""} onChange={e => set("category", e.target.value)} className="h-9" />
+              <SearchableSelect
+                value={form.category || ""}
+                onValueChange={(v) => set("category", v)}
+                placeholder="Select category"
+                items={expenseCategories.map(cat => ({ value: cat, label: cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') }))}
+                triggerClassName="h-9 w-full"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Phase</Label>
+              <SearchableSelect
+                value={currentPhaseId}
+                onValueChange={(phaseId) => {
+                  const firstSub = subcategories.find(s => s.phase_id === phaseId);
+                  set("subcategory", firstSub?.name || "");
+                }}
+                placeholder="Select phase"
+                items={phases.map(p => ({ value: p.id, label: p.name }))}
+                triggerClassName="h-9 w-full"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Subcategory</Label>
+              <SearchableSelect
+                value={form.subcategory || ""}
+                onValueChange={(v) => set("subcategory", v)}
+                placeholder="Select subcategory"
+                items={filteredSubs.map(s => ({ value: s.name, label: s.name }))}
+                triggerClassName="h-9 w-full"
+              />
             </div>
             <div>
               <Label className="text-xs">Payment Source</Label>
