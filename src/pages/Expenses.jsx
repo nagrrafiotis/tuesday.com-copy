@@ -326,9 +326,12 @@ export default function Expenses() {
   };
 
   const filteredExpenses = expenses.filter((e) => {
-    const matchesSearch =
-      e.payee?.toLowerCase().includes(search.toLowerCase()) ||
-      e.description?.toLowerCase().includes(search.toLowerCase());
+    const q = search.toLowerCase();
+    const matchesSearch = !q || [
+      e.payee, e.description, e.category, e.subcategory,
+      e.payment_source, e.date, e.amount?.toString(),
+      projects.find(p => p.id === e.project_id)?.name,
+    ].some(v => v?.toLowerCase().includes(q));
     const matchesProject = projectFilter === "all" || e.project_id === projectFilter;
     const matchesCategory = categoryFilter === "all" || e.category === categoryFilter;
     const matchesPayee = payeeFilter === "all" || e.payee === payeeFilter;
@@ -586,7 +589,7 @@ export default function Expenses() {
                 <div className="flex flex-wrap gap-3">
                   <div className="relative flex-1 min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input placeholder="Search by payee or description..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+                    <Input placeholder="Search by payee, description, category, project, amount..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
                   </div>
                   <SearchableSelect value={projectFilter} onValueChange={setProjectFilter} placeholder="Project" triggerClassName="w-[180px]"
                     items={[{ value: "all", label: "All Projects" }, ...projects.map(p => ({ value: p.id, label: p.name }))]} />
