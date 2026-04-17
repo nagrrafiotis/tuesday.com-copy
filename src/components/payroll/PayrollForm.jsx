@@ -18,6 +18,9 @@ const periodTypes = [
 ];
 
 const defaultForm = {
+  payroll_type: "operational",
+  project_id: "",
+  project_name: "",
   employee_name: "",
   employee_afm: "",
   employee_amka: "",
@@ -57,6 +60,11 @@ export default function PayrollForm({ record, open, onClose, onSubmit }) {
     queryFn: () => base44.entities.PaymentSource.list("name"),
   });
 
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects-list"],
+    queryFn: () => base44.entities.Project.list("name"),
+  });
+
   useEffect(() => {
     if (record) {
       setForm({ ...defaultForm, ...record });
@@ -70,6 +78,11 @@ export default function PayrollForm({ record, open, onClose, onSubmit }) {
   }, [record, open]);
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleProjectChange = (projectId) => {
+    const proj = projects.find(p => p.id === projectId);
+    setForm(prev => ({ ...prev, project_id: projectId, project_name: proj?.name || "" }));
+  };
 
   const autoCalcDeductions = () => {
     const ika = parseFloat(form.ika_etam) || 0;
@@ -122,6 +135,36 @@ export default function PayrollForm({ record, open, onClose, onSubmit }) {
           <DialogTitle>{record ? "Επεξεργασία Μισθοδοσίας" : "Νέα Εγγραφή Μισθοδοσίας"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Τύπος Μισθοδοσίας (Έργο ή Λειτουργικό) */}
+          <div>
+            <h3 className="font-semibold text-[#1e3a5f] mb-3 text-sm uppercase tracking-wide">Τύπος Εγγραφής</h3>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {[{ value: "operational", label: "Λειτουργικό" }, { value: "project", label: "Έργο" }].map(t => (
+                <button key={t.value} type="button"
+                  onClick={() => setForm(prev => ({ ...prev, payroll_type: t.value, project_id: "", project_name: "" }))}
+                  className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                    form.payroll_type === t.value
+                      ? t.value === "operational"
+                        ? "bg-orange-100 border-orange-300 text-orange-800"
+                        : "bg-blue-100 border-blue-300 text-blue-800"
+                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                  }`}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {form.payroll_type === "project" && (
+              <div>
+                <Label>Έργο</Label>
+                <select className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none mt-1"
+                  value={form.project_id} onChange={e => handleProjectChange(e.target.value)}>
+                  <option value="">Επιλέξτε έργο...</option>
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+
           {/* Στοιχεία Εργαζομένου */}
           <div>
             <h3 className="font-semibold text-[#1e3a5f] mb-3 text-sm uppercase tracking-wide">Στοιχεία Εργαζομένου</h3>
