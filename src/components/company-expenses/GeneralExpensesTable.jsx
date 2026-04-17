@@ -9,6 +9,11 @@ import { Plus, Search, Trash2, Pencil, FileText, Upload, Loader2, ScanLine } fro
 import { format } from "date-fns";
 import ScanExpenseIncomeDialog from "./ScanExpenseIncomeDialog";
 
+const EXPENSE_TYPES = [
+  { value: "operational", label: "Λειτουργικό Έξοδο" },
+  { value: "project", label: "Έξοδο Έργου" },
+];
+
 const CATEGORIES = [
   "Ενοίκιο", "Τηλέφωνο / Internet", "Ρεύμα / ΔΕΗ", "Ύδρευση", "Λογιστικές υπηρεσίες",
   "Νομικές υπηρεσίες", "Τεχνικές υπηρεσίες", "Γραφική ύλη / Αναλώσιμα", "Μεταφορικά",
@@ -16,7 +21,7 @@ const CATEGORIES = [
   "Εξοπλισμός", "Λογισμικό / Συνδρομές", "Καύσιμα", "Συντήρηση", "Λοιπά"
 ];
 
-const emptyForm = { description: "", category: "", amount: "", date: "", payment_source: "", payee: "", notes: "", file_url: "" };
+const emptyForm = { description: "", expense_type: "operational", project_id: "", project_name: "", category: "", amount: "", date: "", payment_source: "", payee: "", notes: "", file_url: "" };
 
 export default function GeneralExpensesTable() {
   const [search, setSearch] = useState("");
@@ -28,6 +33,11 @@ export default function GeneralExpensesTable() {
 
   const queryClient = useQueryClient();
   const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(n || 0);
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects-list"],
+    queryFn: () => base44.entities.Project.list("name"),
+  });
 
   const { data: expenses = [], isLoading } = useQuery({
     queryKey: ["general-expenses"],
@@ -50,7 +60,12 @@ export default function GeneralExpensesTable() {
   });
 
   const openNew = () => { setEditing(null); setForm(emptyForm); setShowForm(true); };
-  const openEdit = r => { setEditing(r); setForm({ ...r, amount: r.amount?.toString() || "" }); setShowForm(true); };
+  const openEdit = r => { setEditing(r); setForm({ ...r, amount: r.amount?.toString() || "", expense_type: r.expense_type || "operational" }); setShowForm(true); };
+
+  const handleProjectChange = (projectId) => {
+    const proj = projects.find(p => p.id === projectId);
+    setForm(f => ({ ...f, project_id: projectId, project_name: proj?.name || "" }));
+  };
   const closeForm = () => { setShowForm(false); setEditing(null); setForm(emptyForm); };
 
   const handleFileUpload = async (e) => {
@@ -121,14 +136,15 @@ export default function GeneralExpensesTable() {
             <table className="w-full text-sm table-fixed">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[22%]">Περιγραφή</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[14%]">Κατηγορία</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[14%]">Δικαιούχος</th>
-                  <th className="text-right px-3 py-3 font-medium text-gray-500 w-[12%]">Ποσό</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[12%]">Πηγή</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Ημ/νία</th>
-                  <th className="text-center px-3 py-3 font-medium text-gray-500 w-[6%]">Αρχείο</th>
-                  <th className="px-3 py-3 w-[10%]"></th>
+                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[20%]">Περιγραφή</th>
+                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[13%]">Τύπος / Έργο</th>
+                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[11%]">Κατηγορία</th>
+                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[12%]">Δικαιούχος</th>
+                  <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Ποσό</th>
+                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Πηγή</th>
+                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[8%]">Ημ/νία</th>
+                  <th className="text-center px-3 py-3 font-medium text-gray-500 w-[5%]">Αρχείο</th>
+                  <th className="px-3 py-3 w-[8%]"></th>
                 </tr>
               </thead>
               <tbody>
@@ -137,6 +153,16 @@ export default function GeneralExpensesTable() {
                     <motion.tr key={r.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                       className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                       <td className="px-3 py-3 font-medium text-[#1e3a5f] truncate">{r.description}</td>
+                      <td className="px-3 py-3 text-xs truncate">
+                        {r.expense_type === "project" ? (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap">Έργο</span>
+                            <span className="text-gray-600 truncate">{r.project_name || "—"}</span>
+                          </span>
+                        ) : (
+                          <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-[10px] font-medium">Λειτουργικό</span>
+                        )}
+                      </td>
                       <td className="px-3 py-3 text-gray-600 truncate">{r.category || "—"}</td>
                       <td className="px-3 py-3 text-gray-600 truncate">{r.payee || "—"}</td>
                       <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(r.amount)}</td>
@@ -169,7 +195,7 @@ export default function GeneralExpensesTable() {
               </tbody>
               <tfoot className="bg-gray-50 border-t border-gray-200">
                 <tr>
-                  <td colSpan={3} className="px-3 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} εγγραφές)</td>
+                  <td colSpan={4} className="px-3 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} εγγραφές)</td>
                   <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(total)}</td>
                   <td colSpan={4}></td>
                 </tr>
@@ -193,6 +219,36 @@ export default function GeneralExpensesTable() {
             <DialogTitle>{editing ? "Επεξεργασία Εξόδου" : "Νέο Γενικό Έξοδο"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {/* Expense type selector */}
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Τύπος Εξόδου *</label>
+              <div className="grid grid-cols-2 gap-2">
+                {EXPENSE_TYPES.map(t => (
+                  <button key={t.value} type="button"
+                    onClick={() => setForm(f => ({ ...f, expense_type: t.value, project_id: "", project_name: "" }))}
+                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                      form.expense_type === t.value
+                        ? t.value === "operational"
+                          ? "bg-orange-100 border-orange-300 text-orange-800"
+                          : "bg-blue-100 border-blue-300 text-blue-800"
+                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                    }`}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Project selector (only if project type) */}
+            {form.expense_type === "project" && (
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Έργο *</label>
+                <select className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none"
+                  value={form.project_id} onChange={e => handleProjectChange(e.target.value)}>
+                  <option value="">Επιλέξτε έργο...</option>
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">Περιγραφή *</label>
               <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Περιγραφή εξόδου" />
