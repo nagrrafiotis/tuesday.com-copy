@@ -58,6 +58,11 @@ export default function InvoiceTable({
     updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, category: value } });
   };
 
+  const handleSubcategoryUpdate = (invoice, value) => {
+    setEditingCell(null);
+    updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, subcategory: value } });
+  };
+
   const getProjectPhase = (subcategoryName) => {
     if (!subcategoryName) return null;
     const sub = subcategories.find(s => s.name === subcategoryName);
@@ -135,10 +140,22 @@ export default function InvoiceTable({
                   {safeFormatDate(invoice.date)}
                 </TableCell>
 
-                <TableCell>
-                  {phase
-                    ? <Badge className={`${phase.color} border-0 gap-1.5`}><Layers className="w-3 h-3" />{phase.name}</Badge>
-                    : <span className="text-gray-400">—</span>}
+                <TableCell className="cursor-pointer" onClick={() => setEditingCell(`phase-${invoice.id}`)}>
+                  {editingCell === `phase-${invoice.id}` ? (
+                    <SearchableSelect
+                      value={subcategories.find(s => s.name === invoice.subcategory)?.phase_id || ""}
+                      onValueChange={(phaseId) => {
+                        // When phase changes, pick first subcategory of that phase
+                        const firstSub = subcategories.find(s => s.phase_id === phaseId);
+                        handleSubcategoryUpdate(invoice, firstSub?.name || "");
+                      }}
+                      items={phases.map(p => ({ value: p.id, label: p.name }))}
+                      placeholder="Phase"
+                      triggerClassName="h-7 text-xs min-w-[130px]"
+                    />
+                  ) : phase
+                    ? <Badge className={`${phase.color} border-0 gap-1.5 hover:opacity-80`}><Layers className="w-3 h-3" />{phase.name}</Badge>
+                    : <span className="text-gray-400 hover:text-[#1e3a5f]">—</span>}
                 </TableCell>
 
                 <TableCell className="cursor-pointer" onClick={() => setEditingCell(invoice.id)}>
@@ -155,8 +172,25 @@ export default function InvoiceTable({
                     : <span className="text-gray-400 hover:text-[#1e3a5f]">—</span>}
                 </TableCell>
 
-                <TableCell className="text-gray-600 text-sm">
-                  {invoice.subcategory || <span className="text-gray-400">—</span>}
+                <TableCell className="cursor-pointer text-gray-600 text-sm" onClick={() => setEditingCell(`sub-${invoice.id}`)}>
+                  {editingCell === `sub-${invoice.id}` ? (() => {
+                    const currentPhaseId = subcategories.find(s => s.name === invoice.subcategory)?.phase_id;
+                    const filteredSubs = currentPhaseId
+                      ? subcategories.filter(s => s.phase_id === currentPhaseId)
+                      : subcategories;
+                    return (
+                      <SearchableSelect
+                        value={invoice.subcategory || ""}
+                        onValueChange={(v) => handleSubcategoryUpdate(invoice, v)}
+                        items={filteredSubs.map(s => ({ value: s.name, label: s.name }))}
+                        placeholder="Subcategory"
+                        triggerClassName="h-7 text-xs min-w-[140px]"
+                      />
+                    );
+                  })()
+                    : invoice.subcategory
+                    ? <span className="hover:text-[#1e3a5f]">{invoice.subcategory}</span>
+                    : <span className="text-gray-400 hover:text-[#1e3a5f]">—</span>}
                 </TableCell>
 
                 <TableCell className="text-gray-600 text-sm whitespace-nowrap">
