@@ -725,14 +725,7 @@ export default function Expenses() {
                           </div>
                         ) : (
                           <>
-                            {selectedInvoices.length > 0 && (
-                              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1e3a5f] text-white rounded-xl p-3 flex items-center justify-between">
-                                <span className="font-medium text-sm">{selectedInvoices.length} selected</span>
-                                <Button onClick={handleInvoiceBulkDelete} variant="destructive" size="sm" className="bg-red-600 hover:bg-red-700">
-                                  <Trash2 className="w-4 h-4 mr-2" />Delete Selected
-                                </Button>
-                              </motion.div>
-                            )}
+                            
                             <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                               <InvoiceTable
                                 invoices={filteredInvoices}
@@ -743,6 +736,7 @@ export default function Expenses() {
                                 onEdit={(inv) => setEditInvoice(inv)}
                                 onDelete={(id) => deleteInvoiceMutation.mutate(id)}
                                 onTransfer={(inv) => setTransferInvoice(inv)}
+                                onBulkDelete={handleInvoiceBulkDelete}
                               />
                             </div>
                           </>

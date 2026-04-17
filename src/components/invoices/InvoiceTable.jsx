@@ -37,7 +37,7 @@ const safeFormatDate = (dateStr) => {
 export default function InvoiceTable({
   invoices, projects,
   selectedInvoices = [], onSelectAll, onSelectInvoice,
-  onEdit, onDelete, onTransfer,
+  onEdit, onDelete, onTransfer, onBulkDelete,
 }) {
   const [editingCell, setEditingCell] = useState(null);
   const [bulkField, setBulkField] = useState(null); // "phase" | "category" | "subcategory"
@@ -106,9 +106,9 @@ export default function InvoiceTable({
   }
 
   return (
-    <div className="overflow-auto max-h-[480px] w-full">
-      {selectedInvoices.length > 1 && (
-        <div className="flex items-center gap-3 px-4 py-2.5 bg-[#1e3a5f]/5 border-b border-[#1e3a5f]/10 flex-wrap">
+    <div className="w-full">
+      {selectedInvoices.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-[#1e3a5f]/5 border-b border-[#1e3a5f]/10 flex-wrap sticky top-0 z-30">
           <span className="flex items-center gap-1.5 text-sm text-[#1e3a5f] font-semibold">
             <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1e3a5f] text-white text-xs">{selectedInvoices.length}</span>
             επιλεγμένα
@@ -164,8 +164,15 @@ export default function InvoiceTable({
           {bulkField && (
             <button onClick={() => setBulkField(null)} className="text-xs text-gray-400 hover:text-gray-600 ml-1">✕</button>
           )}
+
+          <div className="ml-auto">
+            <Button onClick={onBulkDelete} variant="destructive" size="sm" className="bg-red-600 hover:bg-red-700 h-7 text-xs">
+              <Trash2 className="w-3 h-3 mr-1" />Διαγραφή
+            </Button>
+          </div>
         </div>
       )}
+      <div className="overflow-auto max-h-[480px] w-full">
       <Table className="w-auto min-w-full">
         <TableHeader className="sticky top-0 z-20 bg-gray-50 shadow-sm">
           <TableRow className="bg-gray-50">
@@ -327,6 +334,7 @@ export default function InvoiceTable({
           </TableRow>
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }
