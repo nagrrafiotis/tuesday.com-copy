@@ -51,6 +51,7 @@ export default function InvoiceTable({
 
   const { data: subcategories = [] } = useQuery({ queryKey: ["subcategories"], queryFn: () => base44.entities.Subcategory.list() });
   const { data: phases = [] } = useQuery({ queryKey: ["phases"], queryFn: () => base44.entities.ProjectPhase.list("order") });
+  const { data: paymentSources = [] } = useQuery({ queryKey: ["paymentSources"], queryFn: () => base44.entities.PaymentSource.list("name") });
   const { data: dropdownLists = [] } = useQuery({ queryKey: ["dropdown-lists"], queryFn: () => base44.entities.DropdownList.list() });
 
   const expenseCategories = dropdownLists.find(l => l.list_name === "expense_categories")?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"];
@@ -212,7 +213,7 @@ export default function InvoiceTable({
             <TableHead className="bg-gray-50 whitespace-nowrap">Invoice #</TableHead>
             <TableHead className="bg-gray-50 whitespace-nowrap">Type</TableHead>
             <TableHead className="bg-gray-50 whitespace-nowrap">Status</TableHead>
-            <TableHead className="bg-gray-50 whitespace-nowrap">Payment Method</TableHead>
+            <TableHead className="bg-gray-50 whitespace-nowrap">Payment Source</TableHead>
             <TableHead className="text-right bg-gray-50 whitespace-nowrap">Total</TableHead>
             <TableHead className="bg-gray-50 w-28"></TableHead>
           </TableRow>
@@ -385,25 +386,18 @@ export default function InvoiceTable({
 
                 <TableCell className="text-gray-600 text-sm cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`method-${invoice.id}`); }}>
                    {editingCell === `method-${invoice.id}` ? (
-                     <Select
+                     <SearchableSelect
                        value={invoice.payment_method || ""}
                        onValueChange={(v) => {
                          updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, payment_method: v } });
                          setEditingCell(null);
                        }}
-                     >
-                       <SelectTrigger className="h-7 text-xs min-w-[130px]"><SelectValue /></SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="cash">Cash</SelectItem>
-                         <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                         <SelectItem value="check">Check</SelectItem>
-                         <SelectItem value="credit_card">Credit Card</SelectItem>
-                         <SelectItem value="debit_card">Debit Card</SelectItem>
-                         <SelectItem value="other">Other</SelectItem>
-                       </SelectContent>
-                     </Select>
+                       items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
+                       placeholder="Select source"
+                       triggerClassName="h-7 text-xs min-w-[130px]"
+                     />
                    ) : (
-                     <span className="capitalize hover:text-[#1e3a5f]">{invoice.payment_method ? invoice.payment_method.replace('_', ' ') : "—"}</span>
+                     <span className="capitalize hover:text-[#1e3a5f]">{invoice.payment_method ? invoice.payment_method : "—"}</span>
                    )}
                 </TableCell>
 
