@@ -523,6 +523,9 @@ export default function Expenses() {
               <Button onClick={exportToExcel} variant="outline" disabled={filteredExpenses.length === 0} className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
                 <Download className="w-4 h-4 mr-2" />Export
               </Button>
+              <Button onClick={() => setScanOpen(true)} variant="outline" className="border-[#c9a962] text-[#c9a962] hover:bg-[#c9a962] hover:text-white">
+                <ScanLine className="w-4 h-4 mr-2" />Scan Invoice
+              </Button>
               <Button onClick={() => { setEditingExpense(null); setShowForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45]" disabled={projects.length === 0}>
                 <Plus className="w-4 h-4 mr-2" />Add Expense
               </Button>
@@ -714,6 +717,7 @@ export default function Expenses() {
                                     <button onClick={(e) => { e.stopPropagation(); deleteInvoiceMutation.mutate(invoice.id); }} className="p-1 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
                                       <Trash2 className="w-3.5 h-3.5" />
                                     </button>
+                                    <span className="text-xs text-gray-400 hidden sm:inline">{expandedInvoiceId === invoice.id ? "Κλείσιμο" : "Λεπτομέρειες"}</span>
                                     {expandedInvoiceId === invoice.id ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                                   </div>
                                 </div>
