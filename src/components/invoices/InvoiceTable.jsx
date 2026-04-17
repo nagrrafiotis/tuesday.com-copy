@@ -54,6 +54,13 @@ export default function InvoiceTable({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["invoices"] }),
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async (updates) => {
+      await Promise.all(updates.map(({ id, data }) => base44.entities.Invoice.update(id, data)));
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+  });
+
   const handleCategoryUpdate = (invoice, value) => {
     setEditingCell(null);
     updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, category: value } });
@@ -66,7 +73,7 @@ export default function InvoiceTable({
 
   const handleBulkUpdate = (field, value) => {
     const selected = invoices.filter(inv => selectedInvoices.includes(inv.id));
-    selected.forEach(inv => {
+    const updates = selected.map(inv => {
       let update = { ...inv };
       if (field === "category") update.category = value;
       else if (field === "subcategory") update.subcategory = value;
@@ -74,8 +81,9 @@ export default function InvoiceTable({
         const firstSub = subcategories.find(s => s.phase_id === value);
         update.subcategory = firstSub?.name || "";
       }
-      updateInvoiceMutation.mutate({ id: inv.id, data: update });
+      return { id: inv.id, data: update };
     });
+    bulkUpdateMutation.mutate(updates);
     setBulkField(null);
   };
 
