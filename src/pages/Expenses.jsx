@@ -752,10 +752,6 @@ export default function Expenses() {
                                 </div>
                               )}
 <div className="flex items-center gap-2 border-l border-gray-200 pl-6">
-                                <span className="text-sm text-gray-500">Invoices Total:</span>
-                                <span className="font-bold text-[#1e3a5f]">{formatCurrency(filteredInvoices.reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
-                              </div>
-                              <div className="flex items-center gap-2 border-l border-gray-200 pl-6">
                                 <span className="text-sm font-semibold text-gray-700">+ Expenses:</span>
                                 <span className="font-bold text-[#1e3a5f]">{formatCurrency(filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0))}</span>
                               </div>
