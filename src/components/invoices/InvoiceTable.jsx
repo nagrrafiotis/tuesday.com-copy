@@ -249,7 +249,17 @@ export default function InvoiceTable({
                       onValueChange={(phaseId) => {
                         // When phase changes, pick first subcategory of that phase
                         const firstSub = subcategories.find(s => s.phase_id === phaseId);
-                        handleSubcategoryUpdate(invoice, firstSub?.name || "");
+                        const newSubcategory = firstSub?.name || "";
+                        // Apply to all selected invoices if this one is selected
+                        const targets = selectedInvoices.includes(invoice.id)
+                          ? invoices.filter(inv => selectedInvoices.includes(inv.id))
+                          : [invoice];
+                        if (targets.length > 1) {
+                          bulkUpdateMutation.mutate(targets.map(inv => ({ id: inv.id, data: { ...inv, subcategory: newSubcategory } })));
+                        } else {
+                          updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, subcategory: newSubcategory } });
+                        }
+                        setEditingCell(null);
                       }}
                       items={phases.map(p => ({ value: p.id, label: p.name }))}
                       placeholder="Phase"
