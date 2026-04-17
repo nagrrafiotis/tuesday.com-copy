@@ -118,7 +118,7 @@ export default function Payroll() {
 
         <Tabs defaultValue="payroll">
           <TabsList className="mb-6">
-            <TabsTrigger value="payroll">Payroll</TabsTrigger>
+            <TabsTrigger value="payroll">Payroll Expenses</TabsTrigger>
             <TabsTrigger value="general">General Expenses</TabsTrigger>
             <TabsTrigger value="income">General Income</TabsTrigger>
           </TabsList>
