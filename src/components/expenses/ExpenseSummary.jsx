@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { DollarSign, Layers } from "lucide-react";
+import { DollarSign } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 
@@ -23,28 +23,6 @@ export default function ExpenseSummary({ expenses, budget }) {
   };
 
   const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-
-  // Group expenses by phase based on subcategory's phase_id
-  const byPhase = phases.map((phase) => {
-    // Find subcategories that belong to this phase
-    const phaseSubcategories = subcategories
-      .filter((s) => s.phase_id === phase.id)
-      .map((s) => s.name);
-    
-    // Find expenses that have these subcategories
-    const phaseExpenses = expenses.filter((e) => 
-      e.subcategory && phaseSubcategories.includes(e.subcategory)
-    );
-    const total = phaseExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-    
-    return {
-      name: phase.name,
-      color: phase.color || "bg-blue-100 text-blue-700",
-      total,
-      count: phaseExpenses.length,
-      percentage: totalExpenses > 0 ? (total / totalExpenses) * 100 : 0,
-    };
-  }).filter((p) => p.count > 0);
 
   const budgetUsed = budget ? (totalExpenses / budget) * 100 : 0;
 
@@ -83,51 +61,6 @@ export default function ExpenseSummary({ expenses, budget }) {
             </p>
           </div>
         )}
-      </motion.div>
-
-      {/* By Phase */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
-      >
-        <div className="flex items-center gap-2 mb-4">
-          <Layers className="w-4 h-4 text-[#1e3a5f]" />
-          <h3 className="font-semibold text-[#1e3a5f]">By Phase</h3>
-        </div>
-        <div className="space-y-4">
-          {byPhase.length > 0 ? (
-            byPhase.map((phase, index) => (
-              <motion.div
-                key={phase.name}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 + index * 0.05 }}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <div className={`px-2 py-1 rounded-lg ${phase.color}`}>
-                      <span className="text-xs font-medium">{phase.name}</span>
-                    </div>
-                    <span className="text-xs text-gray-400">({phase.count})</span>
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {formatCurrency(phase.total)}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-1.5">
-                  <div
-                    className={`h-1.5 rounded-full ${phase.color.split(" ")[0]} transition-all`}
-                    style={{ width: `${phase.percentage}%` }}
-                  />
-                </div>
-              </motion.div>
-            ))
-          ) : (
-            <p className="text-sm text-gray-400 text-center py-4">No phase data available</p>
-          )}
-        </div>
       </motion.div>
     </div>
   );
