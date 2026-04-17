@@ -53,6 +53,7 @@ function InlineNumber({ value, onSave }) {
 
 export default function IncomeTable({ incomes, projects, contacts = [], onEdit, onDelete, onUpdate, showProject = false, selectedIncomes = [], onSelectAll, onSelectIncome, onViewContact }) {
   const [editingCell, setEditingCell] = useState(null);
+  const isBulkMode = selectedIncomes.length > 1;
 
   const { data: dropdownLists = [] } = useQuery({ queryKey: ["dropdown-lists"], queryFn: () => base44.entities.DropdownList.list() });
   const { data: paymentSources = [] } = useQuery({ queryKey: ["paymentSources"], queryFn: () => base44.entities.PaymentSource.list("name") });
@@ -71,7 +72,11 @@ export default function IncomeTable({ incomes, projects, contacts = [], onEdit, 
 
   const handleUpdate = (id, field, value) => {
     setEditingCell(null);
-    onUpdate?.(id, field, value);
+    if (isBulkMode) {
+      selectedIncomes.forEach(sid => onUpdate?.(sid, field, value));
+    } else {
+      onUpdate?.(id, field, value);
+    }
   };
 
   const isEditing = (id, field) => editingCell?.id === id && editingCell?.field === field;
@@ -89,6 +94,12 @@ export default function IncomeTable({ incomes, projects, contacts = [], onEdit, 
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      {isBulkMode && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f]/5 border-b border-[#1e3a5f]/10 text-sm text-[#1e3a5f] font-medium">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1e3a5f] text-white text-xs">{selectedIncomes.length}</span>
+          rows selected — click any cell on a selected row to apply the change to all selected rows
+        </div>
+      )}
       <Table>
         <TableHeader>
           <TableRow className="bg-gray-50/50">
