@@ -71,7 +71,7 @@ export default function InvoiceBreakdown({ invoices, expenses = [] }) {
   );
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {/* Phase breakdown */}
       <div className="bg-white rounded-xl border border-gray-100 p-4">
         <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-700">
@@ -103,24 +103,6 @@ export default function InvoiceBreakdown({ invoices, expenses = [] }) {
                 <span className="font-semibold text-gray-800 whitespace-nowrap ml-2">{formatCurrency(amt)}</span>
               </div>
               {bar(amt)}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Subcategory breakdown */}
-      <div className="bg-white rounded-xl border border-gray-100 p-4">
-        <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-700">
-          <Tag className="w-4 h-4 text-[#1e3a5f]" /> Ανά Subcategory
-        </div>
-        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-          {Object.entries(bySubcategory).sort((a, b) => b[1] - a[1]).map(([label, amount]) => (
-            <div key={label}>
-              <div className="flex justify-between text-xs text-gray-600">
-                <span className="truncate max-w-[120px]" title={label}>{label}</span>
-                <span className="font-semibold text-gray-800 whitespace-nowrap ml-2">{formatCurrency(amount)}</span>
-              </div>
-              {bar(amount)}
             </div>
           ))}
         </div>
