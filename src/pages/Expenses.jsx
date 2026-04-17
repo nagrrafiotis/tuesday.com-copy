@@ -177,6 +177,40 @@ export default function Expenses() {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
+  // --- Expense queries & mutations ---
+  const { data: expenses = [], isLoading: expensesLoading } = useQuery({
+    queryKey: ["expenses"],
+    queryFn: () => base44.entities.Expense.list("-date"),
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: () => base44.entities.Project.list("-created_date"),
+  });
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => base44.entities.Contact.list("name"),
+  });
+
+  const updateContactMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Contact.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      setEditingContact(null);
+    },
+  });
+
+  const { data: paymentSources = [] } = useQuery({
+    queryKey: ["paymentSources"],
+    queryFn: () => base44.entities.PaymentSource.list("name"),
+  });
+
+  const { data: dropdownLists = [] } = useQuery({
+    queryKey: ["dropdown-lists"],
+    queryFn: () => base44.entities.DropdownList.list(),
+  });
+
   // --- Invoice queries ---
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ["invoices"],
@@ -215,40 +249,6 @@ export default function Expenses() {
       const dateB = new Date(b.date || b.created_date || 0);
       return sortInvoiceOrder === "newest" ? dateB - dateA : dateA - dateB;
     });
-
-  // --- Expense queries & mutations ---
-  const { data: expenses = [], isLoading: expensesLoading } = useQuery({
-    queryKey: ["expenses"],
-    queryFn: () => base44.entities.Expense.list("-date"),
-  });
-
-  const { data: projects = [] } = useQuery({
-    queryKey: ["projects"],
-    queryFn: () => base44.entities.Project.list("-created_date"),
-  });
-
-  const { data: contacts = [] } = useQuery({
-    queryKey: ["contacts"],
-    queryFn: () => base44.entities.Contact.list("name"),
-  });
-
-  const updateContactMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Contact.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
-      setEditingContact(null);
-    },
-  });
-
-  const { data: paymentSources = [] } = useQuery({
-    queryKey: ["paymentSources"],
-    queryFn: () => base44.entities.PaymentSource.list("name"),
-  });
-
-  const { data: dropdownLists = [] } = useQuery({
-    queryKey: ["dropdown-lists"],
-    queryFn: () => base44.entities.DropdownList.list(),
-  });
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Expense.create(data),
