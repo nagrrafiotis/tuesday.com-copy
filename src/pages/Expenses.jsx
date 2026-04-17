@@ -674,7 +674,7 @@ export default function Expenses() {
                             <p>No invoices yet. Scan your first invoice.</p>
                           </div>
                         ) : (
-                          <div className="space-y-2">
+                          <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
                             {filteredInvoices.length === 0 && (
                               <div className="text-center py-8 text-gray-400">No invoices found</div>
                             )}
@@ -790,19 +790,32 @@ export default function Expenses() {
                             <span className="text-sm text-gray-500">{filteredInvoices.length} invoices</span>
                             {(filterInvoiceType === "all" || filterInvoiceType === "expense") && (
                               <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-500">Expenses:</span>
+                                <span className="text-sm text-gray-500">Invoices Expenses:</span>
                                 <span className="font-bold text-red-600">{formatCurrency(filteredInvoices.filter(i => i.type === "expense").reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
                               </div>
                             )}
                             {(filterInvoiceType === "all" || filterInvoiceType === "income") && (
                               <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-500">Income:</span>
+                                <span className="text-sm text-gray-500">Invoices Income:</span>
                                 <span className="font-bold text-green-600">{formatCurrency(filteredInvoices.filter(i => i.type === "income").reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
                               </div>
                             )}
                             <div className="flex items-center gap-2 border-l border-gray-200 pl-6">
-                              <span className="text-sm text-gray-500">Total:</span>
+                              <span className="text-sm text-gray-500">Invoices Total:</span>
                               <span className="font-bold text-[#1e3a5f]">{formatCurrency(filteredInvoices.reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
+                            </div>
+                            <div className="flex items-center gap-2 border-l border-gray-200 pl-6">
+                              <span className="text-sm font-semibold text-gray-700">+ Expenses:</span>
+                              <span className="font-bold text-[#1e3a5f]">{formatCurrency(filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0))}</span>
+                            </div>
+                            <div className="flex items-center gap-2 border-l border-gray-200 pl-6 bg-[#1e3a5f] text-white rounded-lg px-4 py-1">
+                              <span className="text-sm font-semibold">Σύνολο:</span>
+                              <span className="font-bold text-lg">
+                                {formatCurrency(
+                                  filteredInvoices.filter(i => i.type === "expense").reduce((s, i) => s + (i.total_amount || 0), 0) +
+                                  filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0)
+                                )}
+                              </span>
                             </div>
                           </div>
                         )}
