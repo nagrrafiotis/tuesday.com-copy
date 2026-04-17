@@ -215,6 +215,20 @@ Be precise with numbers. Use null for fields not found.`,
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label className="text-xs">Payment Method</Label>
+                  <Select value={result.payment_method || ""} onValueChange={(v) => setResult(r => ({ ...r, payment_method: v }))}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Select method" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="check">Check</SelectItem>
+                      <SelectItem value="credit_card">Credit Card</SelectItem>
+                      <SelectItem value="debit_card">Debit Card</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Description</Label>
                   <Input value={result.description || ""} onChange={e => setResult(r => ({ ...r, description: e.target.value }))} className="h-9" />

@@ -208,6 +208,7 @@ export default function InvoiceTable({
             <TableHead className="bg-gray-50 whitespace-nowrap">Invoice #</TableHead>
             <TableHead className="bg-gray-50 whitespace-nowrap">Type</TableHead>
             <TableHead className="bg-gray-50 whitespace-nowrap">Status</TableHead>
+            <TableHead className="bg-gray-50 whitespace-nowrap">Payment Method</TableHead>
             <TableHead className="text-right bg-gray-50 whitespace-nowrap">Total</TableHead>
             <TableHead className="bg-gray-50 w-28"></TableHead>
           </TableRow>
@@ -331,6 +332,10 @@ export default function InvoiceTable({
                     : <Badge className="bg-yellow-100 text-yellow-700 border-0 text-xs">Pending</Badge>}
                 </TableCell>
 
+                <TableCell className="text-gray-600 text-sm">
+                  <span className="capitalize">{invoice.payment_method ? invoice.payment_method.replace('_', ' ') : "—"}</span>
+                </TableCell>
+
                 <TableCell className="text-right font-semibold text-[#1e3a5f] whitespace-nowrap">
                   {formatCurrency(invoice.total_amount)}
                 </TableCell>
@@ -354,7 +359,7 @@ export default function InvoiceTable({
             );
           })}
           <TableRow className="bg-gray-50 border-t-2 border-gray-200">
-            <TableCell colSpan={10} className="text-right font-bold text-gray-900">Total</TableCell>
+            <TableCell colSpan={11} className="text-right font-bold text-gray-900">Total</TableCell>
             <TableCell className="text-right font-bold text-[#1e3a5f] text-lg">
               {formatCurrency(invoices.reduce((s, i) => s + (i.total_amount || 0), 0))}
             </TableCell>
@@ -417,6 +422,10 @@ export default function InvoiceTable({
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-400 mb-1">Payment Source</p>
                   <p className="font-medium">{viewingInvoice.payment_source || "—"}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Payment Method</p>
+                  <p className="font-medium capitalize">{viewingInvoice.payment_method ? viewingInvoice.payment_method.replace('_', ' ') : "—"}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-400 mb-1">Project</p>

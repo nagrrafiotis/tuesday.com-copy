@@ -44,6 +44,18 @@
       "type": "string",
       "description": "Payment source"
     },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "bank_transfer",
+        "check",
+        "credit_card",
+        "debit_card",
+        "other"
+      ],
+      "description": "How the invoice was paid"
+    },
     "description": {
       "type": "string",
       "description": "General description"
