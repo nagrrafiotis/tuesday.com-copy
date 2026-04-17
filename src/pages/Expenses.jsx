@@ -58,6 +58,8 @@ export default function Expenses() {
   const [sortInvoiceOrder, setSortInvoiceOrder] = useState("newest");
   const [filterInvoiceProject, setFilterInvoiceProject] = useState("all");
   const [filterInvoicePaymentSource, setFilterInvoicePaymentSource] = useState("all");
+  const [filterInvoiceCategory, setFilterInvoiceCategory] = useState("all");
+  const [filterInvoiceSubcategory, setFilterInvoiceSubcategory] = useState("all");
 
   // --- Expense state ---
   const [showForm, setShowForm] = useState(false);
@@ -242,7 +244,9 @@ export default function Expenses() {
       const matchStatus = filterInvoiceStatus === "all" || inv.status === filterInvoiceStatus || (filterInvoiceStatus === "pending" && !inv.status);
       const matchProject = filterInvoiceProject === "all" || inv.project_id === filterInvoiceProject;
       const matchPaymentSource = filterInvoicePaymentSource === "all" || inv.payment_source === filterInvoicePaymentSource;
-      return matchSearch && matchType && matchStatus && matchProject && matchPaymentSource;
+      const matchCategory = filterInvoiceCategory === "all" || inv.category === filterInvoiceCategory;
+      const matchSubcategory = filterInvoiceSubcategory === "all" || inv.subcategory === filterInvoiceSubcategory;
+      return matchSearch && matchType && matchStatus && matchProject && matchPaymentSource && matchCategory && matchSubcategory;
     })
     .sort((a, b) => {
       const dateA = new Date(a.date || a.created_date || 0);
@@ -679,6 +683,17 @@ export default function Expenses() {
                             items={[{ value: "all", label: "All Projects" }, ...projects.map(p => ({ value: p.id, label: p.name }))]} />
                           <SearchableSelect value={filterInvoicePaymentSource} onValueChange={setFilterInvoicePaymentSource} placeholder="Payment Source" triggerClassName="w-[160px]"
                             items={[{ value: "all", label: "All Sources" }, ...paymentSources.map(ps => ({ value: ps.name, label: ps.name }))]} />
+                          <Select value={filterInvoiceCategory} onValueChange={v => { setFilterInvoiceCategory(v); setFilterInvoiceSubcategory("all"); }}>
+                            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Category" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Categories</SelectItem>
+                              {[...new Set(invoices.map(i => i.category).filter(Boolean))].map(cat => (
+                                <SelectItem key={cat} value={cat}>{cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <SearchableSelect value={filterInvoiceSubcategory} onValueChange={setFilterInvoiceSubcategory} placeholder="Subcategory (Phase)" triggerClassName="w-[180px]"
+                            items={[{ value: "all", label: "All Subcategories" }, ...[...new Set(invoices.filter(i => filterInvoiceCategory === "all" || i.category === filterInvoiceCategory).map(i => i.subcategory).filter(Boolean))].map(s => ({ value: s, label: s }))]} />
                           <Select value={sortInvoiceOrder} onValueChange={setSortInvoiceOrder}>
                             <SelectTrigger className="w-40"><SelectValue placeholder="Sort" /></SelectTrigger>
                             <SelectContent>
