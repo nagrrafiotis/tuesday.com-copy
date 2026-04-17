@@ -46,7 +46,7 @@ const navItems = [
   { name: "Project Finances", icon: Receipt, page: "Expenses" },
   { name: "Financial Overview", icon: DollarSign, page: "FinancialOverview" },
   { name: "Contacts", icon: Users, page: "Contacts" },
-  { name: "Company Expenses", icon: Users, page: "Payroll" },
+  { name: "Company Finances", icon: Users, page: "Payroll" },
   { name: "Settings", icon: Settings, page: "Settings" },
 ];
 
