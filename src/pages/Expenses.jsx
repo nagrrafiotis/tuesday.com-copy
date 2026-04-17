@@ -773,7 +773,7 @@ export default function Expenses() {
                             </div>
 
                             {/* Breakdown by Phase / Category / Subcategory */}
-                            <InvoiceBreakdown invoices={filteredInvoices} />
+                            <InvoiceBreakdown invoices={filteredInvoices} expenses={filteredExpenses} />
                           </div>
                         )}
                       </div>

@@ -17,7 +17,7 @@ const categoryColors = {
 const labelify = (str) =>
   str ? str.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "—";
 
-export default function InvoiceBreakdown({ invoices }) {
+export default function InvoiceBreakdown({ invoices, expenses = [] }) {
   const { data: subcategories = [] } = useQuery({ queryKey: ["subcategories"], queryFn: () => base44.entities.Subcategory.list() });
   const { data: phases = [] } = useQuery({ queryKey: ["phases"], queryFn: () => base44.entities.ProjectPhase.list("order") });
 
@@ -35,6 +35,7 @@ export default function InvoiceBreakdown({ invoices }) {
   // Group by subcategory
   const bySubcategory = {};
 
+  // Process invoices
   invoices.forEach((inv) => {
     const amount = inv.total_amount || 0;
     const phase = getPhase(inv.subcategory);
@@ -47,7 +48,20 @@ export default function InvoiceBreakdown({ invoices }) {
     bySubcategory[subLabel] = (bySubcategory[subLabel] || 0) + amount;
   });
 
-  const total = invoices.reduce((s, i) => s + (i.total_amount || 0), 0);
+  // Process expenses
+  expenses.forEach((exp) => {
+    const amount = exp.amount || 0;
+    const phase = getPhase(exp.subcategory);
+    const phaseLabel = phase?.name || "Χωρίς Phase";
+    const catLabel = exp.category ? labelify(exp.category) : "Χωρίς Category";
+    const subLabel = exp.subcategory || "Χωρίς Subcategory";
+
+    byPhase[phaseLabel] = (byPhase[phaseLabel] || 0) + amount;
+    byCategory[catLabel] = { total: (byCategory[catLabel]?.total || 0) + amount, color: categoryColors[exp.category] || "bg-gray-100 text-gray-700" };
+    bySubcategory[subLabel] = (bySubcategory[subLabel] || 0) + amount;
+  });
+
+  const total = invoices.reduce((s, i) => s + (i.total_amount || 0), 0) + expenses.reduce((s, e) => s + (e.amount || 0), 0);
   if (total === 0) return null;
 
   const bar = (amount) => (
