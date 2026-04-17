@@ -5,6 +5,9 @@ import { motion } from "framer-motion";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
 import ExpenseTable from "@/components/expenses/ExpenseTable";
 import ExpenseSummary from "@/components/expenses/ExpenseSummary";
+import IncomeForm from "@/components/income/IncomeForm";
+import IncomeTable from "@/components/income/IncomeTable";
+import IncomeSummary from "@/components/income/IncomeSummary";
 import ContactCard from "@/components/contacts/ContactCard.jsx";
 import ContactForm from "@/components/contacts/ContactForm.jsx";
 import { Button } from "@/components/ui/button";
@@ -22,6 +25,9 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Plus, Search, Download, Receipt, Upload, Trash2, RefreshCw, FileSpreadsheet, RotateCcw } from "lucide-react";
 
 export default function Expenses() {
+  const [activeTab, setActiveTab] = useState("expenses");
+
+  // --- Expense state ---
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [search, setSearch] = useState("");
@@ -30,17 +36,116 @@ export default function Expenses() {
   const [payeeFilter, setPayeeFilter] = useState("all");
   const [paymentSourceFilter, setPaymentSourceFilter] = useState("all");
   const [selectedExpenses, setSelectedExpenses] = useState([]);
-  const [viewingContact, setViewingContact] = useState(null);
-  const [editingContact, setEditingContact] = useState(null);
+  const [undoItem, setUndoItem] = useState(null);
+  const undoTimerRef = useRef(null);
   const [syncing, setSyncing] = useState(false);
   const [showSheetImport, setShowSheetImport] = useState(false);
   const [sheetUrl, setSheetUrl] = useState("");
   const [importing, setImporting] = useState(false);
-  const [undoItem, setUndoItem] = useState(null);
-  const undoTimerRef = useRef(null);
+
+  // --- Income state ---
+  const [showIncomeForm, setShowIncomeForm] = useState(false);
+  const [editingIncome, setEditingIncome] = useState(null);
+  const [incomeSearch, setIncomeSearch] = useState("");
+  const [incomeProjectFilter, setIncomeProjectFilter] = useState("all");
+  const [incomeCategoryFilter, setIncomeCategoryFilter] = useState("all");
+  const [selectedIncomes, setSelectedIncomes] = useState([]);
+  const [incomeUndoItem, setIncomeUndoItem] = useState(null);
+  const incomeUndoTimerRef = useRef(null);
+
+  // --- Shared state ---
+  const [viewingContact, setViewingContact] = useState(null);
+  const [editingContact, setEditingContact] = useState(null);
 
   const queryClient = useQueryClient();
 
+  // --- Income queries & mutations ---
+  const { data: incomes = [] } = useQuery({
+    queryKey: ["incomes"],
+    queryFn: () => base44.entities.Income.list("-date"),
+  });
+
+  const { data: dropdownListsIncome = [] } = useQuery({
+    queryKey: ["dropdown-lists"],
+    queryFn: () => base44.entities.DropdownList.list(),
+  });
+
+  const incomeCategories = dropdownListsIncome.find(l => l.list_name === "income_categories")?.options || ["sales", "investment", "rental", "other"];
+
+  const createIncomeMutation = useMutation({
+    mutationFn: (data) => base44.entities.Income.create(data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["incomes"] }); setShowIncomeForm(false); },
+  });
+  const updateIncomeMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Income.update(id, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["incomes"] }); setShowIncomeForm(false); setEditingIncome(null); },
+  });
+  const deleteIncomeMutation = useMutation({
+    mutationFn: (id) => base44.entities.Income.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["incomes"] }),
+  });
+
+  const handleIncomeSubmit = async (data) => {
+    if (editingIncome) await updateIncomeMutation.mutateAsync({ id: editingIncome.id, data });
+    else await createIncomeMutation.mutateAsync(data);
+  };
+
+  const handleIncomeDelete = async (income) => {
+    if (window.confirm(`Delete this income from ${income.source}?`)) {
+      setIncomeUndoItem({ ...income });
+      await deleteIncomeMutation.mutateAsync(income.id);
+      if (incomeUndoTimerRef.current) clearTimeout(incomeUndoTimerRef.current);
+      incomeUndoTimerRef.current = setTimeout(() => setIncomeUndoItem(null), 10000);
+    }
+  };
+
+  const handleIncomeUndo = async () => {
+    if (!incomeUndoItem) return;
+    const { id, created_date, updated_date, created_by, ...data } = incomeUndoItem;
+    await createIncomeMutation.mutateAsync(data);
+    setIncomeUndoItem(null);
+    if (incomeUndoTimerRef.current) clearTimeout(incomeUndoTimerRef.current);
+  };
+
+  const handleIncomeBulkDelete = async () => {
+    if (window.confirm(`Delete ${selectedIncomes.length} selected income records?`)) {
+      await Promise.all(selectedIncomes.map(id => deleteIncomeMutation.mutateAsync(id)));
+      setSelectedIncomes([]);
+    }
+  };
+
+  const handleIncomeInlineUpdate = async (id, field, value) => {
+    const income = incomes.find(i => i.id === id);
+    if (!income) return;
+    await base44.entities.Income.update(id, { ...income, [field]: value });
+    queryClient.invalidateQueries({ queryKey: ["incomes"] });
+  };
+
+  const filteredIncomes = incomes.filter((i) => {
+    const matchesSearch = i.source?.toLowerCase().includes(incomeSearch.toLowerCase()) || i.description?.toLowerCase().includes(incomeSearch.toLowerCase());
+    const matchesProject = incomeProjectFilter === "all" || i.project_id === incomeProjectFilter;
+    const matchesCategory = incomeCategoryFilter === "all" || i.category === incomeCategoryFilter;
+    return matchesSearch && matchesProject && matchesCategory;
+  });
+
+  const exportIncomeToCSV = () => {
+    const csvData = [
+      ["Date", "Project", "Category", "Source", "Description", "Amount (€)", "Payment Source"],
+      ...filteredIncomes.map((i) => [
+        new Date(i.date).toLocaleDateString("de-DE"),
+        projects.find(p => p.id === i.project_id)?.name || "",
+        i.category || "", i.source || "", i.description || "", i.amount || 0, i.payment_source || "",
+      ]),
+    ];
+    const csvContent = csvData.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.setAttribute("href", URL.createObjectURL(blob));
+    link.setAttribute("download", `income_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  };
+
+  // --- Expense queries & mutations ---
   const { data: expenses = [], isLoading: expensesLoading } = useQuery({
     queryKey: ["expenses"],
     queryFn: () => base44.entities.Expense.list("-date"),
@@ -340,192 +445,162 @@ export default function Expenses() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8"
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
         >
           <div>
-            <h1 className="text-3xl font-bold text-[#1e3a5f]">Expenses</h1>
-            <p className="text-gray-500 mt-1">Track and manage project costs</p>
+            <h1 className="text-3xl font-bold text-[#1e3a5f]">Project Expenses</h1>
+            <p className="text-gray-500 mt-1">Track and manage project costs and revenue</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={syncFromGoogleSheets}
-              variant="outline"
-              disabled={syncing}
-              className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Sync Backup'}
-            </Button>
-            <Button
-              onClick={() => setShowSheetImport(true)}
-              variant="outline"
-              className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
-            >
-              <FileSpreadsheet className="w-4 h-4 mr-2" />
-              Import from Google Sheets
-            </Button>
-            <label htmlFor="expense-import">
-              <Button
-                type="button"
-                variant="outline"
-                className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
-                onClick={() => document.getElementById('expense-import').click()}
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Import CSV
+          {activeTab === "expenses" && (
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={syncFromGoogleSheets} variant="outline" disabled={syncing} className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
+                <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Syncing...' : 'Sync Backup'}
               </Button>
-            </label>
-            <input
-              id="expense-import"
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={importFromExcel}
-            />
-            <Button
-              onClick={exportToExcel}
-              variant="outline"
-              disabled={filteredExpenses.length === 0}
-              className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-            <Button
-              onClick={() => {
-                setEditingExpense(null);
-                setShowForm(true);
-              }}
-              className="bg-[#1e3a5f] hover:bg-[#152a45]"
-              disabled={projects.length === 0}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Expense
-            </Button>
-          </div>
+              <Button onClick={() => setShowSheetImport(true)} variant="outline" className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Import from Google Sheets
+              </Button>
+              <Button type="button" variant="outline" className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
+                onClick={() => document.getElementById('expense-import').click()}>
+                <Upload className="w-4 h-4 mr-2" />Import CSV
+              </Button>
+              <input id="expense-import" type="file" accept=".csv" className="hidden" onChange={importFromExcel} />
+              <Button onClick={exportToExcel} variant="outline" disabled={filteredExpenses.length === 0} className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
+                <Download className="w-4 h-4 mr-2" />Export
+              </Button>
+              <Button onClick={() => { setEditingExpense(null); setShowForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45]" disabled={projects.length === 0}>
+                <Plus className="w-4 h-4 mr-2" />Add Expense
+              </Button>
+            </div>
+          )}
+          {activeTab === "income" && (
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={exportIncomeToCSV} variant="outline" disabled={filteredIncomes.length === 0} className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
+                <Download className="w-4 h-4 mr-2" />Export
+              </Button>
+              <Button onClick={() => { setEditingIncome(null); setShowIncomeForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45]" disabled={projects.length === 0}>
+                <Plus className="w-4 h-4 mr-2" />Add Income
+              </Button>
+            </div>
+          )}
         </motion.div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          {/* Main Content */}
-          <div className="xl:col-span-3 space-y-6">
-            {/* Filters */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4"
-            >
-              <div className="flex flex-wrap gap-3">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="Search by payee or description..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                <SearchableSelect
-                  value={projectFilter}
-                  onValueChange={setProjectFilter}
-                  placeholder="Project"
-                  triggerClassName="w-[180px]"
-                  items={[
-                    { value: "all", label: "All Projects" },
-                    ...projects.map(p => ({ value: p.id, label: p.name }))
-                  ]}
-                />
-
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {(dropdownLists.find(l => l.list_name === "expense_categories")?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"]).map(cat => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <SearchableSelect
-                  value={payeeFilter}
-                  onValueChange={setPayeeFilter}
-                  placeholder="Payee"
-                  triggerClassName="w-[160px]"
-                  items={[
-                    { value: "all", label: "All Payees" },
-                    ...contacts.map(c => ({ value: c.name, label: c.name }))
-                  ]}
-                />
-
-                <SearchableSelect
-                  value={paymentSourceFilter}
-                  onValueChange={setPaymentSourceFilter}
-                  placeholder="Payment Source"
-                  triggerClassName="w-[160px]"
-                  items={[
-                    { value: "all", label: "All Payment Sources" },
-                    ...paymentSources.map(ps => ({ value: ps.name, label: ps.name }))
-                  ]}
-                />
-              </div>
-            </motion.div>
-
-            {/* Bulk Actions */}
-            {selectedExpenses.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-[#1e3a5f] text-white rounded-xl p-4 flex items-center justify-between"
-              >
-                <span className="font-medium">{selectedExpenses.length} selected</span>
-                <Button
-                  onClick={handleBulkDelete}
-                  variant="destructive"
-                  size="sm"
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Selected
-                </Button>
-              </motion.div>
-            )}
-
-            {/* Expense Table */}
-            <ExpenseTable
-              expenses={filteredExpenses}
-              projects={projects}
-              contacts={contacts}
-              showProject={projectFilter === "all"}
-              selectedExpenses={selectedExpenses}
-              onSelectAll={toggleSelectAll}
-              onSelectExpense={toggleSelectExpense}
-              onEdit={(expense) => {
-                setEditingExpense(expense);
-                setShowForm(true);
-              }}
-              onUpdate={handleInlineUpdate}
-              onDelete={handleDelete}
-              onViewContact={(contact) => setViewingContact(contact)}
-            />
-          </div>
-
-          {/* Sidebar Summary */}
-          <div className="xl:col-span-1">
-            <ExpenseSummary
-              expenses={filteredExpenses}
-              budget={
-                projectFilter !== "all"
-                  ? projects.find((p) => p.id === projectFilter)?.budget
-                  : projects.reduce((sum, p) => sum + (p.budget || 0), 0)
-              }
-            />
-          </div>
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200 mb-6">
+          {[
+            { key: "expenses", label: "Expenses" },
+            { key: "income", label: "Income" },
+          ].map(tab => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.key
+                  ? "border-[#1e3a5f] text-[#1e3a5f]"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}>
+              {tab.label}
+            </button>
+          ))}
         </div>
+
+        {/* Expenses Tab */}
+        {activeTab === "expenses" && (
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+            <div className="xl:col-span-3 space-y-6">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                <div className="flex flex-wrap gap-3">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input placeholder="Search by payee or description..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+                  </div>
+                  <SearchableSelect value={projectFilter} onValueChange={setProjectFilter} placeholder="Project" triggerClassName="w-[180px]"
+                    items={[{ value: "all", label: "All Projects" }, ...projects.map(p => ({ value: p.id, label: p.name }))]} />
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[160px]"><SelectValue placeholder="Category" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {(dropdownLists.find(l => l.list_name === "expense_categories")?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"]).map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <SearchableSelect value={payeeFilter} onValueChange={setPayeeFilter} placeholder="Payee" triggerClassName="w-[160px]"
+                    items={[{ value: "all", label: "All Payees" }, ...contacts.map(c => ({ value: c.name, label: c.name }))]} />
+                  <SearchableSelect value={paymentSourceFilter} onValueChange={setPaymentSourceFilter} placeholder="Payment Source" triggerClassName="w-[160px]"
+                    items={[{ value: "all", label: "All Payment Sources" }, ...paymentSources.map(ps => ({ value: ps.name, label: ps.name }))]} />
+                </div>
+              </motion.div>
+
+              {selectedExpenses.length > 0 && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1e3a5f] text-white rounded-xl p-4 flex items-center justify-between">
+                  <span className="font-medium">{selectedExpenses.length} selected</span>
+                  <Button onClick={handleBulkDelete} variant="destructive" size="sm" className="bg-red-600 hover:bg-red-700">
+                    <Trash2 className="w-4 h-4 mr-2" />Delete Selected
+                  </Button>
+                </motion.div>
+              )}
+
+              <ExpenseTable expenses={filteredExpenses} projects={projects} contacts={contacts}
+                showProject={projectFilter === "all"} selectedExpenses={selectedExpenses}
+                onSelectAll={toggleSelectAll} onSelectExpense={toggleSelectExpense}
+                onEdit={(expense) => { setEditingExpense(expense); setShowForm(true); }}
+                onUpdate={handleInlineUpdate} onDelete={handleDelete}
+                onViewContact={(contact) => setViewingContact(contact)} />
+            </div>
+            <div className="xl:col-span-1">
+              <ExpenseSummary expenses={filteredExpenses}
+                budget={projectFilter !== "all" ? projects.find(p => p.id === projectFilter)?.budget : projects.reduce((sum, p) => sum + (p.budget || 0), 0)} />
+            </div>
+          </div>
+        )}
+
+        {/* Income Tab */}
+        {activeTab === "income" && (
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+            <div className="xl:col-span-3 space-y-6">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                <div className="flex flex-wrap gap-3">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input placeholder="Search by source or description..." value={incomeSearch} onChange={(e) => setIncomeSearch(e.target.value)} className="pl-10" />
+                  </div>
+                  <SearchableSelect value={incomeProjectFilter} onValueChange={setIncomeProjectFilter} placeholder="Project" triggerClassName="w-[180px]"
+                    items={[{ value: "all", label: "All Projects" }, ...projects.map(p => ({ value: p.id, label: p.name }))]} />
+                  <Select value={incomeCategoryFilter} onValueChange={setIncomeCategoryFilter}>
+                    <SelectTrigger className="w-[160px]"><SelectValue placeholder="Category" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {incomeCategories.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </motion.div>
+
+              {selectedIncomes.length > 0 && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1e3a5f] text-white rounded-xl p-4 flex items-center justify-between">
+                  <span className="font-medium">{selectedIncomes.length} selected</span>
+                  <Button onClick={handleIncomeBulkDelete} variant="destructive" size="sm" className="bg-red-600 hover:bg-red-700">
+                    <Trash2 className="w-4 h-4 mr-2" />Delete Selected
+                  </Button>
+                </motion.div>
+              )}
+
+              <IncomeTable incomes={filteredIncomes} projects={projects} contacts={contacts}
+                showProject={incomeProjectFilter === "all"}
+                selectedIncomes={selectedIncomes}
+                onSelectAll={() => setSelectedIncomes(selectedIncomes.length === filteredIncomes.length ? [] : filteredIncomes.map(i => i.id))}
+                onSelectIncome={(id) => setSelectedIncomes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
+                onEdit={(income) => { setEditingIncome(income); setShowIncomeForm(true); }}
+                onUpdate={handleIncomeInlineUpdate} onDelete={handleIncomeDelete}
+                onViewContact={(contact) => setViewingContact(contact)} />
+            </div>
+            <div className="xl:col-span-1">
+              <IncomeSummary incomes={incomeProjectFilter !== "all" ? filteredIncomes : incomes} />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Form */}
@@ -556,19 +631,36 @@ export default function Expenses() {
         onSubmit={(data) => updateContactMutation.mutate({ id: editingContact.id, data })}
       />
 
-      {/* Undo Bar */}
+      {/* Expense Undo Bar */}
       {undoItem && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-xl">
           <span className="text-sm">Expense from <strong>{undoItem.payee}</strong> deleted</span>
-          <button
-            onClick={handleUndo}
-            className="flex items-center gap-1.5 bg-white text-gray-900 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-          >
+          <button onClick={handleUndo} className="flex items-center gap-1.5 bg-white text-gray-900 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
             <RotateCcw className="w-3.5 h-3.5" /> Undo
           </button>
           <button onClick={() => setUndoItem(null)} className="text-gray-400 hover:text-white text-lg leading-none">&times;</button>
         </div>
       )}
+
+      {/* Income Undo Bar */}
+      {incomeUndoItem && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-xl">
+          <span className="text-sm">Income from <strong>{incomeUndoItem.source}</strong> deleted</span>
+          <button onClick={handleIncomeUndo} className="flex items-center gap-1.5 bg-white text-gray-900 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <RotateCcw className="w-3.5 h-3.5" /> Undo
+          </button>
+          <button onClick={() => setIncomeUndoItem(null)} className="text-gray-400 hover:text-white text-lg leading-none">&times;</button>
+        </div>
+      )}
+
+      {/* Income Form */}
+      <IncomeForm
+        income={editingIncome}
+        projects={projects}
+        open={showIncomeForm}
+        onClose={() => { setShowIncomeForm(false); setEditingIncome(null); }}
+        onSubmit={handleIncomeSubmit}
+      />
 
       {/* Import from Sheet Dialog */}
       <Dialog open={showSheetImport} onOpenChange={setShowSheetImport}>
