@@ -18,7 +18,7 @@ const INCOME_TYPES = [
   { value: "project", label: "Έσοδο Έργου" },
 ];
 
-const emptyForm = { description: "", income_type: "operational", project_id: "", project_name: "", category: "", amount: "", date: "", payment_source: "", payer: "", invoice_number: "", notes: "", file_url: "" };
+const emptyForm = { description: "", income_type: "operational", project_id: "", project_name: "", category: "", net_amount: "", vat_amount: "", total_amount: "", date: "", payment_source: "", payer: "", invoice_number: "", notes: "", file_url: "" };
 
 export default function GeneralIncomeTable() {
   const [search, setSearch] = useState("");
@@ -75,7 +75,12 @@ export default function GeneralIncomeTable() {
   };
 
   const handleSubmit = async () => {
-    const data = { ...form, amount: parseFloat(form.amount) || 0 };
+    const data = { 
+      ...form, 
+      net_amount: parseFloat(form.net_amount) || 0,
+      vat_amount: parseFloat(form.vat_amount) || 0,
+      total_amount: parseFloat(form.total_amount) || 0
+    };
     if (editing) await updateMutation.mutateAsync({ id: editing.id, data });
     else await createMutation.mutateAsync(data);
   };
@@ -97,7 +102,9 @@ export default function GeneralIncomeTable() {
     return new Date(b.date) - new Date(a.date);
   });
 
-  const total = filtered.reduce((s, r) => s + (r.amount || 0), 0);
+  const totalNet = filtered.reduce((s, r) => s + (r.net_amount || 0), 0);
+  const totalVat = filtered.reduce((s, r) => s + (r.vat_amount || 0), 0);
+  const totalAmount = filtered.reduce((s, r) => s + (r.total_amount || 0), 0);
 
   return (
     <div className="space-y-4">
@@ -133,17 +140,19 @@ export default function GeneralIncomeTable() {
             <table className="w-full text-sm table-fixed">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[18%]">Περιγραφή</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[13%]">Τύπος / Έργο</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[11%]">Κατηγορία</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[12%]">Πελάτης</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[8%]">Αρ. Τιμ.</th>
-                  <th className="text-right px-3 py-3 font-medium text-gray-500 w-[11%]">Ποσό</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[11%]">Πηγή</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[9%]">Ημ/νία</th>
-                  <th className="text-center px-3 py-3 font-medium text-gray-500 w-[5%]">Αρχείο</th>
-                  <th className="px-3 py-3 w-[6%]"></th>
-                </tr>
+                   <th className="text-left px-3 py-3 font-medium text-gray-500 w-[16%]">Περιγραφή</th>
+                   <th className="text-left px-3 py-3 font-medium text-gray-500 w-[11%]">Τύπος / Έργο</th>
+                   <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Κατηγορία</th>
+                   <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Πελάτης</th>
+                   <th className="text-left px-3 py-3 font-medium text-gray-500 w-[7%]">Αρ. Τιμ.</th>
+                   <th className="text-right px-3 py-3 font-medium text-gray-500 w-[9%]">Καθαρό</th>
+                   <th className="text-right px-3 py-3 font-medium text-gray-500 w-[8%]">ΦΠΑ</th>
+                   <th className="text-right px-3 py-3 font-medium text-gray-500 w-[9%]">Σύνολο</th>
+                   <th className="text-left px-3 py-3 font-medium text-gray-500 w-[9%]">Πηγή</th>
+                   <th className="text-left px-3 py-3 font-medium text-gray-500 w-[7%]">Ημ/νία</th>
+                   <th className="text-center px-3 py-3 font-medium text-gray-500 w-[4%]">Αρχείο</th>
+                   <th className="px-3 py-3 w-[5%]"></th>
+                 </tr>
               </thead>
               <tbody>
                 <AnimatePresence>
@@ -151,24 +160,26 @@ export default function GeneralIncomeTable() {
                     <motion.tr key={r.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                       className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                       <td className="px-3 py-3 font-medium text-[#1e3a5f] truncate">{r.description}</td>
-                      <td className="px-3 py-3 text-xs truncate">
-                        {r.income_type === "project" ? (
-                          <span className="inline-flex items-center gap-1">
-                            <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap">Έργο</span>
-                            <span className="text-gray-600 truncate">{r.project_name || "—"}</span>
-                          </span>
-                        ) : (
-                          <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-medium">Λειτουργικό</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-gray-600 truncate">{r.category || "—"}</td>
-                      <td className="px-3 py-3 text-gray-600 truncate">{r.payer || "—"}</td>
-                      <td className="px-3 py-3 text-gray-500 text-xs truncate">{r.invoice_number || "—"}</td>
-                      <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(r.amount)}</td>
-                      <td className="px-3 py-3 text-gray-500 text-xs truncate">{r.payment_source || "—"}</td>
-                      <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">
-                        {r.date ? format(new Date(r.date), "dd/MM/yyyy") : "—"}
-                      </td>
+                       <td className="px-3 py-3 text-xs truncate">
+                         {r.income_type === "project" ? (
+                           <span className="inline-flex items-center gap-1">
+                             <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap">Έργο</span>
+                             <span className="text-gray-600 truncate">{r.project_name || "—"}</span>
+                           </span>
+                         ) : (
+                           <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-medium">Λειτουργικό</span>
+                         )}
+                       </td>
+                       <td className="px-3 py-3 text-gray-600 truncate">{r.category || "—"}</td>
+                       <td className="px-3 py-3 text-gray-600 truncate">{r.payer || "—"}</td>
+                       <td className="px-3 py-3 text-gray-500 text-xs truncate">{r.invoice_number || "—"}</td>
+                       <td className="px-3 py-3 text-right text-gray-700 tabular-nums">{fmt(r.net_amount)}</td>
+                       <td className="px-3 py-3 text-right text-amber-700 tabular-nums">{fmt(r.vat_amount)}</td>
+                       <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(r.total_amount)}</td>
+                       <td className="px-3 py-3 text-gray-500 text-xs truncate">{r.payment_source || "—"}</td>
+                       <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">
+                         {r.date ? format(new Date(r.date), "dd/MM/yyyy") : "—"}
+                       </td>
                       <td className="px-3 py-3 text-center">
                         {r.file_url && (
                           <a href={r.file_url} target="_blank" rel="noopener noreferrer">
@@ -195,7 +206,9 @@ export default function GeneralIncomeTable() {
               <tfoot className="bg-gray-50 border-t border-gray-200">
                 <tr>
                   <td colSpan={5} className="px-3 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} εγγραφές)</td>
-                  <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(total)}</td>
+                  <td className="px-3 py-3 text-right font-semibold text-gray-700 tabular-nums">{fmt(totalNet)}</td>
+                  <td className="px-3 py-3 text-right font-semibold text-amber-700 tabular-nums">{fmt(totalVat)}</td>
+                  <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(totalAmount)}</td>
                   <td colSpan={4}></td>
                 </tr>
               </tfoot>
@@ -244,18 +257,26 @@ export default function GeneralIncomeTable() {
               <label className="text-xs font-medium text-gray-500 mb-1 block">Περιγραφή *</label>
               <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Περιγραφή εσόδου" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Κατηγορία</label>
+              <select className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none"
+                value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+                <option value="">Επιλέξτε...</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">Κατηγορία</label>
-                <select className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none"
-                  value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-                  <option value="">Επιλέξτε...</option>
-                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Καθαρό (€) *</label>
+                <Input type="number" step="0.01" value={form.net_amount} onChange={e => setForm(f => ({ ...f, net_amount: e.target.value }))} placeholder="0.00" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">Ποσό (€) *</label>
-                <Input type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" />
+                <label className="text-xs font-medium text-gray-500 mb-1 block">ΦΠΑ (€)</label>
+                <Input type="number" step="0.01" value={form.vat_amount} onChange={e => setForm(f => ({ ...f, vat_amount: e.target.value }))} placeholder="0.00" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Σύνολο (€) *</label>
+                <Input type="number" step="0.01" value={form.total_amount} onChange={e => setForm(f => ({ ...f, total_amount: e.target.value }))} placeholder="0.00" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -296,7 +317,7 @@ export default function GeneralIncomeTable() {
             </div>
             <div className="flex gap-2 pt-2">
               <Button className="flex-1 bg-[#1e3a5f] hover:bg-[#152a45]" onClick={handleSubmit}
-                disabled={!form.description || !form.amount || !form.date}>
+                disabled={!form.description || !form.net_amount || !form.total_amount || !form.date}>
                 {editing ? "Αποθήκευση" : "Δημιουργία"}
               </Button>
               <Button variant="outline" onClick={closeForm}>Ακύρωση</Button>
