@@ -63,14 +63,29 @@ export default function InvoiceTable({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["invoices"] }),
   });
 
+  // If the edited invoice is part of a multi-selection, apply to all selected; otherwise just to itself
   const handleCategoryUpdate = (invoice, value) => {
     setEditingCell(null);
-    updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, category: value } });
+    const targets = selectedInvoices.includes(invoice.id)
+      ? invoices.filter(inv => selectedInvoices.includes(inv.id))
+      : [invoice];
+    if (targets.length > 1) {
+      bulkUpdateMutation.mutate(targets.map(inv => ({ id: inv.id, data: { ...inv, category: value } })));
+    } else {
+      updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, category: value } });
+    }
   };
 
   const handleSubcategoryUpdate = (invoice, value) => {
     setEditingCell(null);
-    updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, subcategory: value } });
+    const targets = selectedInvoices.includes(invoice.id)
+      ? invoices.filter(inv => selectedInvoices.includes(inv.id))
+      : [invoice];
+    if (targets.length > 1) {
+      bulkUpdateMutation.mutate(targets.map(inv => ({ id: inv.id, data: { ...inv, subcategory: value } })));
+    } else {
+      updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, subcategory: value } });
+    }
   };
 
   const handleBulkUpdate = (field, value) => {
