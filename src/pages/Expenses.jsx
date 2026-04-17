@@ -15,6 +15,7 @@ import ScanInvoiceDialog from "@/components/invoices/ScanInvoiceDialog";
 import EditInvoiceDialog from "@/components/invoices/EditInvoiceDialog";
 import TransferInvoiceDialog from "@/components/invoices/TransferInvoiceDialog";
 import InvoiceTable from "@/components/invoices/InvoiceTable";
+import InvoiceBreakdown from "@/components/invoices/InvoiceBreakdown";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -749,37 +750,42 @@ export default function Expenses() {
 
                         {/* Summary Bar */}
                         {filteredInvoices.length > 0 && (
-                          <div className="bg-gray-50 rounded-xl border border-gray-100 px-5 py-3 flex flex-wrap gap-6 items-center justify-end">
-                            <span className="text-sm text-gray-500">{filteredInvoices.length} invoices</span>
-                            {(filterInvoiceType === "all" || filterInvoiceType === "expense") && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-500">Invoices Expenses:</span>
-                                <span className="font-bold text-red-600">{formatCurrency(filteredInvoices.filter(i => i.type === "expense").reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
+                          <div className="space-y-3">
+                            <div className="bg-gray-50 rounded-xl border border-gray-100 px-5 py-3 flex flex-wrap gap-6 items-center justify-end">
+                              <span className="text-sm text-gray-500">{filteredInvoices.length} invoices</span>
+                              {(filterInvoiceType === "all" || filterInvoiceType === "expense") && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-500">Invoices Expenses:</span>
+                                  <span className="font-bold text-red-600">{formatCurrency(filteredInvoices.filter(i => i.type === "expense").reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
+                                </div>
+                              )}
+                              {(filterInvoiceType === "all" || filterInvoiceType === "income") && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-500">Invoices Income:</span>
+                                  <span className="font-bold text-green-600">{formatCurrency(filteredInvoices.filter(i => i.type === "income").reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2 border-l border-gray-200 pl-6">
+                                <span className="text-sm text-gray-500">Invoices Total:</span>
+                                <span className="font-bold text-[#1e3a5f]">{formatCurrency(filteredInvoices.reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
                               </div>
-                            )}
-                            {(filterInvoiceType === "all" || filterInvoiceType === "income") && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-500">Invoices Income:</span>
-                                <span className="font-bold text-green-600">{formatCurrency(filteredInvoices.filter(i => i.type === "income").reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
+                              <div className="flex items-center gap-2 border-l border-gray-200 pl-6">
+                                <span className="text-sm font-semibold text-gray-700">+ Expenses:</span>
+                                <span className="font-bold text-[#1e3a5f]">{formatCurrency(filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0))}</span>
                               </div>
-                            )}
-                            <div className="flex items-center gap-2 border-l border-gray-200 pl-6">
-                              <span className="text-sm text-gray-500">Invoices Total:</span>
-                              <span className="font-bold text-[#1e3a5f]">{formatCurrency(filteredInvoices.reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
+                              <div className="flex items-center gap-2 border-l border-gray-200 pl-6 bg-[#1e3a5f] text-white rounded-lg px-4 py-1">
+                                <span className="text-sm font-semibold">Σύνολο:</span>
+                                <span className="font-bold text-lg">
+                                  {formatCurrency(
+                                    filteredInvoices.filter(i => i.type === "expense").reduce((s, i) => s + (i.total_amount || 0), 0) +
+                                    filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0)
+                                  )}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 border-l border-gray-200 pl-6">
-                              <span className="text-sm font-semibold text-gray-700">+ Expenses:</span>
-                              <span className="font-bold text-[#1e3a5f]">{formatCurrency(filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0))}</span>
-                            </div>
-                            <div className="flex items-center gap-2 border-l border-gray-200 pl-6 bg-[#1e3a5f] text-white rounded-lg px-4 py-1">
-                              <span className="text-sm font-semibold">Σύνολο:</span>
-                              <span className="font-bold text-lg">
-                                {formatCurrency(
-                                  filteredInvoices.filter(i => i.type === "expense").reduce((s, i) => s + (i.total_amount || 0), 0) +
-                                  filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0)
-                                )}
-                              </span>
-                            </div>
+
+                            {/* Breakdown by Phase / Category / Subcategory */}
+                            <InvoiceBreakdown invoices={filteredInvoices} />
                           </div>
                         )}
                       </div>
