@@ -20,6 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { MoreHorizontal, Users, Wrench, Package, Truck, Receipt, Layers, CalendarIcon } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useColumnWidths } from "@/hooks/useColumnWidths";
 
 const categoryIcons = {
   labor: Users, subcontractor: Wrench, materials: Package, equipment: Truck, general_expenses: Receipt,
@@ -68,6 +69,7 @@ function InlineNumber({ value, onSave }) {
 
 export default function ExpenseTable({ expenses, projects, contacts = [], onEdit, onDelete, onUpdate, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense, onViewContact }) {
   const [editingCell, setEditingCell] = useState(null);
+  const { widths, autoAdjustColumnByHeader } = useColumnWidths();
   const isBulkSelected = (id) => selectedExpenses.length > 1 && selectedExpenses.includes(id);
 
   const { data: subcategories = [] } = useQuery({ queryKey: ["subcategories"], queryFn: () => base44.entities.Subcategory.list() });
@@ -129,15 +131,15 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               <TableHead className="w-10 bg-gray-50">
                 <Checkbox checked={selectedExpenses.length === expenses.length && expenses.length > 0} onCheckedChange={onSelectAll} />
               </TableHead>
-              <TableHead className="bg-gray-50 whitespace-nowrap">Date</TableHead>
-              <TableHead className="bg-gray-50 whitespace-nowrap">Phase</TableHead>
-              <TableHead className="bg-gray-50 whitespace-nowrap">Category</TableHead>
-              <TableHead className="bg-gray-50 whitespace-nowrap">Subcategory</TableHead>
-              {showProject && <TableHead className="bg-gray-50 whitespace-nowrap">Project</TableHead>}
-              <TableHead className="bg-gray-50 whitespace-nowrap">Payee</TableHead>
-              <TableHead className="bg-gray-50 whitespace-nowrap">Description</TableHead>
-              <TableHead className="bg-gray-50 whitespace-nowrap">Payment Source</TableHead>
-              <TableHead className="text-right bg-gray-50 whitespace-nowrap">Amount</TableHead>
+              <TableHead className="bg-gray-50 whitespace-nowrap cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['date'] }} onClick={() => autoAdjustColumnByHeader('date')} data-column="date" title="Click to auto-fit">Date</TableHead>
+              <TableHead className="bg-gray-50 whitespace-nowrap cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['phase'] }} onClick={() => autoAdjustColumnByHeader('phase')} data-column="phase" title="Click to auto-fit">Phase</TableHead>
+              <TableHead className="bg-gray-50 whitespace-nowrap cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['category'] }} onClick={() => autoAdjustColumnByHeader('category')} data-column="category" title="Click to auto-fit">Category</TableHead>
+              <TableHead className="bg-gray-50 whitespace-nowrap cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['subcategory'] }} onClick={() => autoAdjustColumnByHeader('subcategory')} data-column="subcategory" title="Click to auto-fit">Subcategory</TableHead>
+              {showProject && <TableHead className="bg-gray-50 whitespace-nowrap cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['project'] }} onClick={() => autoAdjustColumnByHeader('project')} data-column="project" title="Click to auto-fit">Project</TableHead>}
+              <TableHead className="bg-gray-50 whitespace-nowrap cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['payee'] }} onClick={() => autoAdjustColumnByHeader('payee')} data-column="payee" title="Click to auto-fit">Payee</TableHead>
+              <TableHead className="bg-gray-50 whitespace-nowrap cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['description'] }} onClick={() => autoAdjustColumnByHeader('description')} data-column="description" title="Click to auto-fit">Description</TableHead>
+              <TableHead className="bg-gray-50 whitespace-nowrap cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['paymentSource'] }} onClick={() => autoAdjustColumnByHeader('paymentSource')} data-column="paymentSource" title="Click to auto-fit">Payment Source</TableHead>
+              <TableHead className="text-right bg-gray-50 whitespace-nowrap cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['amount'] }} onClick={() => autoAdjustColumnByHeader('amount')} data-column="amount" title="Click to auto-fit">Amount</TableHead>
               <TableHead className="w-10 bg-gray-50"></TableHead>
             </TableRow>
           </TableHeader>
