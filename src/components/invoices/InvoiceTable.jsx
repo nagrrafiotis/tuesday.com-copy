@@ -1,0 +1,196 @@
+import React from "react";
+import { motion } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  Receipt, TrendingUp, Hash, Layers, Users, Wrench, Package, Truck,
+  CheckCircle2, ArrowRight, Pencil, Trash2, Building2, Calendar,
+} from "lucide-react";
+import { format } from "date-fns";
+
+const categoryIcons = {
+  labor: Users, subcontractor: Wrench, materials: Package, equipment: Truck, general_expenses: Receipt,
+};
+const categoryColors = {
+  labor: "bg-blue-100 text-blue-700", subcontractor: "bg-purple-100 text-purple-700",
+  materials: "bg-amber-100 text-amber-700", equipment: "bg-emerald-100 text-emerald-700",
+  general_expenses: "bg-gray-100 text-gray-700",
+};
+
+const formatCurrency = (v) =>
+  new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(v || 0);
+
+const safeFormatDate = (dateStr) => {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "—";
+  return format(d, "dd/MM/yy");
+};
+
+export default function InvoiceTable({
+  invoices, projects,
+  selectedInvoices = [], onSelectAll, onSelectInvoice,
+  onEdit, onDelete, onTransfer,
+}) {
+  const { data: subcategories = [] } = useQuery({ queryKey: ["subcategories"], queryFn: () => base44.entities.Subcategory.list() });
+  const { data: phases = [] } = useQuery({ queryKey: ["phases"], queryFn: () => base44.entities.ProjectPhase.list("order") });
+
+  const getProjectPhase = (subcategoryName) => {
+    if (!subcategoryName) return null;
+    const sub = subcategories.find(s => s.name === subcategoryName);
+    if (!sub?.phase_id) return null;
+    const phase = phases.find(p => p.id === sub.phase_id);
+    if (!phase) return null;
+    return { name: phase.name, color: phase.color || "bg-blue-100 text-blue-700" };
+  };
+
+  if (invoices.length === 0) {
+    return (
+      <div className="text-center py-10 text-gray-400">
+        <Receipt className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+        <p>No invoices found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-auto max-h-[480px] w-full">
+      {selectedInvoices.length > 1 && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f]/5 border-b border-[#1e3a5f]/10 text-sm text-[#1e3a5f] font-medium">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1e3a5f] text-white text-xs">{selectedInvoices.length}</span>
+          invoices selected
+        </div>
+      )}
+      <Table className="w-auto min-w-full">
+        <TableHeader className="sticky top-0 z-20 bg-gray-50 shadow-sm">
+          <TableRow className="bg-gray-50">
+            <TableHead className="w-10 bg-gray-50">
+              <Checkbox
+                checked={selectedInvoices.length === invoices.length && invoices.length > 0}
+                onCheckedChange={onSelectAll}
+              />
+            </TableHead>
+            <TableHead className="bg-gray-50 whitespace-nowrap">Date</TableHead>
+            <TableHead className="bg-gray-50 whitespace-nowrap">Phase</TableHead>
+            <TableHead className="bg-gray-50 whitespace-nowrap">Category</TableHead>
+            <TableHead className="bg-gray-50 whitespace-nowrap">Subcategory</TableHead>
+            <TableHead className="bg-gray-50 whitespace-nowrap">Project</TableHead>
+            <TableHead className="bg-gray-50 whitespace-nowrap">Vendor / Client</TableHead>
+            <TableHead className="bg-gray-50 whitespace-nowrap">Invoice #</TableHead>
+            <TableHead className="bg-gray-50 whitespace-nowrap">Type</TableHead>
+            <TableHead className="bg-gray-50 whitespace-nowrap">Status</TableHead>
+            <TableHead className="text-right bg-gray-50 whitespace-nowrap">Total</TableHead>
+            <TableHead className="bg-gray-50 w-28"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {invoices.map((invoice, index) => {
+            const Icon = categoryIcons[invoice.category] || Receipt;
+            const catColor = categoryColors[invoice.category] || "bg-gray-100 text-gray-700";
+            const catLabel = invoice.category
+              ? invoice.category.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+              : "—";
+            const phase = getProjectPhase(invoice.subcategory);
+            const projectName = projects?.find(p => p.id === invoice.project_id)?.name || "—";
+
+            return (
+              <motion.tr
+                key={invoice.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.02 }}
+                className={`hover:bg-gray-50/50 transition-colors group ${selectedInvoices.includes(invoice.id) ? 'bg-blue-50/40' : ''}`}
+              >
+                <TableCell>
+                  <Checkbox
+                    checked={selectedInvoices.includes(invoice.id)}
+                    onCheckedChange={() => onSelectInvoice(invoice.id)}
+                  />
+                </TableCell>
+
+                <TableCell className="text-gray-600 whitespace-nowrap">
+                  {safeFormatDate(invoice.date)}
+                </TableCell>
+
+                <TableCell>
+                  {phase
+                    ? <Badge className={`${phase.color} border-0 gap-1.5`}><Layers className="w-3 h-3" />{phase.name}</Badge>
+                    : <span className="text-gray-400">—</span>}
+                </TableCell>
+
+                <TableCell>
+                  {invoice.category
+                    ? <Badge className={`${catColor} border-0 gap-1.5`}><Icon className="w-3 h-3" />{catLabel}</Badge>
+                    : <span className="text-gray-400">—</span>}
+                </TableCell>
+
+                <TableCell className="text-gray-600 text-sm">
+                  {invoice.subcategory || <span className="text-gray-400">—</span>}
+                </TableCell>
+
+                <TableCell className="text-gray-600 text-sm whitespace-nowrap">
+                  <span className="flex items-center gap-1">
+                    <Building2 className="w-3 h-3 text-gray-400" />{projectName}
+                  </span>
+                </TableCell>
+
+                <TableCell className="font-medium text-gray-900 text-sm">{invoice.vendor_client}</TableCell>
+
+                <TableCell className="text-gray-400 text-xs">
+                  {invoice.invoice_number
+                    ? <span className="flex items-center gap-1"><Hash className="w-3 h-3" />{invoice.invoice_number}</span>
+                    : "—"}
+                </TableCell>
+
+                <TableCell>
+                  <Badge className={invoice.type === "expense" ? "bg-red-100 text-red-700 border-0 text-xs" : "bg-green-100 text-green-700 border-0 text-xs"}>
+                    {invoice.type === "expense" ? "Expense" : "Income"}
+                  </Badge>
+                </TableCell>
+
+                <TableCell>
+                  {invoice.status === "transferred"
+                    ? <Badge className="bg-blue-100 text-blue-700 border-0 gap-1 text-xs"><CheckCircle2 className="w-3 h-3" />Transferred</Badge>
+                    : <Badge className="bg-yellow-100 text-yellow-700 border-0 text-xs">Pending</Badge>}
+                </TableCell>
+
+                <TableCell className="text-right font-semibold text-[#1e3a5f] whitespace-nowrap">
+                  {formatCurrency(invoice.total_amount)}
+                </TableCell>
+
+                <TableCell>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {invoice.status !== "transferred" && (
+                      <Button size="sm" onClick={() => onTransfer(invoice)} className="bg-[#c9a962] hover:bg-[#b8954f] text-white gap-1 h-7 text-xs px-2">
+                        <ArrowRight className="w-3 h-3" />
+                      </Button>
+                    )}
+                    <button onClick={() => onEdit(invoice)} className="p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-colors">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => onDelete(invoice.id)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </TableCell>
+              </motion.tr>
+            );
+          })}
+          <TableRow className="bg-gray-50 border-t-2 border-gray-200">
+            <TableCell colSpan={10} className="text-right font-bold text-gray-900">Total</TableCell>
+            <TableCell className="text-right font-bold text-[#1e3a5f] text-lg">
+              {formatCurrency(invoices.reduce((s, i) => s + (i.total_amount || 0), 0))}
+            </TableCell>
+            <TableCell />
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
+  );
+}

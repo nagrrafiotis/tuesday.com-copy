@@ -14,6 +14,7 @@ import ContactForm from "@/components/contacts/ContactForm.jsx";
 import ScanInvoiceDialog from "@/components/invoices/ScanInvoiceDialog";
 import EditInvoiceDialog from "@/components/invoices/EditInvoiceDialog";
 import TransferInvoiceDialog from "@/components/invoices/TransferInvoiceDialog";
+import InvoiceTable from "@/components/invoices/InvoiceTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -29,8 +30,7 @@ import {
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   Plus, Search, Download, Receipt, Upload, Trash2, RefreshCw, FileSpreadsheet, RotateCcw,
-  ScanLine, ChevronDown, ChevronUp, ArrowRight, TrendingUp, FileText, Calendar, Building2,
-  Hash, Loader2, CheckCircle2, Pencil, X
+  ScanLine, ChevronDown, ChevronUp, FileText, Loader2, X
 } from "lucide-react";
 
 const formatCurrency = (v) =>
@@ -51,7 +51,6 @@ export default function Expenses() {
   const [scanOpen, setScanOpen] = useState(false);
   const [transferInvoice, setTransferInvoice] = useState(null);
   const [editInvoice, setEditInvoice] = useState(null);
-  const [expandedInvoiceId, setExpandedInvoiceId] = useState(null);
   const [searchVendor, setSearchVendor] = useState("");
   const [filterInvoiceType, setFilterInvoiceType] = useState("all");
   const [filterInvoiceStatus, setFilterInvoiceStatus] = useState("all");
@@ -60,6 +59,7 @@ export default function Expenses() {
   const [filterInvoicePaymentSource, setFilterInvoicePaymentSource] = useState("all");
   const [filterInvoiceCategory, setFilterInvoiceCategory] = useState("all");
   const [filterInvoiceSubcategory, setFilterInvoiceSubcategory] = useState("all");
+  const [selectedInvoices, setSelectedInvoices] = useState([]);
 
   // --- Expense state ---
   const [showForm, setShowForm] = useState(false);
@@ -223,6 +223,16 @@ export default function Expenses() {
     mutationFn: (id) => base44.entities.Invoice.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["invoices"] }),
   });
+
+  const handleInvoiceBulkDelete = async () => {
+    if (window.confirm(`Delete ${selectedInvoices.length} selected invoices?`)) {
+      await Promise.all(selectedInvoices.map(id => deleteInvoiceMutation.mutateAsync(id)));
+      setSelectedInvoices([]);
+    }
+  };
+
+  const toggleSelectInvoice = (id) => setSelectedInvoices(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const toggleSelectAllInvoices = () => setSelectedInvoices(selectedInvoices.length === filteredInvoices.length ? [] : filteredInvoices.map(i => i.id));
 
   const filteredInvoices = invoices
     .filter(inv => {
@@ -713,114 +723,28 @@ export default function Expenses() {
                             <p>No invoices yet. Scan your first invoice.</p>
                           </div>
                         ) : (
-                          <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
-                            {filteredInvoices.length === 0 && (
-                              <div className="text-center py-8 text-gray-400">No invoices found</div>
+                          <>
+                            {selectedInvoices.length > 0 && (
+                              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1e3a5f] text-white rounded-xl p-3 flex items-center justify-between">
+                                <span className="font-medium text-sm">{selectedInvoices.length} selected</span>
+                                <Button onClick={handleInvoiceBulkDelete} variant="destructive" size="sm" className="bg-red-600 hover:bg-red-700">
+                                  <Trash2 className="w-4 h-4 mr-2" />Delete Selected
+                                </Button>
+                              </motion.div>
                             )}
-                            {filteredInvoices.map((invoice) => (
-                              <div key={invoice.id} className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
-                                <div className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-100/60 transition-colors" onClick={() => setExpandedInvoiceId(prev => prev === invoice.id ? null : invoice.id)}>
-                                  <div className="flex-shrink-0">
-                                    {invoice.type === "expense" ? (
-                                      <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center"><Receipt className="w-3.5 h-3.5 text-red-500" /></div>
-                                    ) : (
-                                      <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><TrendingUp className="w-3.5 h-3.5 text-green-500" /></div>
-                                    )}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="font-semibold text-gray-900 text-sm">{invoice.vendor_client}</span>
-                                      {invoice.invoice_number && <span className="text-xs text-gray-400 flex items-center gap-1"><Hash className="w-3 h-3" />{invoice.invoice_number}</span>}
-                                      <Badge className={invoice.type === "expense" ? "bg-red-100 text-red-700 border-0 text-xs" : "bg-green-100 text-green-700 border-0 text-xs"}>
-                                        {invoice.type === "expense" ? "Expense" : "Income"}
-                                      </Badge>
-                                      {invoice.status === "transferred" && (
-                                        <Badge className="bg-blue-100 text-blue-700 border-0 gap-1 text-xs"><CheckCircle2 className="w-3 h-3" /> Transferred</Badge>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500">
-                                      {invoice.date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{safeFormatDate(invoice.date, "dd/MM/yyyy")}</span>}
-                                      {invoice.project_id && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{projects.find(p => p.id === invoice.project_id)?.name || "—"}</span>}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2 flex-shrink-0">
-                                    <span className="font-bold text-[#1e3a5f]">{formatCurrency(invoice.total_amount)}</span>
-                                    {invoice.status !== "transferred" && (
-                                      <Button size="sm" onClick={(e) => { e.stopPropagation(); setTransferInvoice(invoice); }} className="bg-[#c9a962] hover:bg-[#b8954f] text-white gap-1 h-7 text-xs">
-                                        <ArrowRight className="w-3 h-3" /> Transfer
-                                      </Button>
-                                    )}
-                                    <button onClick={(e) => { e.stopPropagation(); setEditInvoice(invoice); }} className="p-1 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-colors">
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button onClick={(e) => { e.stopPropagation(); deleteInvoiceMutation.mutate(invoice.id); }} className="p-1 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <span className="text-xs text-gray-400 hidden sm:inline">{expandedInvoiceId === invoice.id ? "Κλείσιμο" : "Λεπτομέρειες"}</span>
-                                    {expandedInvoiceId === invoice.id ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                                  </div>
-                                </div>
-                                <AnimatePresence>
-                                  {expandedInvoiceId === invoice.id && (
-                                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-                                      <div className="border-t border-gray-200 px-4 py-4 bg-white">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                          <div className="space-y-3">
-                                            {invoice.image_url && (
-                                              <img src={invoice.image_url} alt="Invoice" className="w-full max-h-52 object-contain rounded-lg border border-gray-200 bg-white" />
-                                            )}
-                                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                              {invoice.invoice_number && <div><span className="text-gray-400 text-xs">Invoice #</span><p className="font-medium">{invoice.invoice_number}</p></div>}
-                                              {invoice.due_date && <div><span className="text-gray-400 text-xs">Due Date</span><p className="font-medium">{safeFormatDate(invoice.due_date, "dd/MM/yyyy")}</p></div>}
-                                              {invoice.payment_source && <div><span className="text-gray-400 text-xs">Payment Source</span><p className="font-medium">{invoice.payment_source}</p></div>}
-                                              {invoice.subcategory && <div><span className="text-gray-400 text-xs">Subcategory</span><p className="font-medium">{invoice.subcategory}</p></div>}
-                                            </div>
-                                            {invoice.notes && <div><span className="text-gray-400 text-xs">Notes</span><p className="text-sm text-gray-700 mt-1">{invoice.notes}</p></div>}
-                                          </div>
-                                          <div>
-                                            {invoice.items && invoice.items.length > 0 ? (
-                                              <div>
-                                                <h4 className="text-sm font-semibold text-gray-700 mb-2">Line Items</h4>
-                                                <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                                                  <table className="w-full text-sm">
-                                                    <thead className="bg-gray-50 text-gray-500 text-xs">
-                                                      <tr>
-                                                        <th className="text-left px-3 py-2">Description</th>
-                                                        <th className="text-right px-3 py-2">Qty</th>
-                                                        <th className="text-right px-3 py-2">Unit Price</th>
-                                                        <th className="text-right px-3 py-2">Total</th>
-                                                      </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                      {invoice.items.map((item, i) => (
-                                                        <tr key={i} className="border-t border-gray-100">
-                                                          <td className="px-3 py-2">{item.description}</td>
-                                                          <td className="px-3 py-2 text-right">{item.quantity} {item.unit}</td>
-                                                          <td className="px-3 py-2 text-right">{formatCurrency(item.unit_price)}</td>
-                                                          <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.total)}</td>
-                                                        </tr>
-                                                      ))}
-                                                    </tbody>
-                                                  </table>
-                                                </div>
-                                                <div className="mt-2 space-y-1 text-sm">
-                                                  {invoice.subtotal != null && <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{formatCurrency(invoice.subtotal)}</span></div>}
-                                                  {invoice.tax_amount != null && invoice.tax_amount > 0 && <div className="flex justify-between text-gray-500"><span>Tax</span><span>{formatCurrency(invoice.tax_amount)}</span></div>}
-                                                  <div className="flex justify-between font-bold text-[#1e3a5f] border-t border-gray-200 pt-1"><span>Total</span><span>{formatCurrency(invoice.total_amount)}</span></div>
-                                                </div>
-                                              </div>
-                                            ) : (
-                                              <div className="text-sm text-gray-400 italic">No line items extracted</div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-                              </div>
-                            ))}
-                          </div>
+                            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                              <InvoiceTable
+                                invoices={filteredInvoices}
+                                projects={projects}
+                                selectedInvoices={selectedInvoices}
+                                onSelectAll={toggleSelectAllInvoices}
+                                onSelectInvoice={toggleSelectInvoice}
+                                onEdit={(inv) => setEditInvoice(inv)}
+                                onDelete={(id) => deleteInvoiceMutation.mutate(id)}
+                                onTransfer={(inv) => setTransferInvoice(inv)}
+                              />
+                            </div>
+                          </>
                         )}
 
                         {/* Summary Bar */}
