@@ -44,9 +44,9 @@ const navItems = [
   { name: "Gantt", icon: BarChart3, page: "Gantt" },
   { name: "Notebook", icon: Calendar, page: "ConstructionNotebook" },
   { name: "Project Finances", icon: Receipt, page: "Expenses" },
+  { name: "Company Finances", icon: Users, page: "Payroll" },
   { name: "Financial Overview", icon: DollarSign, page: "FinancialOverview" },
   { name: "Contacts", icon: Users, page: "Contacts" },
-  { name: "Company Finances", icon: Users, page: "Payroll" },
   { name: "Settings", icon: Settings, page: "Settings" },
 ];
 
