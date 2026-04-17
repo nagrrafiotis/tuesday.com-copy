@@ -71,18 +71,18 @@ export default function InvoiceBreakdown({ invoices, expenses = [] }) {
   );
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="space-y-2">
       {/* Phase breakdown */}
-      <div className="bg-white rounded-xl border border-gray-100 p-4">
-        <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-700">
-          <Layers className="w-4 h-4 text-[#1e3a5f]" /> Ανά Phase
+      <div className="bg-white rounded-xl border border-gray-100 p-3">
+        <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-gray-700">
+          <Layers className="w-3.5 h-3.5 text-[#1e3a5f]" /> Ανά Phase
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {Object.entries(byPhase).sort((a, b) => b[1] - a[1]).map(([label, amount]) => (
             <div key={label}>
               <div className="flex justify-between text-xs text-gray-600">
-                <span className="truncate max-w-[120px]" title={label}>{label}</span>
-                <span className="font-semibold text-gray-800 whitespace-nowrap ml-2">{formatCurrency(amount)}</span>
+                <span className="truncate max-w-[100px]" title={label}>{label}</span>
+                <span className="font-semibold text-gray-800 whitespace-nowrap ml-1">{formatCurrency(amount)}</span>
               </div>
               {bar(amount)}
             </div>
@@ -91,16 +91,16 @@ export default function InvoiceBreakdown({ invoices, expenses = [] }) {
       </div>
 
       {/* Category breakdown */}
-      <div className="bg-white rounded-xl border border-gray-100 p-4">
-        <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-700">
-          <Receipt className="w-4 h-4 text-[#1e3a5f]" /> Ανά Category
+      <div className="bg-white rounded-xl border border-gray-100 p-3">
+        <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-gray-700">
+          <Receipt className="w-3.5 h-3.5 text-[#1e3a5f]" /> Ανά Category
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {Object.entries(byCategory).sort((a, b) => b[1].total - a[1].total).map(([label, { total: amt, color }]) => (
             <div key={label}>
               <div className="flex justify-between text-xs text-gray-600">
-                <span className={`inline-flex items-center px-1.5 rounded text-xs font-medium ${color}`}>{label}</span>
-                <span className="font-semibold text-gray-800 whitespace-nowrap ml-2">{formatCurrency(amt)}</span>
+                <span className={`inline-flex items-center px-1 rounded text-xs font-medium ${color}`}>{label}</span>
+                <span className="font-semibold text-gray-800 whitespace-nowrap ml-1">{formatCurrency(amt)}</span>
               </div>
               {bar(amt)}
             </div>
