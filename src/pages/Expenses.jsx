@@ -45,7 +45,7 @@ const safeFormatDate = (dateStr, fmt) => {
 
 export default function Expenses() {
   const [activeTab, setActiveTab] = useState("expenses");
-  const [showInvoicesSection, setShowInvoicesSection] = useState(false);
+  const [showInvoicesSection, setShowInvoicesSection] = useState(true);
 
   // --- Invoice state ---
   const [scanOpen, setScanOpen] = useState(false);
@@ -727,6 +727,7 @@ export default function Expenses() {
                                               <img src={invoice.image_url} alt="Invoice" className="w-full max-h-52 object-contain rounded-lg border border-gray-200 bg-white" />
                                             )}
                                             <div className="grid grid-cols-2 gap-3 text-sm">
+                                              {invoice.invoice_number && <div><span className="text-gray-400 text-xs">Invoice #</span><p className="font-medium">{invoice.invoice_number}</p></div>}
                                               {invoice.due_date && <div><span className="text-gray-400 text-xs">Due Date</span><p className="font-medium">{safeFormatDate(invoice.due_date, "dd/MM/yyyy")}</p></div>}
                                               {invoice.payment_source && <div><span className="text-gray-400 text-xs">Payment Source</span><p className="font-medium">{invoice.payment_source}</p></div>}
                                               {invoice.subcategory && <div><span className="text-gray-400 text-xs">Subcategory</span><p className="font-medium">{invoice.subcategory}</p></div>}
