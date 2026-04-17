@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useQuery } from "@tanstack/react-query";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -38,8 +39,24 @@ export default function InvoiceTable({
   selectedInvoices = [], onSelectAll, onSelectInvoice,
   onEdit, onDelete, onTransfer,
 }) {
+  const [editingCell, setEditingCell] = useState(null);
+  const queryClient = useQueryClient();
+
   const { data: subcategories = [] } = useQuery({ queryKey: ["subcategories"], queryFn: () => base44.entities.Subcategory.list() });
   const { data: phases = [] } = useQuery({ queryKey: ["phases"], queryFn: () => base44.entities.ProjectPhase.list("order") });
+  const { data: dropdownLists = [] } = useQuery({ queryKey: ["dropdown-lists"], queryFn: () => base44.entities.DropdownList.list() });
+
+  const expenseCategories = dropdownLists.find(l => l.list_name === "expense_categories")?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"];
+
+  const updateInvoiceMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Invoice.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+  });
+
+  const handleCategoryUpdate = (invoice, value) => {
+    setEditingCell(null);
+    updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, category: value } });
+  };
 
   const getProjectPhase = (subcategoryName) => {
     if (!subcategoryName) return null;
@@ -124,10 +141,18 @@ export default function InvoiceTable({
                     : <span className="text-gray-400">—</span>}
                 </TableCell>
 
-                <TableCell>
-                  {invoice.category
-                    ? <Badge className={`${catColor} border-0 gap-1.5`}><Icon className="w-3 h-3" />{catLabel}</Badge>
-                    : <span className="text-gray-400">—</span>}
+                <TableCell className="cursor-pointer" onClick={() => setEditingCell(invoice.id)}>
+                  {editingCell === invoice.id ? (
+                    <SearchableSelect
+                      value={invoice.category || ""}
+                      onValueChange={(v) => handleCategoryUpdate(invoice, v)}
+                      items={expenseCategories.map(cat => ({ value: cat, label: cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') }))}
+                      placeholder="Category"
+                      triggerClassName="h-7 text-xs min-w-[130px]"
+                    />
+                  ) : invoice.category
+                    ? <Badge className={`${catColor} border-0 gap-1.5 hover:opacity-80`}><Icon className="w-3 h-3" />{catLabel}</Badge>
+                    : <span className="text-gray-400 hover:text-[#1e3a5f]">—</span>}
                 </TableCell>
 
                 <TableCell className="text-gray-600 text-sm">
