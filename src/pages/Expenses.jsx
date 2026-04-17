@@ -753,13 +753,7 @@ export default function Expenses() {
                                   <span className="font-bold text-red-600">{formatCurrency(filteredInvoices.filter(i => i.type === "expense").reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
                                 </div>
                               )}
-                              {(filterInvoiceType === "all" || filterInvoiceType === "income") && (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm text-gray-500">Invoices Income:</span>
-                                  <span className="font-bold text-green-600">{formatCurrency(filteredInvoices.filter(i => i.type === "income").reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
-                                </div>
-                              )}
-                              <div className="flex items-center gap-2 border-l border-gray-200 pl-6">
+<div className="flex items-center gap-2 border-l border-gray-200 pl-6">
                                 <span className="text-sm text-gray-500">Invoices Total:</span>
                                 <span className="font-bold text-[#1e3a5f]">{formatCurrency(filteredInvoices.reduce((s, i) => s + (i.total_amount || 0), 0))}</span>
                               </div>
