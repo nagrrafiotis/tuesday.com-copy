@@ -56,6 +56,8 @@ export default function Expenses() {
   const [filterInvoiceType, setFilterInvoiceType] = useState("all");
   const [filterInvoiceStatus, setFilterInvoiceStatus] = useState("all");
   const [sortInvoiceOrder, setSortInvoiceOrder] = useState("newest");
+  const [filterInvoiceProject, setFilterInvoiceProject] = useState("all");
+  const [filterInvoicePaymentSource, setFilterInvoicePaymentSource] = useState("all");
 
   // --- Expense state ---
   const [showForm, setShowForm] = useState(false);
@@ -204,7 +206,9 @@ export default function Expenses() {
       ].some(v => v?.toLowerCase().includes(q));
       const matchType = filterInvoiceType === "all" || inv.type === filterInvoiceType;
       const matchStatus = filterInvoiceStatus === "all" || inv.status === filterInvoiceStatus || (filterInvoiceStatus === "pending" && !inv.status);
-      return matchSearch && matchType && matchStatus;
+      const matchProject = filterInvoiceProject === "all" || inv.project_id === filterInvoiceProject;
+      const matchPaymentSource = filterInvoicePaymentSource === "all" || inv.payment_source === filterInvoicePaymentSource;
+      return matchSearch && matchType && matchStatus && matchProject && matchPaymentSource;
     })
     .sort((a, b) => {
       const dateA = new Date(a.date || a.created_date || 0);
@@ -668,6 +672,10 @@ export default function Expenses() {
                               <SelectItem value="transferred">Transferred</SelectItem>
                             </SelectContent>
                           </Select>
+                          <SearchableSelect value={filterInvoiceProject} onValueChange={setFilterInvoiceProject} placeholder="Project" triggerClassName="w-[160px]"
+                            items={[{ value: "all", label: "All Projects" }, ...projects.map(p => ({ value: p.id, label: p.name }))]} />
+                          <SearchableSelect value={filterInvoicePaymentSource} onValueChange={setFilterInvoicePaymentSource} placeholder="Payment Source" triggerClassName="w-[160px]"
+                            items={[{ value: "all", label: "All Sources" }, ...paymentSources.map(ps => ({ value: ps.name, label: ps.name }))]} />
                           <Select value={sortInvoiceOrder} onValueChange={setSortInvoiceOrder}>
                             <SelectTrigger className="w-40"><SelectValue placeholder="Sort" /></SelectTrigger>
                             <SelectContent>
