@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import {
   Receipt, TrendingUp, Hash, Layers, Users, Wrench, Package, Truck,
-  CheckCircle2, ArrowRight, Pencil, Trash2, Building2, Calendar,
+  CheckCircle2, ArrowRight, Pencil, Trash2, Building2, Calendar, Eye,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -431,6 +431,9 @@ export default function InvoiceTable({
 
                 <TableCell onClick={e => e.stopPropagation()}>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => setViewingInvoice(invoice)} className="p-1 rounded hover:bg-green-50 text-gray-400 hover:text-green-500 transition-colors" title="View details">
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
                     {invoice.status !== "transferred" && (
                       <Button size="sm" onClick={() => onTransfer(invoice)} className="bg-[#c9a962] hover:bg-[#b8954f] text-white gap-1 h-7 text-xs px-2">
                         <ArrowRight className="w-3 h-3" />
