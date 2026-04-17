@@ -188,7 +188,20 @@ export default function Expenses() {
 
   const filteredInvoices = invoices
     .filter(inv => {
-      const matchSearch = !searchVendor.trim() || inv.vendor_client?.toLowerCase().includes(searchVendor.toLowerCase());
+      const q = searchVendor.trim().toLowerCase();
+      const projectName = projects.find(p => p.id === inv.project_id)?.name || "";
+      const matchSearch = !q || [
+        inv.vendor_client,
+        inv.invoice_number,
+        inv.description,
+        inv.category,
+        inv.subcategory,
+        inv.payment_source,
+        inv.notes,
+        inv.date,
+        projectName,
+        ...(inv.items || []).map(it => it.description),
+      ].some(v => v?.toLowerCase().includes(q));
       const matchType = filterInvoiceType === "all" || inv.type === filterInvoiceType;
       const matchStatus = filterInvoiceStatus === "all" || inv.status === filterInvoiceStatus || (filterInvoiceStatus === "pending" && !inv.status);
       return matchSearch && matchType && matchStatus;
@@ -632,7 +645,7 @@ export default function Expenses() {
                         <div className="flex flex-wrap gap-3 items-center">
                           <div className="relative flex-1 min-w-48">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <Input value={searchVendor} onChange={(e) => setSearchVendor(e.target.value)} placeholder="Filter by vendor / client name..." className="pl-9 pr-8" />
+                            <Input value={searchVendor} onChange={(e) => setSearchVendor(e.target.value)} placeholder="Αναζήτηση σε vendor, αρ. τιμολογίου, περιγραφή, έργο..." className="pl-9 pr-8" />
                             {searchVendor && (
                               <button onClick={() => setSearchVendor("")} className="absolute right-2 top-1/2 -translate-y-1/2">
                                 <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
