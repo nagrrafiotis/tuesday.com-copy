@@ -389,7 +389,15 @@ export default function InvoiceTable({
                      <SearchableSelect
                        value={invoice.payment_method || ""}
                        onValueChange={(v) => {
-                         updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, payment_method: v } });
+                         // Apply to all selected invoices if this one is selected
+                         const targets = selectedInvoices.includes(invoice.id)
+                           ? invoices.filter(inv => selectedInvoices.includes(inv.id))
+                           : [invoice];
+                         if (targets.length > 1) {
+                           bulkUpdateMutation.mutate(targets.map(inv => ({ id: inv.id, data: { ...inv, payment_method: v } })));
+                         } else {
+                           updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, payment_method: v } });
+                         }
                          setEditingCell(null);
                        }}
                        items={paymentSources.map(ps => ({ value: ps.name, label: ps.name }))}
