@@ -100,7 +100,8 @@ export default function IncomeTable({ incomes, projects, contacts = [], onEdit, 
           rows selected — click any cell on a selected row to apply the change to all selected rows
         </div>
       )}
-      <Table>
+      <div className="overflow-auto w-full">
+      <Table className="w-full">
         <TableHeader>
           <TableRow className="bg-gray-50/50">
             <TableHead className="w-12">
@@ -261,6 +262,7 @@ export default function IncomeTable({ incomes, projects, contacts = [], onEdit, 
           </TableRow>
         </TableBody>
       </Table>
+      </div>
     </motion.div>
   );
 }

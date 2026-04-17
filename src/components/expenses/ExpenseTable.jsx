@@ -123,7 +123,7 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
         </div>
       )}
       <div className="overflow-auto max-h-[calc(100vh-300px)] w-full relative">
-        <Table className="w-auto min-w-full">
+        <Table className="w-full">
           <TableHeader className="sticky top-0 z-20 bg-gray-50 shadow-sm">
             <TableRow className="bg-gray-50">
               <TableHead className="w-10 bg-gray-50">
