@@ -597,8 +597,8 @@ export default function Expenses() {
         </div>
 
         {/* Expenses Tab */}
-        {activeTab === "expenses" && (
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+         {activeTab === "expenses" && (
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
             <div className="xl:col-span-3 space-y-6">
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
                 <div className="flex flex-wrap gap-3">
@@ -791,7 +791,7 @@ export default function Expenses() {
 
         {/* Income Tab */}
         {activeTab === "income" && (
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
             <div className="xl:col-span-3 space-y-6">
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
                 <div className="flex flex-wrap gap-3">
