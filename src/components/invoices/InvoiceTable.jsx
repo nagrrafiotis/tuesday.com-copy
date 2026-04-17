@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ export default function InvoiceTable({
 }) {
   const [editingCell, setEditingCell] = useState(null);
   const [bulkField, setBulkField] = useState(null); // "phase" | "category" | "subcategory"
+  const [viewingInvoice, setViewingInvoice] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: subcategories = [] } = useQuery({ queryKey: ["subcategories"], queryFn: () => base44.entities.Subcategory.list() });
@@ -211,9 +213,10 @@ export default function InvoiceTable({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.02 }}
-                className={`hover:bg-gray-50/50 transition-colors group ${selectedInvoices.includes(invoice.id) ? 'bg-blue-50/40' : ''}`}
+                className={`hover:bg-gray-50/50 transition-colors group cursor-pointer ${selectedInvoices.includes(invoice.id) ? 'bg-blue-50/40' : ''}`}
+                onClick={() => setViewingInvoice(invoice)}
               >
-                <TableCell>
+                <TableCell onClick={e => e.stopPropagation()}>
                   <Checkbox
                     checked={selectedInvoices.includes(invoice.id)}
                     onCheckedChange={() => onSelectInvoice(invoice.id)}
@@ -224,7 +227,7 @@ export default function InvoiceTable({
                   {safeFormatDate(invoice.date)}
                 </TableCell>
 
-                <TableCell className="cursor-pointer" onClick={() => setEditingCell(`phase-${invoice.id}`)}>
+                <TableCell className="cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`phase-${invoice.id}`); }}>
                   {editingCell === `phase-${invoice.id}` ? (
                     <SearchableSelect
                       value={subcategories.find(s => s.name === invoice.subcategory)?.phase_id || ""}
@@ -242,7 +245,7 @@ export default function InvoiceTable({
                     : <span className="text-gray-400 hover:text-[#1e3a5f]">—</span>}
                 </TableCell>
 
-                <TableCell className="cursor-pointer" onClick={() => setEditingCell(invoice.id)}>
+                <TableCell className="cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(invoice.id); }}>
                   {editingCell === invoice.id ? (
                     <SearchableSelect
                       value={invoice.category || ""}
@@ -256,7 +259,7 @@ export default function InvoiceTable({
                     : <span className="text-gray-400 hover:text-[#1e3a5f]">—</span>}
                 </TableCell>
 
-                <TableCell className="cursor-pointer text-gray-600 text-sm" onClick={() => setEditingCell(`sub-${invoice.id}`)}>
+                <TableCell className="cursor-pointer text-gray-600 text-sm" onClick={e => { e.stopPropagation(); setEditingCell(`sub-${invoice.id}`); }}>
                   {editingCell === `sub-${invoice.id}` ? (() => {
                     const currentPhaseId = subcategories.find(s => s.name === invoice.subcategory)?.phase_id;
                     const filteredSubs = currentPhaseId
@@ -307,7 +310,7 @@ export default function InvoiceTable({
                   {formatCurrency(invoice.total_amount)}
                 </TableCell>
 
-                <TableCell>
+                <TableCell onClick={e => e.stopPropagation()}>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {invoice.status !== "transferred" && (
                       <Button size="sm" onClick={() => onTransfer(invoice)} className="bg-[#c9a962] hover:bg-[#b8954f] text-white gap-1 h-7 text-xs px-2">
@@ -335,6 +338,128 @@ export default function InvoiceTable({
         </TableBody>
       </Table>
       </div>
+
+      {/* View Invoice Dialog */}
+      {viewingInvoice && (
+        <Dialog open={!!viewingInvoice} onOpenChange={() => setViewingInvoice(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-[#1e3a5f]">
+                <Receipt className="w-5 h-5" />
+                {viewingInvoice.vendor_client}
+                {viewingInvoice.invoice_number && <span className="text-sm font-normal text-gray-400">#{viewingInvoice.invoice_number}</span>}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {/* Image */}
+              {viewingInvoice.image_url && (
+                <a href={viewingInvoice.image_url} target="_blank" rel="noopener noreferrer">
+                  <img src={viewingInvoice.image_url} alt="Invoice" className="w-full rounded-lg border border-gray-200 hover:opacity-90 transition-opacity" />
+                </a>
+              )}
+
+              {/* Details grid */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Date</p>
+                  <p className="font-medium">{safeFormatDate(viewingInvoice.date)}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Due Date</p>
+                  <p className="font-medium">{safeFormatDate(viewingInvoice.due_date)}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Type</p>
+                  <Badge className={viewingInvoice.type === "expense" ? "bg-red-100 text-red-700 border-0" : "bg-green-100 text-green-700 border-0"}>
+                    {viewingInvoice.type === "expense" ? "Expense" : "Income"}
+                  </Badge>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Status</p>
+                  {viewingInvoice.status === "transferred"
+                    ? <Badge className="bg-blue-100 text-blue-700 border-0 gap-1"><CheckCircle2 className="w-3 h-3" />Transferred</Badge>
+                    : <Badge className="bg-yellow-100 text-yellow-700 border-0">Pending</Badge>}
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Category</p>
+                  <p className="font-medium">{viewingInvoice.category || "—"}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Subcategory / Phase</p>
+                  <p className="font-medium">{viewingInvoice.subcategory || "—"}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Payment Source</p>
+                  <p className="font-medium">{viewingInvoice.payment_source || "—"}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Project</p>
+                  <p className="font-medium">{projects?.find(p => p.id === viewingInvoice.project_id)?.name || "—"}</p>
+                </div>
+                {viewingInvoice.description && (
+                  <div className="col-span-2 bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-400 mb-1">Description</p>
+                    <p className="font-medium">{viewingInvoice.description}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Line items */}
+              {viewingInvoice.items?.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Line Items</p>
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Description</th>
+                          <th className="text-right px-3 py-2 text-xs text-gray-500 font-medium">Qty</th>
+                          <th className="text-right px-3 py-2 text-xs text-gray-500 font-medium">Unit Price</th>
+                          <th className="text-right px-3 py-2 text-xs text-gray-500 font-medium">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {viewingInvoice.items.map((item, i) => (
+                          <tr key={i} className="border-t border-gray-100">
+                            <td className="px-3 py-2 text-gray-700">{item.description}</td>
+                            <td className="px-3 py-2 text-right text-gray-600">{item.quantity} {item.unit}</td>
+                            <td className="px-3 py-2 text-right text-gray-600">{formatCurrency(item.unit_price)}</td>
+                            <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Totals */}
+              <div className="flex flex-col items-end gap-1 text-sm border-t border-gray-100 pt-3">
+                {viewingInvoice.subtotal != null && <div className="flex gap-6"><span className="text-gray-500">Subtotal</span><span className="font-medium">{formatCurrency(viewingInvoice.subtotal)}</span></div>}
+                {viewingInvoice.tax_amount != null && <div className="flex gap-6"><span className="text-gray-500">Tax</span><span className="font-medium">{formatCurrency(viewingInvoice.tax_amount)}</span></div>}
+                <div className="flex gap-6 text-base"><span className="font-semibold text-[#1e3a5f]">Total</span><span className="font-bold text-[#1e3a5f]">{formatCurrency(viewingInvoice.total_amount)}</span></div>
+              </div>
+
+              {viewingInvoice.notes && (
+                <div className="bg-amber-50 rounded-lg p-3 text-sm text-gray-600">
+                  <p className="text-xs text-amber-600 font-medium mb-1">Notes</p>
+                  <p>{viewingInvoice.notes}</p>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button onClick={() => { setViewingInvoice(null); onEdit(viewingInvoice); }} className="flex-1 flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2 text-sm hover:bg-gray-50 transition-colors">
+                  <Pencil className="w-4 h-4" /> Edit
+                </button>
+                <button onClick={() => setViewingInvoice(null)} className="flex-1 flex items-center justify-center gap-2 bg-[#1e3a5f] text-white rounded-lg py-2 text-sm hover:bg-[#152a45] transition-colors">
+                  Close
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
