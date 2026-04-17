@@ -777,6 +777,37 @@ export default function Expenses() {
               </div>
             )}
 
+            {/* Summary Bar */}
+            {filteredInvoices.length > 0 && (
+              <div className="mt-4 bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 flex flex-wrap gap-6 items-center justify-end">
+                <span className="text-sm text-gray-500">{filteredInvoices.length} invoices</span>
+                {(filterInvoiceType === "all" || filterInvoiceType === "expense") && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">Expenses:</span>
+                    <span className="font-bold text-red-600">
+                      {formatCurrency(filteredInvoices.filter(i => i.type === "expense").reduce((s, i) => s + (i.total_amount || 0), 0))}
+                    </span>
+                  </div>
+                )}
+                {(filterInvoiceType === "all" || filterInvoiceType === "income") && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">Income:</span>
+                    <span className="font-bold text-green-600">
+                      {formatCurrency(filteredInvoices.filter(i => i.type === "income").reduce((s, i) => s + (i.total_amount || 0), 0))}
+                    </span>
+                  </div>
+                )}
+                {filterInvoiceType === "all" && (
+                  <div className="flex items-center gap-2 border-l border-gray-200 pl-6">
+                    <span className="text-sm text-gray-500">Total:</span>
+                    <span className="font-bold text-[#1e3a5f] text-lg">
+                      {formatCurrency(filteredInvoices.reduce((s, i) => s + (i.total_amount || 0), 0))}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <ScanInvoiceDialog open={scanOpen} onClose={() => setScanOpen(false)} projects={projects}
               onCreated={() => queryClient.invalidateQueries({ queryKey: ["invoices"] })} />
             <EditInvoiceDialog open={!!editInvoice} onClose={() => setEditInvoice(null)} invoice={editInvoice} projects={projects}
