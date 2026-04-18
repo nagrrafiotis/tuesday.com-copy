@@ -579,13 +579,13 @@ export default function Expenses() {
         </motion.div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 mb-6">
+        <div className="sticky top-16 lg:top-0 z-30 bg-[#fafafa] flex border-b border-gray-200 mb-6 overflow-x-auto">
           {[
             { key: "expenses", label: "Expenses" },
             { key: "income", label: "Income" },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.key
                   ? "border-[#1e3a5f] text-[#1e3a5f]"
                   : "border-transparent text-gray-500 hover:text-gray-700"
