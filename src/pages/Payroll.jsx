@@ -117,7 +117,7 @@ export default function Payroll() {
         </div>
 
         <Tabs defaultValue="payroll">
-          <div className="mb-6 overflow-x-auto">
+          <div className="sticky top-16 lg:top-0 z-30 bg-[#fafafa] pb-4 pt-1 mb-2 overflow-x-auto">
             <TabsList className="w-max min-w-full">
               <TabsTrigger value="payroll" className="whitespace-nowrap">Payroll Expenses</TabsTrigger>
               <TabsTrigger value="general" className="whitespace-nowrap">General Expenses</TabsTrigger>
