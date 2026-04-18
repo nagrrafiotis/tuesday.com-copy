@@ -117,11 +117,13 @@ export default function Payroll() {
         </div>
 
         <Tabs defaultValue="payroll">
-          <TabsList className="mb-6">
-            <TabsTrigger value="payroll">Payroll Expenses</TabsTrigger>
-            <TabsTrigger value="general">General Expenses</TabsTrigger>
-            <TabsTrigger value="income">General Income</TabsTrigger>
-          </TabsList>
+          <div className="mb-6 overflow-x-auto">
+            <TabsList className="w-max min-w-full">
+              <TabsTrigger value="payroll" className="whitespace-nowrap">Payroll Expenses</TabsTrigger>
+              <TabsTrigger value="general" className="whitespace-nowrap">General Expenses</TabsTrigger>
+              <TabsTrigger value="income" className="whitespace-nowrap">General Income</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* ── PAYROLL TAB ── */}
           <TabsContent value="payroll">
