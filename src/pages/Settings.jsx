@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X, Palette, RefreshCw, Clock, Settings as SettingsGear, CheckSquare, Square } from "lucide-react";
+import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X, Palette, RefreshCw, Clock, Settings as SettingsGear, CheckSquare, Square, AlertTriangle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -68,6 +68,8 @@ export default function Settings() {
   const [selectedPhases, setSelectedPhases] = useState([]);
   const [selectedListItems, setSelectedListItems] = useState({});
   const [lastSaved, setLastSaved] = useState(null);
+  const [nuking, setNuking] = useState(false);
+  const [fullBackupLoading, setFullBackupLoading] = useState(false);
 
   const markSaved = async () => {
     const now = new Date();
@@ -454,6 +456,105 @@ export default function Settings() {
     } catch (error) {
       alert("Error importing file. Please check the format.");
     }
+  };
+
+  const downloadFullBackup = async () => {
+    setFullBackupLoading(true);
+    const [projects, tasks, expenses, incomes, contacts, notes, payrolls, generalExpenses, generalIncomes, invoices] = await Promise.all([
+      base44.entities.Project.list(),
+      base44.entities.Task.list(),
+      base44.entities.Expense.list(),
+      base44.entities.Income.list(),
+      base44.entities.Contact.list(),
+      base44.entities.ConstructionNote.list(),
+      base44.entities.Payroll.list(),
+      base44.entities.GeneralExpense.list(),
+      base44.entities.GeneralIncome.list(),
+      base44.entities.Invoice.list(),
+    ]);
+
+    const backup = {
+      exported_at: new Date().toISOString(),
+      projects, tasks, expenses, incomes, contacts, notes,
+      payrolls, generalExpenses, generalIncomes, invoices,
+      subcategories, payment_sources: paymentSources, dropdown_lists: lists,
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.setAttribute("href", URL.createObjectURL(blob));
+    link.setAttribute("download", `FULL_BACKUP_${new Date().toISOString().split("T")[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    await base44.auth.updateMe({ last_backup_download_date: new Date().toISOString() });
+    refetchUser();
+    setFullBackupLoading(false);
+  };
+
+  const nukeAllData = async () => {
+    const confirm1 = window.confirm("⚠️ ΠΡΟΣΟΧΗ: Πρόκειται να διαγραφούν ΟΛΑ τα δεδομένα (έργα, έξοδα, εισοδήματα, μισθοδοσία, επαφές κ.λπ.).\n\nΒεβαιωθείτε ότι έχετε ήδη κατεβάσει backup!\n\nΠατήστε OK για να συνεχίσετε.");
+    if (!confirm1) return;
+    const confirm2 = window.confirm("Τελευταία ευκαιρία! Η ολική διαγραφή είναι ΜΗ ΑΝΑΣΤΡΕΨΙΜΗ χωρίς backup.\n\nΕίστε σίγουροι;");
+    if (!confirm2) return;
+
+    setNuking(true);
+    const [projects, tasks, expenses, incomes, contacts, notes, payrolls, generalExpenses, generalIncomes, invoices] = await Promise.all([
+      base44.entities.Project.list(),
+      base44.entities.Task.list(),
+      base44.entities.Expense.list(),
+      base44.entities.Income.list(),
+      base44.entities.Contact.list(),
+      base44.entities.ConstructionNote.list(),
+      base44.entities.Payroll.list(),
+      base44.entities.GeneralExpense.list(),
+      base44.entities.GeneralIncome.list(),
+      base44.entities.Invoice.list(),
+    ]);
+
+    await Promise.all([
+      ...projects.map(r => base44.entities.Project.delete(r.id).catch(() => {})),
+      ...tasks.map(r => base44.entities.Task.delete(r.id).catch(() => {})),
+      ...expenses.map(r => base44.entities.Expense.delete(r.id).catch(() => {})),
+      ...incomes.map(r => base44.entities.Income.delete(r.id).catch(() => {})),
+      ...contacts.map(r => base44.entities.Contact.delete(r.id).catch(() => {})),
+      ...notes.map(r => base44.entities.ConstructionNote.delete(r.id).catch(() => {})),
+      ...payrolls.map(r => base44.entities.Payroll.delete(r.id).catch(() => {})),
+      ...generalExpenses.map(r => base44.entities.GeneralExpense.delete(r.id).catch(() => {})),
+      ...generalIncomes.map(r => base44.entities.GeneralIncome.delete(r.id).catch(() => {})),
+      ...invoices.map(r => base44.entities.Invoice.delete(r.id).catch(() => {})),
+    ]);
+
+    queryClient.invalidateQueries();
+    setNuking(false);
+    alert("Η ολική διαγραφή ολοκληρώθηκε.");
+  };
+
+  const restoreFullBackup = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const backup = JSON.parse(e.target.result);
+      if (!window.confirm("Αυτό θα προσθέσει τα δεδομένα από το backup. Συνέχεια;")) return;
+      const promises = [];
+      if (backup.projects) promises.push(...backup.projects.map(r => base44.entities.Project.create(r).catch(() => {})));
+      if (backup.tasks) promises.push(...backup.tasks.map(r => base44.entities.Task.create(r).catch(() => {})));
+      if (backup.expenses) promises.push(...backup.expenses.map(r => base44.entities.Expense.create(r).catch(() => {})));
+      if (backup.incomes) promises.push(...backup.incomes.map(r => base44.entities.Income.create(r).catch(() => {})));
+      if (backup.contacts) promises.push(...backup.contacts.map(r => base44.entities.Contact.create(r).catch(() => {})));
+      if (backup.notes) promises.push(...backup.notes.map(r => base44.entities.ConstructionNote.create(r).catch(() => {})));
+      if (backup.payrolls) promises.push(...backup.payrolls.map(r => base44.entities.Payroll.create(r).catch(() => {})));
+      if (backup.generalExpenses) promises.push(...backup.generalExpenses.map(r => base44.entities.GeneralExpense.create(r).catch(() => {})));
+      if (backup.generalIncomes) promises.push(...backup.generalIncomes.map(r => base44.entities.GeneralIncome.create(r).catch(() => {})));
+      if (backup.invoices) promises.push(...backup.invoices.map(r => base44.entities.Invoice.create(r).catch(() => {})));
+      if (backup.subcategories) promises.push(...backup.subcategories.map(r => base44.entities.Subcategory.create(r).catch(() => {})));
+      if (backup.payment_sources) promises.push(...backup.payment_sources.map(r => base44.entities.PaymentSource.create(r).catch(() => {})));
+      await Promise.all(promises);
+      queryClient.invalidateQueries();
+      alert("Η επαναφορά ολοκληρώθηκε!");
+    };
+    reader.readAsText(file);
   };
 
   if (isLoading) {
@@ -1316,6 +1417,63 @@ export default function Settings() {
             </Card>
           </div>
         </div>
+
+        {/* Danger Zone */}
+        <Card className="bg-white shadow-sm border-red-200 mb-8">
+          <CardHeader className="border-b border-red-100">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+              <div>
+                <CardTitle className="text-xl text-red-600">Danger Zone</CardTitle>
+                <p className="text-sm text-gray-500 mt-1">Ολικό backup και ολική διαγραφή δεδομένων</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap gap-4 items-start">
+              {/* Full Backup */}
+              <div className="flex flex-col gap-1">
+                <Button
+                  onClick={downloadFullBackup}
+                  disabled={fullBackupLoading}
+                  className="bg-[#1e3a5f] hover:bg-[#152a45]"
+                >
+                  {fullBackupLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                  {fullBackupLoading ? "Αποθήκευση..." : "Αποθήκευση Όλων (Full Backup)"}
+                </Button>
+                <p className="text-xs text-gray-400">Κατεβάζει backup με ΟΛΑ τα δεδομένα</p>
+              </div>
+
+              {/* Restore Full Backup */}
+              <div className="flex flex-col gap-1">
+                <Button
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                  onClick={() => document.getElementById('full-backup-restore').click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Ολική Επαναφορά από Backup
+                </Button>
+                <input id="full-backup-restore" type="file" accept=".json" className="hidden" onChange={restoreFullBackup} />
+                <p className="text-xs text-gray-400">Επαναφέρει δεδομένα από full backup αρχείο</p>
+              </div>
+
+              {/* Nuke */}
+              <div className="flex flex-col gap-1 ml-auto">
+                <Button
+                  variant="destructive"
+                  onClick={nukeAllData}
+                  disabled={nuking}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {nuking ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                  {nuking ? "Διαγραφή..." : "Ολική Διαγραφή Δεδομένων"}
+                </Button>
+                <p className="text-xs text-red-400 text-right">Μη αναστρέψιμη! Κατεβάστε backup πρώτα.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* General Dropdown Lists */}
         <div>
