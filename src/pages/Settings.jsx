@@ -460,7 +460,7 @@ export default function Settings() {
 
   const downloadFullBackup = async () => {
     setFullBackupLoading(true);
-    const [projects, tasks, expenses, incomes, contacts, notes, payrolls, generalExpenses, generalIncomes, invoices] = await Promise.all([
+    const [projects, tasks, expenses, incomes, contacts, notes, payrolls, generalExpenses, generalIncomes, invoices, allPhases, allSubcategories, allPaymentSources, allDropdownLists] = await Promise.all([
       base44.entities.Project.list(),
       base44.entities.Task.list(),
       base44.entities.Expense.list(),
@@ -471,13 +471,20 @@ export default function Settings() {
       base44.entities.GeneralExpense.list(),
       base44.entities.GeneralIncome.list(),
       base44.entities.Invoice.list(),
+      base44.entities.ProjectPhase.list(),
+      base44.entities.Subcategory.list(),
+      base44.entities.PaymentSource.list(),
+      base44.entities.DropdownList.list(),
     ]);
 
     const backup = {
       exported_at: new Date().toISOString(),
       projects, tasks, expenses, incomes, contacts, notes,
       payrolls, generalExpenses, generalIncomes, invoices,
-      subcategories, payment_sources: paymentSources, dropdown_lists: lists,
+      phases: allPhases,
+      subcategories: allSubcategories,
+      payment_sources: allPaymentSources,
+      dropdown_lists: allDropdownLists,
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
@@ -493,13 +500,13 @@ export default function Settings() {
   };
 
   const nukeAllData = async () => {
-    const confirm1 = window.confirm("⚠️ ΠΡΟΣΟΧΗ: Πρόκειται να διαγραφούν ΟΛΑ τα δεδομένα (έργα, έξοδα, εισοδήματα, μισθοδοσία, επαφές κ.λπ.).\n\nΒεβαιωθείτε ότι έχετε ήδη κατεβάσει backup!\n\nΠατήστε OK για να συνεχίσετε.");
+    const confirm1 = window.confirm("⚠️ ΠΡΟΣΟΧΗ: Πρόκειται να διαγραφούν ΟΛΑ τα δεδομένα (έργα, έξοδα, εισοδήματα, μισθοδοσία, επαφές, φάσεις, υποκατηγορίες κ.λπ.).\n\nΒεβαιωθείτε ότι έχετε ήδη κατεβάσει backup!\n\nΠατήστε OK για να συνεχίσετε.");
     if (!confirm1) return;
     const confirm2 = window.confirm("Τελευταία ευκαιρία! Η ολική διαγραφή είναι ΜΗ ΑΝΑΣΤΡΕΨΙΜΗ χωρίς backup.\n\nΕίστε σίγουροι;");
     if (!confirm2) return;
 
     setNuking(true);
-    const [projects, tasks, expenses, incomes, contacts, notes, payrolls, generalExpenses, generalIncomes, invoices] = await Promise.all([
+    const [projects, tasks, expenses, incomes, contacts, notes, payrolls, generalExpenses, generalIncomes, invoices, allPhases, allSubcategories, allPaymentSources, allDropdownLists] = await Promise.all([
       base44.entities.Project.list(),
       base44.entities.Task.list(),
       base44.entities.Expense.list(),
@@ -510,6 +517,10 @@ export default function Settings() {
       base44.entities.GeneralExpense.list(),
       base44.entities.GeneralIncome.list(),
       base44.entities.Invoice.list(),
+      base44.entities.ProjectPhase.list(),
+      base44.entities.Subcategory.list(),
+      base44.entities.PaymentSource.list(),
+      base44.entities.DropdownList.list(),
     ]);
 
     await Promise.all([
@@ -523,6 +534,10 @@ export default function Settings() {
       ...generalExpenses.map(r => base44.entities.GeneralExpense.delete(r.id).catch(() => {})),
       ...generalIncomes.map(r => base44.entities.GeneralIncome.delete(r.id).catch(() => {})),
       ...invoices.map(r => base44.entities.Invoice.delete(r.id).catch(() => {})),
+      ...allPhases.map(r => base44.entities.ProjectPhase.delete(r.id).catch(() => {})),
+      ...allSubcategories.map(r => base44.entities.Subcategory.delete(r.id).catch(() => {})),
+      ...allPaymentSources.map(r => base44.entities.PaymentSource.delete(r.id).catch(() => {})),
+      ...allDropdownLists.map(r => base44.entities.DropdownList.delete(r.id).catch(() => {})),
     ]);
 
     queryClient.invalidateQueries();
@@ -548,8 +563,10 @@ export default function Settings() {
       if (backup.generalExpenses) promises.push(...backup.generalExpenses.map(r => base44.entities.GeneralExpense.create(r).catch(() => {})));
       if (backup.generalIncomes) promises.push(...backup.generalIncomes.map(r => base44.entities.GeneralIncome.create(r).catch(() => {})));
       if (backup.invoices) promises.push(...backup.invoices.map(r => base44.entities.Invoice.create(r).catch(() => {})));
+      if (backup.phases) promises.push(...backup.phases.map(r => base44.entities.ProjectPhase.create(r).catch(() => {})));
       if (backup.subcategories) promises.push(...backup.subcategories.map(r => base44.entities.Subcategory.create(r).catch(() => {})));
       if (backup.payment_sources) promises.push(...backup.payment_sources.map(r => base44.entities.PaymentSource.create(r).catch(() => {})));
+      if (backup.dropdown_lists) promises.push(...backup.dropdown_lists.map(r => base44.entities.DropdownList.create(r).catch(() => {})));
       await Promise.all(promises);
       queryClient.invalidateQueries();
       alert("Η επαναφορά ολοκληρώθηκε!");
