@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ExpenseTable from "@/components/expenses/ExpenseTable";
+import ExpenseSummaryBySubcategory from "@/components/expenses/ExpenseSummaryBySubcategory";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
 import BudgetTable from "@/components/budget/BudgetTable";
 import BudgetForm from "@/components/budget/BudgetForm";
@@ -647,40 +647,7 @@ export default function ProjectDetails() {
             </TabsContent>
 
             <TabsContent value="expenses">
-              {selectedExpenses.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-[#1e3a5f] text-white rounded-xl p-4 flex items-center justify-between mb-4"
-                >
-                  <span className="font-medium">{selectedExpenses.length} selected</span>
-                  <Button
-                    onClick={handleBulkDeleteExpenses}
-                    variant="destructive"
-                    size="sm"
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Selected
-                  </Button>
-                </motion.div>
-              )}
-
-              <ExpenseTable
-                expenses={expenses}
-                projects={[project]}
-                contacts={contacts}
-                showProject={false}
-                selectedExpenses={selectedExpenses}
-                onSelectAll={toggleSelectAllExpenses}
-                onSelectExpense={toggleSelectExpense}
-                onEdit={(expense) => {
-                  setEditingExpense(expense);
-                  setShowExpenseForm(true);
-                }}
-                onDelete={handleDeleteExpense}
-                onViewContact={() => {}}
-              />
+              <ExpenseSummaryBySubcategory expenses={expenses} />
             </TabsContent>
 
             <TabsContent value="budget">
