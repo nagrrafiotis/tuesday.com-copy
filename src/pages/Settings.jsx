@@ -161,13 +161,12 @@ export default function Settings() {
       try {
         await base44.entities.Subcategory.delete(id);
       } catch (error) {
-        // Ignore if already deleted
         if (!error.message?.includes('not found')) {
           throw error;
         }
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subcategories"] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["subcategories"] }); markSaved(); },
   });
 
   const createPaymentSourceMutation = useMutation({
@@ -180,23 +179,22 @@ export default function Settings() {
       try {
         await base44.entities.PaymentSource.delete(id);
       } catch (error) {
-        // Ignore if already deleted
         if (!error.message?.includes('not found')) {
           throw error;
         }
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["paymentSources"] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["paymentSources"] }); markSaved(); },
   });
 
   const createPhaseMutation = useMutation({
     mutationFn: (data) => base44.entities.ProjectPhase.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["phases"] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["phases"] }); markSaved(); },
   });
 
   const updatePhaseMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.ProjectPhase.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["phases"] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["phases"] }); markSaved(); },
   });
 
   const deletePhaseMutation = useMutation({
@@ -204,18 +202,17 @@ export default function Settings() {
       try {
         await base44.entities.ProjectPhase.delete(id);
       } catch (error) {
-        // Ignore if already deleted
         if (!error.message?.includes('not found')) {
           throw error;
         }
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["phases"] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["phases"] }); markSaved(); },
   });
 
   const updateSubcategoryMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Subcategory.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subcategories"] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["subcategories"] }); markSaved(); },
   });
 
   const getListOptions = (listName) => {
