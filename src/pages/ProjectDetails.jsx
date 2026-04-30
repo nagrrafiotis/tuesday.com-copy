@@ -84,6 +84,7 @@ export default function ProjectDetails() {
   const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [editingBudgetItem, setEditingBudgetItem] = useState(null);
   const [selectedBudgetItems, setSelectedBudgetItems] = useState([]);
+  const [localBudgetItems, setLocalBudgetItems] = useState(null); // null = not yet initialized
 
 
   const queryClient = useQueryClient();
@@ -157,6 +158,13 @@ export default function ProjectDetails() {
     queryKey: ["phases"],
     queryFn: () => base44.entities.ProjectPhase.list("order"),
   });
+
+  // Initialize local budget items from server data (only once)
+  useEffect(() => {
+    if (project && localBudgetItems === null) {
+      setLocalBudgetItems(project.budget_items || []);
+    }
+  }, [project]);
 
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
@@ -264,14 +272,16 @@ export default function ProjectDetails() {
   const updateBudgetItems = async (updatedItems) => {
     const totalBudget = updatedItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
     const updatePayload = { budget_items: updatedItems, budget: totalBudget };
-    // Update cache immediately so UI reflects changes
+    // Update local state immediately so UI is instant
+    setLocalBudgetItems(updatedItems);
+    // Update query cache too
     queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
-    // Await the save so data is persisted before any potential navigation/unmount
+    // Await the save so data is fully persisted before navigation
     await base44.entities.Project.update(projectId, updatePayload);
   };
 
-  const handleBudgetItemSubmit = (data) => {
-    const currentBudgetItems = project.budget_items || [];
+  const handleBudgetItemSubmit = async (data) => {
+    const currentBudgetItems = localBudgetItems || [];
     let updatedBudgetItems;
     if (editingBudgetItem) {
       updatedBudgetItems = currentBudgetItems.map(item =>
@@ -280,28 +290,28 @@ export default function ProjectDetails() {
     } else {
       updatedBudgetItems = [...currentBudgetItems, { ...data, id: Date.now().toString() }];
     }
-    updateBudgetItems(updatedBudgetItems);
+    await updateBudgetItems(updatedBudgetItems);
     setShowBudgetForm(false);
     setEditingBudgetItem(null);
   };
 
-  const handleDeleteBudgetItem = (item) => {
+  const handleDeleteBudgetItem = async (item) => {
     if (window.confirm(`Delete this budget item?`)) {
-      const updatedBudgetItems = (project.budget_items || []).filter(i => i.id !== item.id);
-      updateBudgetItems(updatedBudgetItems);
+      const updatedBudgetItems = (localBudgetItems || []).filter(i => i.id !== item.id);
+      await updateBudgetItems(updatedBudgetItems);
     }
   };
 
-  const handleBulkDeleteBudgetItems = () => {
+  const handleBulkDeleteBudgetItems = async () => {
     if (window.confirm(`Delete ${selectedBudgetItems.length} selected budget items?`)) {
-      const updatedBudgetItems = (project.budget_items || []).filter(item => !selectedBudgetItems.includes(item.id));
-      updateBudgetItems(updatedBudgetItems);
+      const updatedBudgetItems = (localBudgetItems || []).filter(item => !selectedBudgetItems.includes(item.id));
+      await updateBudgetItems(updatedBudgetItems);
       setSelectedBudgetItems([]);
     }
   };
 
   const toggleSelectAllBudgetItems = () => {
-    const budgetItems = project.budget_items || [];
+    const budgetItems = localBudgetItems || [];
     if (selectedBudgetItems.length === budgetItems.length) {
       setSelectedBudgetItems([]);
     } else {
@@ -393,7 +403,7 @@ export default function ProjectDetails() {
       name => subcategoryToPhase[name] === phase.id
     );
     
-    const phaseBudget = (project?.budget_items || [])
+    const phaseBudget = (localBudgetItems || [])
       .filter(item => subcategoryNames.includes(item.subcategory))
       .reduce((sum, item) => sum + (item.total_cost || 0), 0);
     
@@ -681,7 +691,7 @@ export default function ProjectDetails() {
               )}
 
               <BudgetTable
-                budgetItems={project.budget_items || []}
+                budgetItems={localBudgetItems || []}
                 selectedItems={selectedBudgetItems}
                 onSelectAll={toggleSelectAllBudgetItems}
                 onSelectItem={toggleSelectBudgetItem}
@@ -691,7 +701,7 @@ export default function ProjectDetails() {
                 }}
                 onDelete={handleDeleteBudgetItem}
                 onUpdate={(item, changes) => {
-                  const updatedItems = (project.budget_items || []).map((i) =>
+                  const updatedItems = (localBudgetItems || []).map((i) =>
                     i.id === item.id ? { ...i, ...changes } : i
                   );
                   updateBudgetItems(updatedItems);
