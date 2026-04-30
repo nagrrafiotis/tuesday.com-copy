@@ -173,15 +173,6 @@ export default function ProjectDetails() {
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
   });
 
-  const isSaving =
-    updateProjectMutation.isPending ||
-    createTaskMutation.isPending ||
-    updateTaskMutation.isPending ||
-    deleteTaskMutation.isPending ||
-    createExpenseMutation.isPending ||
-    updateExpenseMutation.isPending ||
-    deleteExpenseMutation.isPending;
-
   const createTaskMutation = useMutation({
     mutationFn: (data) => base44.entities.Task.create(data),
     onSuccess: () => {
@@ -280,6 +271,15 @@ export default function ProjectDetails() {
       prev.includes(id) ? prev.filter(expId => expId !== id) : [...prev, id]
     );
   };
+
+  const isSaving =
+    updateProjectMutation.isPending ||
+    createTaskMutation.isPending ||
+    updateTaskMutation.isPending ||
+    deleteTaskMutation.isPending ||
+    createExpenseMutation.isPending ||
+    updateExpenseMutation.isPending ||
+    deleteExpenseMutation.isPending;
 
   const addBudgetLog = (action, details) => {
     const entry = {
