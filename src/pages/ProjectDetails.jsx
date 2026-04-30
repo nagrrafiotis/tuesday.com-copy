@@ -88,6 +88,7 @@ export default function ProjectDetails() {
   const [localBudgetItems, setLocalBudgetItems] = useState(null); // null = not yet initialized
   const [budgetLog, setBudgetLog] = useState([]);
   const [showBudgetLog, setShowBudgetLog] = useState(false);
+  const [budgetSaving, setBudgetSaving] = useState(false);
 
 
   const queryClient = useQueryClient();
@@ -273,6 +274,7 @@ export default function ProjectDetails() {
   };
 
   const isSaving =
+    budgetSaving ||
     updateProjectMutation.isPending ||
     createTaskMutation.isPending ||
     updateTaskMutation.isPending ||
@@ -294,13 +296,12 @@ export default function ProjectDetails() {
   const updateBudgetItems = async (updatedItems, logReason) => {
     const totalBudget = updatedItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
     const updatePayload = { budget_items: updatedItems, budget: totalBudget };
-    // Update local state immediately so UI is instant
     setLocalBudgetItems(updatedItems);
-    // Update query cache too
     queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
     addBudgetLog("SAVE", logReason || `Saving ${updatedItems.length} items, total €${totalBudget.toLocaleString()}`);
-    // Await the save so data is fully persisted before navigation
+    setBudgetSaving(true);
     await base44.entities.Project.update(projectId, updatePayload);
+    setBudgetSaving(false);
     addBudgetLog("DONE", `Server confirmed save (${updatedItems.length} items)`);
   };
 
