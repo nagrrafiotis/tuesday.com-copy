@@ -95,7 +95,9 @@ export default function ProjectDetails() {
       return projects[0];
     },
     enabled: !!projectId,
-    staleTime: 0,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
 
@@ -258,15 +260,16 @@ export default function ProjectDetails() {
     );
   };
 
-  const updateBudgetItems = async (updatedItems) => {
+  const updateBudgetItems = (updatedItems) => {
     const totalBudget = updatedItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
     const updatePayload = { budget_items: updatedItems, budget: totalBudget };
-    // Optimistic update first so UI doesn't flicker
+    // Update cache immediately (optimistic), then persist to server
     queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
-    await updateProjectMutation.mutateAsync(updatePayload);
+    // Fire and forget — cache is already updated, no refetch needed
+    base44.entities.Project.update(projectId, updatePayload);
   };
 
-  const handleBudgetItemSubmit = async (data) => {
+  const handleBudgetItemSubmit = (data) => {
     const currentBudgetItems = project.budget_items || [];
     let updatedBudgetItems;
     if (editingBudgetItem) {
@@ -276,22 +279,22 @@ export default function ProjectDetails() {
     } else {
       updatedBudgetItems = [...currentBudgetItems, { ...data, id: Date.now().toString() }];
     }
-    await updateBudgetItems(updatedBudgetItems);
+    updateBudgetItems(updatedBudgetItems);
     setShowBudgetForm(false);
     setEditingBudgetItem(null);
   };
 
-  const handleDeleteBudgetItem = async (item) => {
+  const handleDeleteBudgetItem = (item) => {
     if (window.confirm(`Delete this budget item?`)) {
       const updatedBudgetItems = (project.budget_items || []).filter(i => i.id !== item.id);
-      await updateBudgetItems(updatedBudgetItems);
+      updateBudgetItems(updatedBudgetItems);
     }
   };
 
-  const handleBulkDeleteBudgetItems = async () => {
+  const handleBulkDeleteBudgetItems = () => {
     if (window.confirm(`Delete ${selectedBudgetItems.length} selected budget items?`)) {
       const updatedBudgetItems = (project.budget_items || []).filter(item => !selectedBudgetItems.includes(item.id));
-      await updateBudgetItems(updatedBudgetItems);
+      updateBudgetItems(updatedBudgetItems);
       setSelectedBudgetItems([]);
     }
   };
