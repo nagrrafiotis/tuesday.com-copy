@@ -135,6 +135,12 @@ export default function ProjectDetails() {
     enabled: !!projectId,
   });
 
+  const { data: projectInvoices = [] } = useQuery({
+    queryKey: ["invoices", projectId],
+    queryFn: () => base44.entities.Invoice.filter({ project_id: projectId }),
+    enabled: !!projectId,
+  });
+
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => base44.entities.Contact.list("name"),
@@ -647,7 +653,7 @@ export default function ProjectDetails() {
             </TabsContent>
 
             <TabsContent value="expenses">
-              <ExpenseSummaryBySubcategory expenses={expenses} />
+              <ExpenseSummaryBySubcategory expenses={expenses} invoices={projectInvoices} />
             </TabsContent>
 
             <TabsContent value="budget">
