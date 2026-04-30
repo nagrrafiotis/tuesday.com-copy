@@ -85,6 +85,8 @@ export default function ProjectDetails() {
   const [editingBudgetItem, setEditingBudgetItem] = useState(null);
   const [selectedBudgetItems, setSelectedBudgetItems] = useState([]);
   const [localBudgetItems, setLocalBudgetItems] = useState(null); // null = not yet initialized
+  const [budgetLog, setBudgetLog] = useState([]);
+  const [showBudgetLog, setShowBudgetLog] = useState(false);
 
 
   const queryClient = useQueryClient();
@@ -269,15 +271,27 @@ export default function ProjectDetails() {
     );
   };
 
-  const updateBudgetItems = async (updatedItems) => {
+  const addBudgetLog = (action, details) => {
+    const entry = {
+      id: Date.now(),
+      time: new Date().toLocaleTimeString("el-GR"),
+      action,
+      details,
+    };
+    setBudgetLog(prev => [entry, ...prev].slice(0, 50));
+  };
+
+  const updateBudgetItems = async (updatedItems, logReason) => {
     const totalBudget = updatedItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
     const updatePayload = { budget_items: updatedItems, budget: totalBudget };
     // Update local state immediately so UI is instant
     setLocalBudgetItems(updatedItems);
     // Update query cache too
     queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
+    addBudgetLog("SAVE", logReason || `Saving ${updatedItems.length} items, total €${totalBudget.toLocaleString()}`);
     // Await the save so data is fully persisted before navigation
     await base44.entities.Project.update(projectId, updatePayload);
+    addBudgetLog("DONE", `Server confirmed save (${updatedItems.length} items)`);
   };
 
   const handleBudgetItemSubmit = async (data) => {
@@ -287,10 +301,11 @@ export default function ProjectDetails() {
       updatedBudgetItems = currentBudgetItems.map(item =>
         item.id === editingBudgetItem.id ? { ...item, ...data } : item
       );
+      await updateBudgetItems(updatedBudgetItems, `Edit item: "${data.description || data.category}"`);
     } else {
       updatedBudgetItems = [...currentBudgetItems, { ...data, id: Date.now().toString() }];
+      await updateBudgetItems(updatedBudgetItems, `Add new item: "${data.description || data.category}"`);
     }
-    await updateBudgetItems(updatedBudgetItems);
     setShowBudgetForm(false);
     setEditingBudgetItem(null);
   };
@@ -298,14 +313,14 @@ export default function ProjectDetails() {
   const handleDeleteBudgetItem = async (item) => {
     if (window.confirm(`Delete this budget item?`)) {
       const updatedBudgetItems = (localBudgetItems || []).filter(i => i.id !== item.id);
-      await updateBudgetItems(updatedBudgetItems);
+      await updateBudgetItems(updatedBudgetItems, `Delete item: "${item.description || item.category}"`);
     }
   };
 
   const handleBulkDeleteBudgetItems = async () => {
     if (window.confirm(`Delete ${selectedBudgetItems.length} selected budget items?`)) {
       const updatedBudgetItems = (localBudgetItems || []).filter(item => !selectedBudgetItems.includes(item.id));
-      await updateBudgetItems(updatedBudgetItems);
+      await updateBudgetItems(updatedBudgetItems, `Bulk delete ${selectedBudgetItems.length} items`);
       setSelectedBudgetItems([]);
     }
   };
@@ -671,6 +686,33 @@ export default function ProjectDetails() {
             </TabsContent>
 
             <TabsContent value="budget">
+              {/* Budget Log Panel */}
+              <div className="mb-4 flex justify-end">
+                <button
+                  onClick={() => setShowBudgetLog(v => !v)}
+                  className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
+                >
+                  {showBudgetLog ? "Hide" : "Show"} save log ({budgetLog.length})
+                </button>
+              </div>
+              {showBudgetLog && (
+                <div className="mb-4 bg-gray-900 text-gray-100 rounded-xl p-4 text-xs font-mono max-h-48 overflow-y-auto">
+                  {budgetLog.length === 0 ? (
+                    <p className="text-gray-500">No budget operations yet this session.</p>
+                  ) : (
+                    budgetLog.map(entry => (
+                      <div key={entry.id} className="flex gap-3 py-0.5 border-b border-gray-800 last:border-0">
+                        <span className="text-gray-500 shrink-0">{entry.time}</span>
+                        <span className={`shrink-0 font-bold ${entry.action === "SAVE" ? "text-yellow-400" : "text-green-400"}`}>
+                          [{entry.action}]
+                        </span>
+                        <span className="text-gray-200">{entry.details}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
               {selectedBudgetItems.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
@@ -704,7 +746,8 @@ export default function ProjectDetails() {
                   const updatedItems = (localBudgetItems || []).map((i) =>
                     i.id === item.id ? { ...i, ...changes } : i
                   );
-                  updateBudgetItems(updatedItems);
+                  const changedKeys = Object.keys(changes).join(", ");
+                  updateBudgetItems(updatedItems, `Inline edit "${item.description || item.category}" [${changedKeys}]`);
                 }}
               />
             </TabsContent>
