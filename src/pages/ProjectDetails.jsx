@@ -49,6 +49,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
+import SaveIndicator from "@/components/ui/SaveIndicator";
 import {
   Table,
   TableBody,
@@ -171,6 +172,15 @@ export default function ProjectDetails() {
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
   });
+
+  const isSaving =
+    updateProjectMutation.isPending ||
+    createTaskMutation.isPending ||
+    updateTaskMutation.isPending ||
+    deleteTaskMutation.isPending ||
+    createExpenseMutation.isPending ||
+    updateExpenseMutation.isPending ||
+    deleteExpenseMutation.isPending;
 
   const createTaskMutation = useMutation({
     mutationFn: (data) => base44.entities.Task.create(data),
@@ -807,6 +817,8 @@ export default function ProjectDetails() {
         }}
         onSubmit={handleBudgetItemSubmit}
       />
+
+      <SaveIndicator isSaving={isSaving} />
     </div>
   );
 }
