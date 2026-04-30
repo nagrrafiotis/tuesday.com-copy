@@ -95,8 +95,7 @@ export default function ProjectDetails() {
       return projects[0];
     },
     enabled: !!projectId,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
+    staleTime: 0,
   });
 
 
@@ -259,11 +258,12 @@ export default function ProjectDetails() {
     );
   };
 
-  const updateBudgetItems = (updatedItems) => {
+  const updateBudgetItems = async (updatedItems) => {
     const totalBudget = updatedItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
     const updatePayload = { budget_items: updatedItems, budget: totalBudget };
     queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
-    updateProjectMutation.mutate(updatePayload);
+    await updateProjectMutation.mutateAsync(updatePayload);
+    queryClient.invalidateQueries({ queryKey: ["project", projectId] });
   };
 
   const handleBudgetItemSubmit = async (data) => {
@@ -276,22 +276,22 @@ export default function ProjectDetails() {
     } else {
       updatedBudgetItems = [...currentBudgetItems, { ...data, id: Date.now().toString() }];
     }
+    await updateBudgetItems(updatedBudgetItems);
     setShowBudgetForm(false);
     setEditingBudgetItem(null);
-    updateBudgetItems(updatedBudgetItems);
   };
 
   const handleDeleteBudgetItem = async (item) => {
     if (window.confirm(`Delete this budget item?`)) {
       const updatedBudgetItems = (project.budget_items || []).filter(i => i.id !== item.id);
-      updateBudgetItems(updatedBudgetItems);
+      await updateBudgetItems(updatedBudgetItems);
     }
   };
 
   const handleBulkDeleteBudgetItems = async () => {
     if (window.confirm(`Delete ${selectedBudgetItems.length} selected budget items?`)) {
       const updatedBudgetItems = (project.budget_items || []).filter(item => !selectedBudgetItems.includes(item.id));
-      updateBudgetItems(updatedBudgetItems);
+      await updateBudgetItems(updatedBudgetItems);
       setSelectedBudgetItems([]);
     }
   };
