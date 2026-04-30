@@ -95,7 +95,8 @@ export default function ProjectDetails() {
       return projects[0];
     },
     enabled: !!projectId,
-    staleTime: 60000,
+    staleTime: Infinity,
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
@@ -260,13 +261,13 @@ export default function ProjectDetails() {
     );
   };
 
-  const updateBudgetItems = (updatedItems) => {
+  const updateBudgetItems = async (updatedItems) => {
     const totalBudget = updatedItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
     const updatePayload = { budget_items: updatedItems, budget: totalBudget };
-    // Update cache immediately (optimistic), then persist to server
+    // Update cache immediately so UI reflects changes
     queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
-    // Fire and forget — cache is already updated, no refetch needed
-    base44.entities.Project.update(projectId, updatePayload);
+    // Await the save so data is persisted before any potential navigation/unmount
+    await base44.entities.Project.update(projectId, updatePayload);
   };
 
   const handleBudgetItemSubmit = (data) => {
