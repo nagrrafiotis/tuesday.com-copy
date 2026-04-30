@@ -261,9 +261,9 @@ export default function ProjectDetails() {
   const updateBudgetItems = async (updatedItems) => {
     const totalBudget = updatedItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
     const updatePayload = { budget_items: updatedItems, budget: totalBudget };
+    // Optimistic update first so UI doesn't flicker
     queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
     await updateProjectMutation.mutateAsync(updatePayload);
-    queryClient.invalidateQueries({ queryKey: ["project", projectId] });
   };
 
   const handleBudgetItemSubmit = async (data) => {
