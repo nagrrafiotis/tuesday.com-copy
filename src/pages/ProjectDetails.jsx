@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -86,6 +86,7 @@ export default function ProjectDetails() {
   const [editingBudgetItem, setEditingBudgetItem] = useState(null);
   const [selectedBudgetItems, setSelectedBudgetItems] = useState([]);
   const [localBudgetItems, setLocalBudgetItems] = useState(null); // null = not yet initialized
+  const localBudgetItemsRef = useRef(null); // always up-to-date ref to avoid stale closures
   const [budgetLog, setBudgetLog] = useState([]);
   const [showBudgetLog, setShowBudgetLog] = useState(false);
   const [budgetSaving, setBudgetSaving] = useState(false);
@@ -166,7 +167,9 @@ export default function ProjectDetails() {
   // Initialize local budget items from server data (only once)
   useEffect(() => {
     if (project && localBudgetItems === null) {
-      setLocalBudgetItems(project.budget_items || []);
+      const items = project.budget_items || [];
+      setLocalBudgetItems(items);
+      localBudgetItemsRef.current = items;
     }
   }, [project]);
 
@@ -293,9 +296,11 @@ export default function ProjectDetails() {
     setBudgetLog(prev => [entry, ...prev].slice(0, 50));
   };
 
-  const updateBudgetItems = async (updatedItems, logReason) => {
+  const updateBudgetItems = useCallback(async (updatedItems, logReason) => {
     const totalBudget = updatedItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
     const updatePayload = { budget_items: updatedItems, budget: totalBudget };
+    // Update ref immediately so any concurrent calls see the latest data
+    localBudgetItemsRef.current = updatedItems;
     setLocalBudgetItems(updatedItems);
     queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
     addBudgetLog("SAVE", logReason || `Saving ${updatedItems.length} items, total €${totalBudget.toLocaleString()}`);
@@ -303,10 +308,10 @@ export default function ProjectDetails() {
     await base44.entities.Project.update(projectId, updatePayload);
     setBudgetSaving(false);
     addBudgetLog("DONE", `Server confirmed save (${updatedItems.length} items)`);
-  };
+  }, [projectId, queryClient]);
 
   const handleBudgetItemSubmit = async (data) => {
-    const currentBudgetItems = localBudgetItems || [];
+    const currentBudgetItems = localBudgetItemsRef.current || [];
     let updatedBudgetItems;
     if (editingBudgetItem) {
       updatedBudgetItems = currentBudgetItems.map(item =>
@@ -323,21 +328,21 @@ export default function ProjectDetails() {
 
   const handleDeleteBudgetItem = async (item) => {
     if (window.confirm(`Delete this budget item?`)) {
-      const updatedBudgetItems = (localBudgetItems || []).filter(i => i.id !== item.id);
+      const updatedBudgetItems = (localBudgetItemsRef.current || []).filter(i => i.id !== item.id);
       await updateBudgetItems(updatedBudgetItems, `Delete item: "${item.description || item.category}"`);
     }
   };
 
   const handleBulkDeleteBudgetItems = async () => {
     if (window.confirm(`Delete ${selectedBudgetItems.length} selected budget items?`)) {
-      const updatedBudgetItems = (localBudgetItems || []).filter(item => !selectedBudgetItems.includes(item.id));
+      const updatedBudgetItems = (localBudgetItemsRef.current || []).filter(item => !selectedBudgetItems.includes(item.id));
       await updateBudgetItems(updatedBudgetItems, `Bulk delete ${selectedBudgetItems.length} items`);
       setSelectedBudgetItems([]);
     }
   };
 
   const toggleSelectAllBudgetItems = () => {
-    const budgetItems = localBudgetItems || [];
+    const budgetItems = localBudgetItemsRef.current || [];
     if (selectedBudgetItems.length === budgetItems.length) {
       setSelectedBudgetItems([]);
     } else {
@@ -754,7 +759,9 @@ export default function ProjectDetails() {
                 }}
                 onDelete={handleDeleteBudgetItem}
                 onUpdate={(item, changes) => {
-                  const updatedItems = (localBudgetItems || []).map((i) =>
+                  // Use ref to always get the latest items (avoids stale closure bug)
+                  const current = localBudgetItemsRef.current || [];
+                  const updatedItems = current.map((i) =>
                     i.id === item.id ? { ...i, ...changes } : i
                   );
                   const changedKeys = Object.keys(changes).join(", ");
