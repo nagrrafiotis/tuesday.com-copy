@@ -935,7 +935,7 @@ export default function Settings() {
                                       onClick={() => {
                                         updatePhaseMutation.mutate({
                                           id: phase.id,
-                                          data: { ...phase, color: color.value }
+                                          data: { name: phase.name, order: phase.order, color: color.value }
                                         });
                                         setPhaseColorPopover(null);
                                       }}
@@ -1055,7 +1055,7 @@ export default function Settings() {
 
                           return updateSubcategoryMutation.mutateAsync({
                             id: subcat.id,
-                            data: { ...subcat, phase_id: matchingPhase?.id || null }
+                            data: { name: subcat.name, phase_id: matchingPhase?.id || null }
                           });
                         });
 
@@ -1143,7 +1143,7 @@ export default function Settings() {
                             onClick={async () => {
                               await updateSubcategoryMutation.mutateAsync({
                                 id: subcat.id,
-                                data: { name: editingSubcategory.name, phase_id: subcat.phase_id }
+                                data: { name: editingSubcategory.name, phase_id: editingSubcategory.phase_id ?? subcat.phase_id }
                               });
                               setEditingSubcategory(null);
                             }}
@@ -1177,7 +1177,7 @@ export default function Settings() {
                             onValueChange={(value) => {
                               updateSubcategoryMutation.mutate({
                                 id: subcat.id,
-                                data: { ...subcat, phase_id: value === "none" ? null : value }
+                                data: { name: subcat.name, phase_id: value === "none" ? null : value }
                               });
                             }}
                           >
