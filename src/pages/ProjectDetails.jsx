@@ -59,6 +59,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+// Module-level cache: survives component remounts, keyed by projectId
+const budgetItemsCache = {};
+
 export default function ProjectDetails() {
   const [user, setUser] = useState(null);
   const [authChecking, setAuthChecking] = useState(true);
@@ -87,6 +90,7 @@ export default function ProjectDetails() {
   const [selectedBudgetItems, setSelectedBudgetItems] = useState([]);
   const [localBudgetItems, setLocalBudgetItems] = useState(null); // null = not yet initialized
   const localBudgetItemsRef = useRef(null); // always up-to-date ref to avoid stale closures
+  const budgetInitializedRef = useRef(false); // once set, never overwrite from server
   const [budgetLog, setBudgetLog] = useState([]);
   const [showBudgetLog, setShowBudgetLog] = useState(false);
   const [budgetSaving, setBudgetSaving] = useState(false);
@@ -105,6 +109,7 @@ export default function ProjectDetails() {
     gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
 
@@ -164,14 +169,16 @@ export default function ProjectDetails() {
     queryFn: () => base44.entities.ProjectPhase.list("order"),
   });
 
-  // Initialize local budget items from server data (only once)
+  // Initialize local budget items — use module cache to survive remounts
   useEffect(() => {
-    if (project && localBudgetItems === null) {
-      const items = project.budget_items || [];
+    if (project && !budgetInitializedRef.current) {
+      budgetInitializedRef.current = true;
+      // If we have cached (unsaved or recently saved) items, use those — never overwrite with stale server data
+      const items = budgetItemsCache[projectId] ?? project.budget_items ?? [];
       setLocalBudgetItems(items);
       localBudgetItemsRef.current = items;
     }
-  }, [project]);
+  }, [project, projectId]);
 
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
@@ -299,8 +306,9 @@ export default function ProjectDetails() {
   const updateBudgetItems = useCallback(async (updatedItems, logReason) => {
     const totalBudget = updatedItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
     const updatePayload = { budget_items: updatedItems, budget: totalBudget };
-    // Update ref immediately so any concurrent calls see the latest data
+    // Update ref + module cache immediately so remounts and concurrent calls see the latest data
     localBudgetItemsRef.current = updatedItems;
+    budgetItemsCache[projectId] = updatedItems;
     setLocalBudgetItems(updatedItems);
     queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
     addBudgetLog("SAVE", logReason || `Saving ${updatedItems.length} items, total €${totalBudget.toLocaleString()}`);
