@@ -417,7 +417,11 @@ export default function ProjectDetails() {
     todo: tasks.filter((t) => t.status === "todo").length,
   };
 
-  const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+  // Include transferred invoices (expense type) in total spend calculations
+  const totalInvoiceExpenses = projectInvoices
+    .filter(inv => inv.type === "expense")
+    .reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+  const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0) + totalInvoiceExpenses;
   const budgetRemaining = (project.budget || 0) - totalExpenses;
   const budgetUsedPercent = project.budget ? (totalExpenses / project.budget) * 100 : 0;
 
@@ -441,11 +445,15 @@ export default function ProjectDetails() {
     const phaseExpenses = expenses
       .filter(exp => subcategoryNames.includes(exp.subcategory))
       .reduce((sum, exp) => sum + (exp.amount || 0), 0);
+
+    const phaseInvoiceExpenses = projectInvoices
+      .filter(inv => inv.type === "expense" && subcategoryNames.includes(inv.subcategory))
+      .reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
     
     return {
       name: phase.name,
       Budget: phaseBudget,
-      Expenses: phaseExpenses,
+      Expenses: phaseExpenses + phaseInvoiceExpenses,
     };
   });
 
