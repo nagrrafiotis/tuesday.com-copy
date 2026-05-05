@@ -89,9 +89,10 @@ export default function ProjectDetails() {
   const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [editingBudgetItem, setEditingBudgetItem] = useState(null);
   const [selectedBudgetItems, setSelectedBudgetItems] = useState([]);
-  const [localBudgetItems, setLocalBudgetItems] = useState(null); // null = not yet initialized
-  const localBudgetItemsRef = useRef(null); // always up-to-date ref to avoid stale closures
-  const budgetInitializedRef = useRef(false); // once set, never overwrite from server
+  const [localBudgetItems, setLocalBudgetItems] = useState(null);
+  const localBudgetItemsRef = useRef(null);
+  const budgetInitializedRef = useRef(false);
+  const lastProjectIdRef = useRef(null);
   const [budgetLog, setBudgetLog] = useState([]);
   const [showBudgetLog, setShowBudgetLog] = useState(false);
   const [budgetSaving, setBudgetSaving] = useState(false);
@@ -106,11 +107,8 @@ export default function ProjectDetails() {
       return projects[0];
     },
     enabled: !!projectId,
-    staleTime: Infinity,
-    gcTime: Infinity,
+    staleTime: 30000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
   });
 
 
@@ -170,14 +168,21 @@ export default function ProjectDetails() {
     queryFn: () => base44.entities.ProjectPhase.list("order"),
   });
 
-  // Initialize local budget items from server — always trust server on first load
+  // Initialize local budget items from server data
   useEffect(() => {
-    if (project && !budgetInitializedRef.current) {
+    if (!project || !projectId) return;
+    // Reset if projectId changed
+    if (lastProjectIdRef.current !== projectId) {
+      lastProjectIdRef.current = projectId;
+      budgetInitializedRef.current = false;
+      localBudgetItemsRef.current = null;
+    }
+    if (!budgetInitializedRef.current) {
       budgetInitializedRef.current = true;
-      const items = project.budget_items ?? [];
-      // Only use cache if it has MORE items than server (means we saved recently and server hasn't updated yet)
+      const serverItems = project.budget_items ?? [];
       const cached = budgetItemsCache[projectId];
-      const finalItems = (cached && cached.length >= items.length) ? cached : items;
+      // Use cache only if it exists (means we saved recently and server may not have updated yet)
+      const finalItems = cached ?? serverItems;
       setLocalBudgetItems(finalItems);
       localBudgetItemsRef.current = finalItems;
     }
