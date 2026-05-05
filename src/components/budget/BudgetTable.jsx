@@ -45,8 +45,7 @@ function InlineText({ value, onSave, className = "" }) {
 
   const commit = () => {
     setEditing(false);
-    // Only save if value actually changed and is not empty when original wasn't empty
-    if (val !== (value || "")) onSave(val);
+    onSave(val);
   };
 
   if (!editing) return (
@@ -97,8 +96,7 @@ function InlineNumber({ value, onSave, className = "" }) {
   const commit = () => {
     setEditing(false);
     const parsed = parseFloat(val);
-    // Only save if parsed is a valid number and different from current value
-    if (!isNaN(parsed) && parsed !== value) onSave(parsed);
+    if (!isNaN(parsed)) onSave(parsed);
   };
 
   if (!editing) return (
