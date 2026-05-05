@@ -210,9 +210,11 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
         <TableHeader className="sticky top-0 z-20 bg-gray-50 shadow-sm">
           <TableRow className="bg-gray-50">
             <TableHead className="w-12 bg-gray-50">
-              <Checkbox
+              <input
+                type="checkbox"
+                className="w-4 h-4 cursor-pointer"
                 checked={budgetItems.length > 0 && selectedItems.length === budgetItems.length}
-                onCheckedChange={() => onSelectAll()}
+                onChange={() => onSelectAll()}
               />
             </TableHead>
             <TableHead style={{ width: columnWidths.phase }} className="relative group bg-gray-50">
@@ -303,9 +305,11 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
                 className="hover:bg-gray-50/50 transition-colors group"
               >
                 <TableCell>
-                  <Checkbox
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 cursor-pointer"
                     checked={selectedItems.includes(item.id)}
-                    onCheckedChange={() => onSelectItem(item.id)}
+                    onChange={() => onSelectItem(item.id)}
                   />
                 </TableCell>
                 <TableCell>
