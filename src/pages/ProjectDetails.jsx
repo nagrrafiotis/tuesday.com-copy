@@ -131,7 +131,8 @@ export default function ProjectDetails() {
   });
 
   // ─── Budget persistence ─────────────────────────────────────────────────────
-  // Single source of truth: always save the FULL items array to the server
+  const saveTimerRef = useRef(null);
+
   const saveBudgetToServer = useCallback(async (items, logMsg) => {
     const totalBudget = items.reduce((sum, i) => sum + (i.total_cost || 0), 0);
     setBudgetSaving(true);
@@ -164,10 +165,15 @@ export default function ProjectDetails() {
   }, [projectId]);
 
   const applyBudgetUpdate = useCallback((newItems, logMsg) => {
-    // Update both ref and state atomically
+    // Update ref and state immediately (optimistic)
     budgetItemsRef.current = newItems;
-    setBudgetItems(newItems);
-    saveBudgetToServer(newItems, logMsg);
+    setBudgetItems([...newItems]);
+    // Debounce server save: wait 400ms after last change before saving
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      // Always save the LATEST ref value (not closure value)
+      saveBudgetToServer(budgetItemsRef.current, logMsg);
+    }, 400);
   }, [saveBudgetToServer]);
 
   // ─── Budget CRUD ─────────────────────────────────────────────────────────────
@@ -189,10 +195,11 @@ export default function ProjectDetails() {
   };
 
   const handleBudgetInlineUpdate = useCallback((item, changes) => {
-    // changes is a partial object — merge into the existing item
+    // Always use budgetItemsRef (latest) as base — never trust stale 'item' from render
     const current = budgetItemsRef.current;
     const newItems = current.map(i => {
       if (i.id !== item.id) return i;
+      // Merge: start from ref's version (most up-to-date), apply only the changed fields
       const merged = { ...i, ...changes };
       // Auto-recalculate total if qty or unit_cost changed but total not explicitly set
       if (!('total_cost' in changes) && ('quantity' in changes || 'unit_cost' in changes)) {
@@ -200,7 +207,7 @@ export default function ProjectDetails() {
       }
       return merged;
     });
-    applyBudgetUpdate(newItems, `Inline: "${item.description || item.subcategory || item.id}"`);
+    applyBudgetUpdate(newItems, `Inline edit: "${item.description || item.subcategory || item.id}"`);
   }, [applyBudgetUpdate]);
 
   const handleDeleteBudgetItem = async (item) => {
