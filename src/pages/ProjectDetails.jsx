@@ -766,7 +766,7 @@ export default function ProjectDetails() {
             </TabsContent>
 
             <TabsContent value="expenses">
-              <ExpenseSummaryBySubcategory expenses={expenses} invoices={projectInvoices} />
+              <ExpenseSummaryBySubcategory expenses={expenses} invoices={projectInvoices} budgetItems={localBudgetItems || []} />
             </TabsContent>
 
             <TabsContent value="budget">

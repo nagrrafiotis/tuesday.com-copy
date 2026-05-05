@@ -1,14 +1,73 @@
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Receipt } from "lucide-react";
+import { Receipt, FileText, ChevronDown, ChevronRight, ExternalLink, Image } from "lucide-react";
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(amount || 0);
 
-export default function ExpenseSummaryBySubcategory({ expenses = [], invoices = [] }) {
+function InvoiceThumb({ inv }) {
+  const [open, setOpen] = useState(false);
+  const url = inv.image_url;
+  const isPdf = url && url.toLowerCase().includes(".pdf");
+  const isImg = url && /\.(png|jpg|jpeg|webp|gif)$/i.test(url);
+
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      {/* Thumbnail / icon */}
+      {isImg ? (
+        <button onClick={() => setOpen(true)} className="shrink-0">
+          <img src={url} alt="invoice" className="w-8 h-8 object-cover rounded border border-gray-200 hover:opacity-80 transition-opacity" />
+        </button>
+      ) : url ? (
+        <a href={url} target="_blank" rel="noreferrer" className="shrink-0 w-8 h-8 flex items-center justify-center rounded border border-gray-200 bg-red-50 hover:bg-red-100 transition-colors">
+          <FileText className="w-4 h-4 text-red-500" />
+        </a>
+      ) : (
+        <div className="shrink-0 w-8 h-8 flex items-center justify-center rounded border border-dashed border-gray-200 bg-gray-50">
+          <Receipt className="w-3.5 h-3.5 text-gray-300" />
+        </div>
+      )}
+
+      {/* Invoice info */}
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-gray-700 truncate max-w-[120px]">
+            {inv.vendor_client || inv.description || "—"}
+          </span>
+          {url && (
+            <a href={url} target="_blank" rel="noreferrer" className="shrink-0">
+              <ExternalLink className="w-3 h-3 text-gray-400 hover:text-[#1e3a5f]" />
+            </a>
+          )}
+        </div>
+        {inv.invoice_number && (
+          <div className="text-[10px] text-gray-400"># {inv.invoice_number}</div>
+        )}
+      </div>
+
+      <span className="ml-auto shrink-0 text-xs font-semibold text-amber-700 whitespace-nowrap">
+        {formatCurrency(inv.total_amount)}
+      </span>
+
+      {/* Lightbox */}
+      {open && isImg && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setOpen(false)}
+        >
+          <img src={url} alt="invoice" className="max-w-full max-h-full rounded-lg shadow-2xl" onClick={e => e.stopPropagation()} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ExpenseSummaryBySubcategory({ expenses = [], invoices = [], budgetItems = [] }) {
+  const [expandedRows, setExpandedRows] = useState({});
+
   const { data: subcategories = [] } = useQuery({
     queryKey: ["subcategories"],
     queryFn: () => base44.entities.Subcategory.list(),
@@ -17,11 +76,6 @@ export default function ExpenseSummaryBySubcategory({ expenses = [], invoices = 
   const { data: phases = [] } = useQuery({
     queryKey: ["phases"],
     queryFn: () => base44.entities.ProjectPhase.list("order"),
-  });
-
-  const { data: paymentSources = [] } = useQuery({
-    queryKey: ["paymentSources"],
-    queryFn: () => base44.entities.PaymentSource.list("name"),
   });
 
   const projectInvoices = invoices.filter(inv => inv.type === "expense");
@@ -36,43 +90,33 @@ export default function ExpenseSummaryBySubcategory({ expenses = [], invoices = 
     );
   }
 
-  // Get phase for subcategory
   const getPhase = (subcatName) => {
     const subcat = subcategories.find(s => s.name === subcatName);
     if (!subcat?.phase_id) return null;
     return phases.find(p => p.id === subcat.phase_id);
   };
 
-  // Group expenses by subcategory → by payment source
+  // Group expenses & invoices by subcategory
   const grouped = {};
 
   expenses.forEach((exp) => {
     const key = exp.subcategory || exp.category || "—";
-    if (!grouped[key]) grouped[key] = { expenseBySource: {}, invoiceTotal: 0 };
-    const src = exp.payment_source || "—";
-    grouped[key].expenseBySource[src] = (grouped[key].expenseBySource[src] || 0) + (exp.amount || 0);
+    if (!grouped[key]) grouped[key] = { expenses: [], invoices: [] };
+    grouped[key].expenses.push(exp);
   });
 
-  // Group invoices by subcategory
   projectInvoices.forEach((inv) => {
     const key = inv.subcategory || inv.category || "—";
-    if (!grouped[key]) grouped[key] = { expenseBySource: {}, invoiceTotal: 0 };
-    grouped[key].invoiceTotal += inv.total_amount || 0;
+    if (!grouped[key]) grouped[key] = { expenses: [], invoices: [] };
+    grouped[key].invoices.push(inv);
   });
 
-  // Collect all unique payment sources from expenses
-  const sourceSet = new Set();
-  expenses.forEach(e => sourceSet.add(e.payment_source || "—"));
-  const sources = [...sourceSet].sort();
-
-  const grandBySource = {};
-  sources.forEach(src => {
-    grandBySource[src] = expenses
-      .filter(e => (e.payment_source || "—") === src)
-      .reduce((sum, e) => sum + (e.amount || 0), 0);
+  // Budget per subcategory
+  const budgetBySubcat = {};
+  budgetItems.forEach(item => {
+    const key = item.subcategory || item.category || "—";
+    budgetBySubcat[key] = (budgetBySubcat[key] || 0) + (item.total_cost || 0);
   });
-  const grandInvoices = projectInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-  const grandTotal = expenses.reduce((sum, e) => sum + (e.amount || 0), 0) + grandInvoices;
 
   const sortedKeys = Object.keys(grouped).sort((a, b) => {
     const pa = getPhase(a);
@@ -83,77 +127,153 @@ export default function ExpenseSummaryBySubcategory({ expenses = [], invoices = 
     return a.localeCompare(b);
   });
 
-  const hasInvoices = projectInvoices.length > 0;
+  const grandExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const grandInvoices = projectInvoices.reduce((sum, i) => sum + (i.total_amount || 0), 0);
+  const grandActual = grandExpenses + grandInvoices;
+  const grandBudget = Object.values(budgetBySubcat).reduce((s, v) => s + v, 0);
+
+  const hasBudget = budgetItems.length > 0;
+
+  const toggleRow = (key) => setExpandedRows(prev => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-gray-50">
+            <TableHead className="bg-gray-50 font-semibold w-8"></TableHead>
             <TableHead className="bg-gray-50 font-semibold">Phase</TableHead>
             <TableHead className="bg-gray-50 font-semibold">Subcategory</TableHead>
-            {sources.map(src => (
-              <TableHead key={src} className="text-right bg-gray-50 font-semibold whitespace-nowrap">
-                {src}
-              </TableHead>
-            ))}
-            {hasInvoices && (
-              <TableHead className="text-right bg-amber-50 font-semibold whitespace-nowrap text-amber-700">
-                Invoices
-              </TableHead>
+            <TableHead className="text-right bg-gray-50 font-semibold">Expenses</TableHead>
+            <TableHead className="text-right bg-amber-50 font-semibold text-amber-700">Invoices</TableHead>
+            <TableHead className="text-right bg-blue-50 font-semibold text-[#1e3a5f]">Total Actual</TableHead>
+            {hasBudget && (
+              <>
+                <TableHead className="text-right bg-gray-50 font-semibold text-gray-600">Budget</TableHead>
+                <TableHead className="text-right bg-gray-50 font-semibold text-gray-600">Variance</TableHead>
+              </>
             )}
-            <TableHead className="text-right bg-gray-50 font-semibold">Total</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {sortedKeys.map((key) => {
             const row = grouped[key];
             const phase = getPhase(key);
-            const rowExpenseTotal = sources.reduce((sum, src) => sum + (row.expenseBySource[src] || 0), 0);
-            const rowTotal = rowExpenseTotal + (row.invoiceTotal || 0);
+            const expenseTotal = row.expenses.reduce((s, e) => s + (e.amount || 0), 0);
+            const invoiceTotal = row.invoices.reduce((s, i) => s + (i.total_amount || 0), 0);
+            const actual = expenseTotal + invoiceTotal;
+            const budget = budgetBySubcat[key] || 0;
+            const variance = budget - actual;
+            const isExpanded = expandedRows[key];
+            const hasDetails = row.expenses.length > 0 || row.invoices.length > 0;
+
             return (
-              <TableRow key={key} className="hover:bg-gray-50/50">
-                <TableCell>
-                  {phase ? (
-                    <Badge className={`${phase.color} border-0`}>{phase.name}</Badge>
-                  ) : (
-                    <span className="text-gray-400 text-sm">—</span>
-                  )}
-                </TableCell>
-                <TableCell className="font-medium text-gray-800">{key}</TableCell>
-                {sources.map(src => (
-                  <TableCell key={src} className="text-right text-gray-700">
-                    {row.expenseBySource[src] ? formatCurrency(row.expenseBySource[src]) : <span className="text-gray-300">—</span>}
+              <React.Fragment key={key}>
+                {/* Summary row */}
+                <TableRow
+                  className={`hover:bg-gray-50/50 transition-colors ${hasDetails ? "cursor-pointer" : ""}`}
+                  onClick={() => hasDetails && toggleRow(key)}
+                >
+                  <TableCell className="w-8 text-gray-400">
+                    {hasDetails && (
+                      isExpanded
+                        ? <ChevronDown className="w-4 h-4" />
+                        : <ChevronRight className="w-4 h-4" />
+                    )}
                   </TableCell>
-                ))}
-                {hasInvoices && (
+                  <TableCell>
+                    {phase ? (
+                      <Badge className={`${phase.color} border-0`}>{phase.name}</Badge>
+                    ) : (
+                      <span className="text-gray-400 text-sm">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-medium text-gray-800">{key}</TableCell>
+                  <TableCell className="text-right text-gray-700">
+                    {expenseTotal ? formatCurrency(expenseTotal) : <span className="text-gray-300">—</span>}
+                  </TableCell>
                   <TableCell className="text-right text-amber-700 font-medium">
-                    {row.invoiceTotal ? formatCurrency(row.invoiceTotal) : <span className="text-gray-300">—</span>}
+                    {invoiceTotal ? formatCurrency(invoiceTotal) : <span className="text-gray-300">—</span>}
                   </TableCell>
+                  <TableCell className="text-right font-semibold text-[#1e3a5f]">
+                    {formatCurrency(actual)}
+                  </TableCell>
+                  {hasBudget && (
+                    <>
+                      <TableCell className="text-right text-gray-600">
+                        {budget ? formatCurrency(budget) : <span className="text-gray-300">—</span>}
+                      </TableCell>
+                      <TableCell className={`text-right font-medium ${variance >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                        {budget ? (variance >= 0 ? "+" : "") + formatCurrency(variance) : <span className="text-gray-300">—</span>}
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+
+                {/* Expanded detail rows */}
+                {isExpanded && (
+                  <TableRow className="bg-gray-50/50">
+                    <TableCell colSpan={hasBudget ? 8 : 6} className="py-0">
+                      <div className="pl-10 pr-4 py-3 space-y-4">
+                        {/* Expenses list */}
+                        {row.expenses.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Expenses</p>
+                            <div className="space-y-1">
+                              {row.expenses.map((exp) => (
+                                <div key={exp.id} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
+                                  <div>
+                                    <span className="font-medium text-gray-800">{exp.payee || exp.description || "—"}</span>
+                                    {exp.description && exp.payee && (
+                                      <span className="ml-2 text-gray-400 text-xs">{exp.description}</span>
+                                    )}
+                                    {exp.date && (
+                                      <span className="ml-2 text-gray-400 text-xs">{exp.date?.slice(0, 10)}</span>
+                                    )}
+                                    {exp.payment_source && (
+                                      <Badge variant="outline" className="ml-2 text-xs py-0 h-4">{exp.payment_source}</Badge>
+                                    )}
+                                  </div>
+                                  <span className="font-semibold text-gray-900 ml-4 whitespace-nowrap">{formatCurrency(exp.amount)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Invoices list */}
+                        {row.invoices.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">Invoices / Παραστατικά</p>
+                            <div className="space-y-1.5">
+                              {row.invoices.map((inv) => (
+                                <InvoiceThumb key={inv.id} inv={inv} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 )}
-                <TableCell className="text-right font-semibold text-[#1e3a5f]">
-                  {formatCurrency(rowTotal)}
-                </TableCell>
-              </TableRow>
+              </React.Fragment>
             );
           })}
 
-          {/* Grand Total Row */}
+          {/* Grand Total */}
           <TableRow className="bg-gray-50 border-t-2 border-gray-200">
-            <TableCell colSpan={2} className="font-bold text-gray-900">Total</TableCell>
-            {sources.map(src => (
-              <TableCell key={src} className="text-right font-bold text-gray-900">
-                {formatCurrency(grandBySource[src])}
-              </TableCell>
-            ))}
-            {hasInvoices && (
-              <TableCell className="text-right font-bold text-amber-700">
-                {formatCurrency(grandInvoices)}
-              </TableCell>
+            <TableCell colSpan={3} className="font-bold text-gray-900">Σύνολο</TableCell>
+            <TableCell className="text-right font-bold text-gray-900">{formatCurrency(grandExpenses)}</TableCell>
+            <TableCell className="text-right font-bold text-amber-700">{formatCurrency(grandInvoices)}</TableCell>
+            <TableCell className="text-right font-bold text-[#1e3a5f] text-lg">{formatCurrency(grandActual)}</TableCell>
+            {hasBudget && (
+              <>
+                <TableCell className="text-right font-bold text-gray-700">{formatCurrency(grandBudget)}</TableCell>
+                <TableCell className={`text-right font-bold text-lg ${(grandBudget - grandActual) >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                  {(grandBudget - grandActual) >= 0 ? "+" : ""}{formatCurrency(grandBudget - grandActual)}
+                </TableCell>
+              </>
             )}
-            <TableCell className="text-right font-bold text-[#1e3a5f] text-lg">
-              {formatCurrency(grandTotal)}
-            </TableCell>
           </TableRow>
         </TableBody>
       </Table>
