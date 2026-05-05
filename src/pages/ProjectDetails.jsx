@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import SaveIndicator from "@/components/ui/SaveIndicator";
+import BudgetDebugLog from "@/components/budget/BudgetDebugLog";
 import {
   Table,
   TableBody,
@@ -293,42 +294,91 @@ export default function ProjectDetails() {
     updateExpenseMutation.isPending ||
     deleteExpenseMutation.isPending;
 
-  const addBudgetLog = (action, details) => {
-    const entry = {
-      id: Date.now(),
-      time: new Date().toLocaleTimeString("el-GR"),
-      action,
-      details,
-    };
-    setBudgetLog(prev => [entry, ...prev].slice(0, 50));
+  // Compute field-level diff between two item arrays (by id)
+  const computeDiff = (oldItems, newItems) => {
+    const diffs = [];
+    const oldMap = {};
+    (oldItems || []).forEach(i => { oldMap[i.id] = i; });
+    (newItems || []).forEach(newItem => {
+      const oldItem = oldMap[newItem.id];
+      if (!oldItem) {
+        diffs.push({ field: `[NEW] id=${newItem.id}`, before: null, after: newItem });
+        return;
+      }
+      const allKeys = new Set([...Object.keys(oldItem), ...Object.keys(newItem)]);
+      allKeys.forEach(key => {
+        if (key === 'id') return;
+        const before = oldItem[key];
+        const after = newItem[key];
+        if (JSON.stringify(before) !== JSON.stringify(after)) {
+          diffs.push({ field: `${newItem.description || newItem.id}.${key}`, before, after });
+        }
+      });
+    });
+    (oldItems || []).forEach(oldItem => {
+      if (!newItems.find(i => i.id === oldItem.id)) {
+        diffs.push({ field: `[DELETED] id=${oldItem.id}`, before: oldItem, after: null });
+      }
+    });
+    return diffs;
   };
 
-  const updateBudgetItems = useCallback(async (updatedItems, logReason) => {
+  const addBudgetLog = (action, summary, extra = {}) => {
+    const entry = {
+      id: Date.now() + Math.random(),
+      time: new Date().toLocaleTimeString("el-GR"),
+      action,
+      summary,
+      details: extra.details || "",
+      diff: extra.diff || null,
+      itemSnapshot: extra.itemSnapshot || null,
+    };
+    setBudgetLog(prev => [entry, ...prev].slice(0, 100));
+  };
+
+  const updateBudgetItems = useCallback(async (updatedItems, logReason, triggerItem = null) => {
+    const previousItems = localBudgetItemsRef.current || [];
     const totalBudget = updatedItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
     const updatePayload = { budget_items: updatedItems, budget: totalBudget };
-    // Update ref + module cache immediately so remounts and concurrent calls see the latest data
+
+    // Update ref + module cache immediately
     localBudgetItemsRef.current = updatedItems;
     budgetItemsCache[projectId] = updatedItems;
     setLocalBudgetItems(updatedItems);
     queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
-    addBudgetLog("SAVE", logReason || `Saving ${updatedItems.length} items, total €${totalBudget.toLocaleString()}`);
+
+    // Compute diff for debug log
+    const diff = computeDiff(previousItems, updatedItems);
+    addBudgetLog(
+      "SAVE",
+      `${logReason || "Save"} | ${updatedItems.length} items | €${totalBudget.toLocaleString()}`,
+      { diff, itemSnapshot: triggerItem }
+    );
+
     setBudgetSaving(true);
-    await base44.entities.Project.update(projectId, updatePayload);
+    try {
+      await base44.entities.Project.update(projectId, updatePayload);
+      addBudgetLog("DONE", `✓ Server αποθήκευσε ${updatedItems.length} items`);
+    } catch (err) {
+      addBudgetLog("ERROR", `✗ Αποτυχία αποθήκευσης: ${err.message}`);
+    }
     setBudgetSaving(false);
-    addBudgetLog("DONE", `Server confirmed save (${updatedItems.length} items)`);
   }, [projectId, queryClient]);
 
   const handleBudgetItemSubmit = async (data) => {
     const currentBudgetItems = localBudgetItemsRef.current || [];
     let updatedBudgetItems;
     if (editingBudgetItem) {
+      // Merge: keep existing item fields, override with form data — never drop fields
+      const merged = { ...editingBudgetItem, ...data, id: editingBudgetItem.id };
       updatedBudgetItems = currentBudgetItems.map(item =>
-        item.id === editingBudgetItem.id ? { ...item, ...data } : item
+        item.id === editingBudgetItem.id ? merged : item
       );
-      await updateBudgetItems(updatedBudgetItems, `Edit item: "${data.description || data.category}"`);
+      await updateBudgetItems(updatedBudgetItems, `Επεξεργασία: "${merged.description || merged.category}"`, merged);
     } else {
-      updatedBudgetItems = [...currentBudgetItems, { ...data, id: Date.now().toString() }];
-      await updateBudgetItems(updatedBudgetItems, `Add new item: "${data.description || data.category}"`);
+      const newItem = { ...data, id: Date.now().toString() };
+      updatedBudgetItems = [...currentBudgetItems, newItem];
+      await updateBudgetItems(updatedBudgetItems, `Νέο item: "${newItem.description || newItem.category}"`, newItem);
     }
     setShowBudgetForm(false);
     setEditingBudgetItem(null);
@@ -337,14 +387,14 @@ export default function ProjectDetails() {
   const handleDeleteBudgetItem = async (item) => {
     if (window.confirm(`Delete this budget item?`)) {
       const updatedBudgetItems = (localBudgetItemsRef.current || []).filter(i => i.id !== item.id);
-      await updateBudgetItems(updatedBudgetItems, `Delete item: "${item.description || item.category}"`);
+      await updateBudgetItems(updatedBudgetItems, `Διαγραφή: "${item.description || item.category}"`, item);
     }
   };
 
   const handleBulkDeleteBudgetItems = async () => {
     if (window.confirm(`Delete ${selectedBudgetItems.length} selected budget items?`)) {
       const updatedBudgetItems = (localBudgetItemsRef.current || []).filter(item => !selectedBudgetItems.includes(item.id));
-      await updateBudgetItems(updatedBudgetItems, `Bulk delete ${selectedBudgetItems.length} items`);
+      await updateBudgetItems(updatedBudgetItems, `Μαζική διαγραφή ${selectedBudgetItems.length} items`);
       setSelectedBudgetItems([]);
     }
   };
@@ -718,32 +768,12 @@ export default function ProjectDetails() {
             </TabsContent>
 
             <TabsContent value="budget">
-              {/* Budget Log Panel */}
-              <div className="mb-4 flex justify-end">
-                <button
-                  onClick={() => setShowBudgetLog(v => !v)}
-                  className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
-                >
-                  {showBudgetLog ? "Hide" : "Show"} save log ({budgetLog.length})
-                </button>
-              </div>
-              {showBudgetLog && (
-                <div className="mb-4 bg-gray-900 text-gray-100 rounded-xl p-4 text-xs font-mono max-h-48 overflow-y-auto">
-                  {budgetLog.length === 0 ? (
-                    <p className="text-gray-500">No budget operations yet this session.</p>
-                  ) : (
-                    budgetLog.map(entry => (
-                      <div key={entry.id} className="flex gap-3 py-0.5 border-b border-gray-800 last:border-0">
-                        <span className="text-gray-500 shrink-0">{entry.time}</span>
-                        <span className={`shrink-0 font-bold ${entry.action === "SAVE" ? "text-yellow-400" : "text-green-400"}`}>
-                          [{entry.action}]
-                        </span>
-                        <span className="text-gray-200">{entry.details}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
+              {/* Budget Debug Log */}
+              <BudgetDebugLog
+                log={budgetLog}
+                visible={showBudgetLog}
+                onToggle={() => setShowBudgetLog(v => !v)}
+              />
 
               {selectedBudgetItems.length > 0 && (
                 <motion.div
@@ -775,20 +805,19 @@ export default function ProjectDetails() {
                 }}
                 onDelete={handleDeleteBudgetItem}
                 onUpdate={(item, changes) => {
-                  // Use ref to always get the latest items (avoids stale closure bug)
-                  // IMPORTANT: merge with the CURRENT item from the ref, not the stale prop
                   const current = localBudgetItemsRef.current || [];
+                  let mergedItem = null;
                   const updatedItems = current.map((i) => {
                     if (i.id !== item.id) return i;
                     const merged = { ...i, ...changes };
-                    // Always recalculate total_cost from merged qty * unit_cost unless total_cost was explicitly changed
                     if (!('total_cost' in changes) && ('quantity' in changes || 'unit_cost' in changes)) {
                       merged.total_cost = (merged.quantity || 0) * (merged.unit_cost || 0);
                     }
+                    mergedItem = merged;
                     return merged;
                   });
                   const changedKeys = Object.keys(changes).join(", ");
-                  updateBudgetItems(updatedItems, `Inline edit "${item.description || item.category}" [${changedKeys}]`);
+                  updateBudgetItems(updatedItems, `Inline [${changedKeys}]: "${item.description || item.category}"`, mergedItem);
                 }}
               />
             </TabsContent>
