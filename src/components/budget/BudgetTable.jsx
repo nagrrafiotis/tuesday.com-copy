@@ -198,8 +198,8 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
           <TableRow className="bg-gray-50">
             <TableHead className="w-12 bg-gray-50">
               <Checkbox
-                checked={selectedItems.length === budgetItems.length && budgetItems.length > 0}
-                onCheckedChange={onSelectAll}
+                checked={budgetItems.length > 0 && selectedItems.length === budgetItems.length}
+                onCheckedChange={() => onSelectAll()}
               />
             </TableHead>
             <TableHead style={{ width: columnWidths.phase }} className="relative group bg-gray-50">

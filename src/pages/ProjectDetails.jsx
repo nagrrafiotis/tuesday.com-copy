@@ -170,14 +170,16 @@ export default function ProjectDetails() {
     queryFn: () => base44.entities.ProjectPhase.list("order"),
   });
 
-  // Initialize local budget items — use module cache to survive remounts
+  // Initialize local budget items from server — always trust server on first load
   useEffect(() => {
     if (project && !budgetInitializedRef.current) {
       budgetInitializedRef.current = true;
-      // If we have cached (unsaved or recently saved) items, use those — never overwrite with stale server data
-      const items = budgetItemsCache[projectId] ?? project.budget_items ?? [];
-      setLocalBudgetItems(items);
-      localBudgetItemsRef.current = items;
+      const items = project.budget_items ?? [];
+      // Only use cache if it has MORE items than server (means we saved recently and server hasn't updated yet)
+      const cached = budgetItemsCache[projectId];
+      const finalItems = (cached && cached.length >= items.length) ? cached : items;
+      setLocalBudgetItems(finalItems);
+      localBudgetItemsRef.current = finalItems;
     }
   }, [project, projectId]);
 
