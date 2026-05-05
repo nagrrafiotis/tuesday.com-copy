@@ -1,47 +1,48 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Cloud } from "lucide-react";
 
-/**
- * SaveIndicator - shows saving/saved status in the bottom-left corner.
- * Props:
- *   isSaving: boolean - true while any mutation is pending
- */
 export default function SaveIndicator({ isSaving }) {
-  const [showSaved, setShowSaved] = useState(false);
-  const [prevSaving, setPrevSaving] = useState(false);
+  const [phase, setPhase] = useState("idle"); // idle | saving | saved
+  const savedTimerRef = useRef(null);
 
   useEffect(() => {
-    if (prevSaving && !isSaving) {
-      // Just finished saving → show "Saved" for 2.5s
-      setShowSaved(true);
-      const timer = setTimeout(() => setShowSaved(false), 2500);
-      return () => clearTimeout(timer);
+    if (isSaving) {
+      // Clear any pending "hide saved" timer
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+      setPhase("saving");
+    } else if (phase === "saving") {
+      // Just finished saving → show "saved" for 2.5s
+      setPhase("saved");
+      savedTimerRef.current = setTimeout(() => setPhase("idle"), 2500);
     }
-    setPrevSaving(isSaving);
+    return () => {};
   }, [isSaving]);
 
-  const visible = isSaving || showSaved;
+  const visible = phase !== "idle";
 
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
+          key="save-indicator"
+          initial={{ opacity: 0, y: 16, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 16, scale: 0.95 }}
           transition={{ duration: 0.2 }}
-          className="fixed bottom-5 left-5 z-50 flex items-center gap-2 bg-white border border-gray-200 shadow-lg rounded-full px-4 py-2 text-sm"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-white border border-gray-200 shadow-xl rounded-full px-5 py-2.5 text-sm font-medium"
         >
-          {isSaving ? (
+          {phase === "saving" ? (
             <>
-              <Loader2 className="w-4 h-4 text-[#1e3a5f] animate-spin" />
-              <span className="text-gray-600 font-medium">Saving…</span>
+              <Loader2 className="w-4 h-4 text-[#1e3a5f] animate-spin shrink-0" />
+              <span className="text-gray-700">Αποθήκευση…</span>
             </>
           ) : (
             <>
-              <Check className="w-4 h-4 text-emerald-500" />
-              <span className="text-gray-600 font-medium">Saved</span>
+              <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+              </div>
+              <span className="text-gray-700">Αποθηκεύτηκε</span>
             </>
           )}
         </motion.div>
