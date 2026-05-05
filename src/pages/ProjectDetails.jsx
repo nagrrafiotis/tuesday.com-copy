@@ -776,10 +776,17 @@ export default function ProjectDetails() {
                 onDelete={handleDeleteBudgetItem}
                 onUpdate={(item, changes) => {
                   // Use ref to always get the latest items (avoids stale closure bug)
+                  // IMPORTANT: merge with the CURRENT item from the ref, not the stale prop
                   const current = localBudgetItemsRef.current || [];
-                  const updatedItems = current.map((i) =>
-                    i.id === item.id ? { ...i, ...changes } : i
-                  );
+                  const updatedItems = current.map((i) => {
+                    if (i.id !== item.id) return i;
+                    const merged = { ...i, ...changes };
+                    // Always recalculate total_cost from merged qty * unit_cost unless total_cost was explicitly changed
+                    if (!('total_cost' in changes) && ('quantity' in changes || 'unit_cost' in changes)) {
+                      merged.total_cost = (merged.quantity || 0) * (merged.unit_cost || 0);
+                    }
+                    return merged;
+                  });
                   const changedKeys = Object.keys(changes).join(", ");
                   updateBudgetItems(updatedItems, `Inline edit "${item.description || item.category}" [${changedKeys}]`);
                 }}

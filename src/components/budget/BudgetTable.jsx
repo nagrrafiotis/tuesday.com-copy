@@ -346,7 +346,11 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
                   />
                 </TableCell>
                 <TableCell className="text-right text-gray-600">
-                 <InlineNumber value={item.quantity} onSave={v => { const uc = item.unit_cost || 0; onUpdate?.(item, { quantity: v, total_cost: v * uc }); }} />
+                <InlineNumber value={item.quantity} onSave={v => {
+                  const newQty = isNaN(v) ? 0 : v;
+                  const uc = item.unit_cost || 0;
+                  onUpdate?.(item, { quantity: newQty, total_cost: newQty * uc });
+                }} />
                 </TableCell>
                 <TableCell className="text-gray-600">
                   <InlineSelect
@@ -357,10 +361,14 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
                   />
                 </TableCell>
                 <TableCell className="text-right text-gray-600">
-                 <InlineNumber value={item.unit_cost} onSave={v => { const qty = item.quantity || 0; onUpdate?.(item, { unit_cost: v, total_cost: qty * v }); }} className="text-right" />
+                <InlineNumber value={item.unit_cost} onSave={v => {
+                  const newUc = isNaN(v) ? 0 : v;
+                  const qty = item.quantity || 0;
+                  onUpdate?.(item, { unit_cost: newUc, total_cost: qty * newUc });
+                }} className="text-right" />
                 </TableCell>
                 <TableCell className="text-right font-semibold text-[#c9a962]">
-                 <InlineNumber value={item.total_cost} onSave={v => onUpdate?.(item, { total_cost: v })} className="text-right font-semibold text-[#c9a962]" />
+                <InlineNumber value={item.total_cost} onSave={v => onUpdate?.(item, { total_cost: isNaN(v) ? 0 : v })} className="text-right font-semibold text-[#c9a962]" />
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

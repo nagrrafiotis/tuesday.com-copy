@@ -154,16 +154,20 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+    const qty = Number(formData.quantity) || 0;
+    const uc = Number(formData.unit_cost) || 0;
     await onSubmit({
+      // Spread existing item fields first so no data is lost, then override with form values
+      ...(item || {}),
       category: formData.category || "",
       subcategory: formData.subcategory || "",
       payee: formData.payee || "",
       description: formData.description || "",
       payment_source: formData.payment_source || "",
-      quantity: Number(formData.quantity) || 0,
+      quantity: qty,
       unit: formData.unit || "",
-      unit_cost: Number(formData.unit_cost) || 0,
-      total_cost: (Number(formData.quantity) || 0) * (Number(formData.unit_cost) || 0),
+      unit_cost: uc,
+      total_cost: qty * uc,
     });
     setSaving(false);
   };
