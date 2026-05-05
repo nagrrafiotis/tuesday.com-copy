@@ -807,18 +807,28 @@ export default function ProjectDetails() {
                 }}
                 onDelete={handleDeleteBudgetItem}
                 onUpdate={(item, changes) => {
+                  // STRICT SAVE: strip any undefined/null values from changes to prevent field erasure
+                  const safeChanges = {};
+                  Object.entries(changes).forEach(([k, v]) => {
+                    if (v !== undefined && v !== null && v !== "") safeChanges[k] = v;
+                    else if (typeof v === "number" && !isNaN(v)) safeChanges[k] = v; // allow 0
+                  });
+                  if (Object.keys(safeChanges).length === 0) return; // nothing valid to save
+
                   const current = localBudgetItemsRef.current || [];
                   let mergedItem = null;
                   const updatedItems = current.map((i) => {
                     if (i.id !== item.id) return i;
-                    const merged = { ...i, ...changes };
-                    if (!('total_cost' in changes) && ('quantity' in changes || 'unit_cost' in changes)) {
+                    // Deep merge: always keep all existing fields, only override with safe changes
+                    const merged = { ...i, ...safeChanges };
+                    if (!('total_cost' in safeChanges) && ('quantity' in safeChanges || 'unit_cost' in safeChanges)) {
                       merged.total_cost = (merged.quantity || 0) * (merged.unit_cost || 0);
                     }
                     mergedItem = merged;
                     return merged;
                   });
-                  const changedKeys = Object.keys(changes).join(", ");
+                  if (!mergedItem) return; // item not found, do nothing
+                  const changedKeys = Object.keys(safeChanges).join(", ");
                   updateBudgetItems(updatedItems, `Inline [${changedKeys}]: "${item.description || item.category}"`, mergedItem);
                 }}
               />

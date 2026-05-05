@@ -42,10 +42,17 @@ function InlineText({ value, onSave, className = "" }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value || "");
   useEffect(() => { if (!editing) setVal(value || ""); }, [value, editing]);
+
+  const commit = () => {
+    setEditing(false);
+    // Only save if value actually changed and is not empty when original wasn't empty
+    if (val !== (value || "")) onSave(val);
+  };
+
   if (!editing) return (
     <span onClick={() => { setVal(value || ""); setEditing(true); }} className={`cursor-pointer hover:bg-blue-50 rounded px-1 -mx-1 min-w-[40px] inline-block ${className}`}>{value || <span className="text-gray-300">—</span>}</span>
   );
-  return <input autoFocus className="w-full border border-[#1e3a5f] rounded px-1 py-0.5 text-sm outline-none" value={val} onChange={e => setVal(e.target.value)} onBlur={() => { onSave(val); setEditing(false); }} onKeyDown={e => { if (e.key === "Enter") { onSave(val); setEditing(false); } if (e.key === "Escape") setEditing(false); }} />;
+  return <input autoFocus className="w-full border border-[#1e3a5f] rounded px-1 py-0.5 text-sm outline-none" value={val} onChange={e => setVal(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }} />;
 }
 
 function InlineSelect({ value, onSave, items, placeholder = "Select", renderDisplay }) {
@@ -86,10 +93,18 @@ function InlineNumber({ value, onSave, className = "" }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value ?? "");
   useEffect(() => { if (!editing) setVal(value ?? ""); }, [value, editing]);
+
+  const commit = () => {
+    setEditing(false);
+    const parsed = parseFloat(val);
+    // Only save if parsed is a valid number and different from current value
+    if (!isNaN(parsed) && parsed !== value) onSave(parsed);
+  };
+
   if (!editing) return (
     <span onClick={() => { setVal(value ?? ""); setEditing(true); }} className={`cursor-pointer hover:bg-blue-50 rounded px-1 -mx-1 min-w-[40px] inline-block ${className}`}>{value != null ? value : <span className="text-gray-300">—</span>}</span>
   );
-  return <input autoFocus type="number" className="w-full border border-[#1e3a5f] rounded px-1 py-0.5 text-sm outline-none" value={val} onChange={e => setVal(e.target.value)} onBlur={() => { onSave(parseFloat(val)); setEditing(false); }} onKeyDown={e => { if (e.key === "Enter") { onSave(parseFloat(val)); setEditing(false); } if (e.key === "Escape") setEditing(false); }} />;
+  return <input autoFocus type="number" className="w-full border border-[#1e3a5f] rounded px-1 py-0.5 text-sm outline-none" value={val} onChange={e => setVal(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }} />;
 }
 
 export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, selectedItems = [], onSelectAll, onSelectItem }) {
