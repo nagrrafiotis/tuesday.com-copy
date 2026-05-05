@@ -8,60 +8,24 @@ import TaskBoard from "@/components/tasks/TaskBoard";
 import TaskForm from "@/components/tasks/TaskForm";
 import ProjectForm from "@/components/projects/ProjectForm";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExpenseSummaryBySubcategory from "@/components/expenses/ExpenseSummaryBySubcategory";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
 import BudgetTable from "@/components/budget/BudgetTable";
 import BudgetForm from "@/components/budget/BudgetForm";
-import ProjectUpdatesPanel from "@/components/project/ProjectUpdatesPanel";
 import InsurancePanel from "@/components/project/InsurancePanel";
 import WorkDaysPanel from "@/components/project/WorkDaysPanel";
+import BudgetDebugLog from "@/components/budget/BudgetDebugLog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
-  ArrowLeft,
-  MapPin,
-  Calendar,
-  DollarSign,
-  Pencil,
-  Plus,
-  Building2,
-  ClipboardList,
-  BarChart3,
-  Settings,
-  Receipt,
-  Trash2,
-  Users,
-  Wrench,
-  Package,
-  Truck,
-  Search,
-  MoreHorizontal,
+  ArrowLeft, MapPin, Calendar, DollarSign, Pencil, Plus,
+  Building2, ClipboardList, BarChart3, Receipt, Trash2,
+  Users, Wrench, Package, Truck,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import SaveIndicator from "@/components/ui/SaveIndicator";
-import BudgetDebugLog from "@/components/budget/BudgetDebugLog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
-// Module-level cache: survives component remounts, keyed by projectId
-const budgetItemsCache = {};
 
 export default function ProjectDetails() {
   const [user, setUser] = useState(null);
@@ -85,18 +49,17 @@ export default function ProjectDetails() {
   const [isDragging, setIsDragging] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
-  const [selectedExpenses, setSelectedExpenses] = useState([]);
   const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [editingBudgetItem, setEditingBudgetItem] = useState(null);
   const [selectedBudgetItems, setSelectedBudgetItems] = useState([]);
-  const [localBudgetItems, setLocalBudgetItems] = useState(null);
-  const localBudgetItemsRef = useRef(null);
-  const budgetInitializedRef = useRef(false);
-  const lastProjectIdRef = useRef(null);
+
+  // Budget items: kept in a ref for instant access in callbacks, and state for rendering
+  const [budgetItems, setBudgetItems] = useState([]);
+  const budgetItemsRef = useRef([]);
+  const budgetLoadedRef = useRef(false); // prevent server data from overwriting pending local changes
+  const [budgetSaving, setBudgetSaving] = useState(false);
   const [budgetLog, setBudgetLog] = useState([]);
   const [showBudgetLog, setShowBudgetLog] = useState(false);
-  const [budgetSaving, setBudgetSaving] = useState(false);
-
 
   const queryClient = useQueryClient();
 
@@ -107,11 +70,27 @@ export default function ProjectDetails() {
       return projects[0];
     },
     enabled: !!projectId,
-    staleTime: 30000,
+    staleTime: 0, // always fresh from server on mount
     refetchOnWindowFocus: false,
   });
 
+  // Load budget items from server ONCE on first load, then we manage locally
+  useEffect(() => {
+    if (project && !budgetLoadedRef.current) {
+      budgetLoadedRef.current = true;
+      const items = project.budget_items || [];
+      setBudgetItems(items);
+      budgetItemsRef.current = items;
+    }
+  }, [project]);
 
+  // Reset when projectId changes
+  useEffect(() => {
+    budgetLoadedRef.current = false;
+    setBudgetItems([]);
+    budgetItemsRef.current = [];
+    setSelectedBudgetItems([]);
+  }, [projectId]);
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["tasks", projectId],
@@ -123,18 +102,6 @@ export default function ProjectDetails() {
     queryKey: ["users"],
     queryFn: () => base44.entities.User.list(),
   });
-
-
-
-  const { data: phasesList = {} } = useQuery({
-    queryKey: ["phases-list"],
-    queryFn: async () => {
-      const lists = await base44.entities.DropdownList.list();
-      return lists.find(l => l.list_name === "project_phases") || {};
-    },
-  });
-  
-  const phases = phasesList?.options || [];
 
   const { data: dropdownLists = [] } = useQuery({
     queryKey: ["dropdown-lists"],
@@ -153,11 +120,6 @@ export default function ProjectDetails() {
     enabled: !!projectId,
   });
 
-  const { data: contacts = [] } = useQuery({
-    queryKey: ["contacts"],
-    queryFn: () => base44.entities.Contact.list("name"),
-  });
-
   const { data: subcategories = [] } = useQuery({
     queryKey: ["subcategories"],
     queryFn: () => base44.entities.Subcategory.list(),
@@ -168,45 +130,120 @@ export default function ProjectDetails() {
     queryFn: () => base44.entities.ProjectPhase.list("order"),
   });
 
-  // Initialize local budget items from server data
-  useEffect(() => {
-    if (!project || !projectId) return;
-    // Reset if projectId changed
-    if (lastProjectIdRef.current !== projectId) {
-      lastProjectIdRef.current = projectId;
-      budgetInitializedRef.current = false;
-      localBudgetItemsRef.current = null;
+  // ─── Budget persistence ─────────────────────────────────────────────────────
+  // Single source of truth: always save the FULL items array to the server
+  const saveBudgetToServer = useCallback(async (items, logMsg) => {
+    const totalBudget = items.reduce((sum, i) => sum + (i.total_cost || 0), 0);
+    setBudgetSaving(true);
+    setBudgetLog(prev => [{
+      id: Date.now(),
+      time: new Date().toLocaleTimeString("el-GR"),
+      action: "SAVE",
+      summary: `${logMsg} | ${items.length} items | €${totalBudget.toLocaleString()}`,
+    }, ...prev].slice(0, 50));
+    try {
+      await base44.entities.Project.update(projectId, {
+        budget_items: items,
+        budget: totalBudget,
+      });
+      setBudgetLog(prev => [{
+        id: Date.now(),
+        time: new Date().toLocaleTimeString("el-GR"),
+        action: "DONE",
+        summary: `✓ Αποθηκεύτηκε`,
+      }, ...prev].slice(0, 50));
+    } catch (err) {
+      setBudgetLog(prev => [{
+        id: Date.now(),
+        time: new Date().toLocaleTimeString("el-GR"),
+        action: "ERROR",
+        summary: `✗ ${err.message}`,
+      }, ...prev].slice(0, 50));
     }
-    if (!budgetInitializedRef.current) {
-      budgetInitializedRef.current = true;
-      const serverItems = project.budget_items ?? [];
-      const cached = budgetItemsCache[projectId];
-      // Use cache only if it exists (means we saved recently and server may not have updated yet)
-      const finalItems = cached ?? serverItems;
-      setLocalBudgetItems(finalItems);
-      localBudgetItemsRef.current = finalItems;
-    }
-  }, [project, projectId]);
+    setBudgetSaving(false);
+  }, [projectId]);
 
+  const applyBudgetUpdate = useCallback((newItems, logMsg) => {
+    // Update both ref and state atomically
+    budgetItemsRef.current = newItems;
+    setBudgetItems(newItems);
+    saveBudgetToServer(newItems, logMsg);
+  }, [saveBudgetToServer]);
+
+  // ─── Budget CRUD ─────────────────────────────────────────────────────────────
+  const handleBudgetItemSubmit = async (data) => {
+    const current = budgetItemsRef.current;
+    let newItems;
+    if (editingBudgetItem) {
+      newItems = current.map(i =>
+        i.id === editingBudgetItem.id ? { ...i, ...data, id: editingBudgetItem.id } : i
+      );
+      applyBudgetUpdate(newItems, `Επεξεργασία: "${data.description || data.subcategory || editingBudgetItem.id}"`);
+    } else {
+      const newItem = { ...data, id: Date.now().toString() };
+      newItems = [...current, newItem];
+      applyBudgetUpdate(newItems, `Νέο: "${data.description || data.subcategory || 'item'}"`);
+    }
+    setShowBudgetForm(false);
+    setEditingBudgetItem(null);
+  };
+
+  const handleBudgetInlineUpdate = useCallback((item, changes) => {
+    // changes is a partial object — merge into the existing item
+    const current = budgetItemsRef.current;
+    const newItems = current.map(i => {
+      if (i.id !== item.id) return i;
+      const merged = { ...i, ...changes };
+      // Auto-recalculate total if qty or unit_cost changed but total not explicitly set
+      if (!('total_cost' in changes) && ('quantity' in changes || 'unit_cost' in changes)) {
+        merged.total_cost = (merged.quantity || 0) * (merged.unit_cost || 0);
+      }
+      return merged;
+    });
+    applyBudgetUpdate(newItems, `Inline: "${item.description || item.subcategory || item.id}"`);
+  }, [applyBudgetUpdate]);
+
+  const handleDeleteBudgetItem = async (item) => {
+    if (!window.confirm(`Διαγραφή budget item;`)) return;
+    const newItems = budgetItemsRef.current.filter(i => i.id !== item.id);
+    applyBudgetUpdate(newItems, `Διαγραφή: "${item.description || item.subcategory || item.id}"`);
+  };
+
+  const handleBulkDeleteBudgetItems = async () => {
+    if (!window.confirm(`Διαγραφή ${selectedBudgetItems.length} items;`)) return;
+    const newItems = budgetItemsRef.current.filter(i => !selectedBudgetItems.includes(i.id));
+    applyBudgetUpdate(newItems, `Μαζική διαγραφή ${selectedBudgetItems.length} items`);
+    setSelectedBudgetItems([]);
+  };
+
+  const toggleSelectAllBudgetItems = () => {
+    const all = budgetItemsRef.current;
+    if (selectedBudgetItems.length === all.length) {
+      setSelectedBudgetItems([]);
+    } else {
+      setSelectedBudgetItems(all.map(i => i.id));
+    }
+  };
+
+  const toggleSelectBudgetItem = (id) => {
+    setSelectedBudgetItems(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  // ─── Tasks ────────────────────────────────────────────────────────────────────
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
   });
 
   const createTaskMutation = useMutation({
     mutationFn: (data) => base44.entities.Task.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
-      setShowTaskForm(false);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }); setShowTaskForm(false); },
   });
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Task.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
-      setShowTaskForm(false);
-      setEditingTask(null);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }); setShowTaskForm(false); setEditingTask(null); },
   });
 
   const deleteTaskMutation = useMutation({
@@ -216,19 +253,12 @@ export default function ProjectDetails() {
 
   const createExpenseMutation = useMutation({
     mutationFn: (data) => base44.entities.Expense.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expenses", projectId] });
-      setShowExpenseForm(false);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expenses", projectId] }); setShowExpenseForm(false); },
   });
 
   const updateExpenseMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Expense.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expenses", projectId] });
-      setShowExpenseForm(false);
-      setEditingExpense(null);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expenses", projectId] }); setShowExpenseForm(false); setEditingExpense(null); },
   });
 
   const deleteExpenseMutation = useMutation({
@@ -236,14 +266,9 @@ export default function ProjectDetails() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["expenses", projectId] }),
   });
 
-
-
   const handleTaskSubmit = async (data) => {
-    if (editingTask) {
-      await updateTaskMutation.mutateAsync({ id: editingTask.id, data });
-    } else {
-      await createTaskMutation.mutateAsync(data);
-    }
+    if (editingTask) await updateTaskMutation.mutateAsync({ id: editingTask.id, data });
+    else await createTaskMutation.mutateAsync(data);
   };
 
   const handleStatusChange = async (task, newStatus) => {
@@ -251,44 +276,12 @@ export default function ProjectDetails() {
   };
 
   const handleDeleteTask = async (task) => {
-    if (window.confirm(`Delete task "${task.title}"?`)) {
-      await deleteTaskMutation.mutateAsync(task.id);
-    }
+    if (window.confirm(`Delete task "${task.title}"?`)) await deleteTaskMutation.mutateAsync(task.id);
   };
 
   const handleExpenseSubmit = async (data) => {
-    if (editingExpense) {
-      await updateExpenseMutation.mutateAsync({ id: editingExpense.id, data });
-    } else {
-      await createExpenseMutation.mutateAsync(data);
-    }
-  };
-
-  const handleDeleteExpense = async (expense) => {
-    if (window.confirm(`Delete this expense from ${expense.payee}?`)) {
-      await deleteExpenseMutation.mutateAsync(expense.id);
-    }
-  };
-
-  const handleBulkDeleteExpenses = async () => {
-    if (window.confirm(`Delete ${selectedExpenses.length} selected expenses?`)) {
-      await Promise.all(selectedExpenses.map(id => deleteExpenseMutation.mutateAsync(id)));
-      setSelectedExpenses([]);
-    }
-  };
-
-  const toggleSelectAllExpenses = () => {
-    if (selectedExpenses.length === expenses.length) {
-      setSelectedExpenses([]);
-    } else {
-      setSelectedExpenses(expenses.map(e => e.id));
-    }
-  };
-
-  const toggleSelectExpense = (id) => {
-    setSelectedExpenses(prev => 
-      prev.includes(id) ? prev.filter(expId => expId !== id) : [...prev, id]
-    );
+    if (editingExpense) await updateExpenseMutation.mutateAsync({ id: editingExpense.id, data });
+    else await createExpenseMutation.mutateAsync(data);
   };
 
   const isSaving =
@@ -301,159 +294,12 @@ export default function ProjectDetails() {
     updateExpenseMutation.isPending ||
     deleteExpenseMutation.isPending;
 
-  // Compute field-level diff between two item arrays (by id)
-  const computeDiff = (oldItems, newItems) => {
-    const diffs = [];
-    const oldMap = {};
-    (oldItems || []).forEach(i => { oldMap[i.id] = i; });
-    (newItems || []).forEach(newItem => {
-      const oldItem = oldMap[newItem.id];
-      if (!oldItem) {
-        diffs.push({ field: `[NEW] id=${newItem.id}`, before: null, after: newItem });
-        return;
-      }
-      const allKeys = new Set([...Object.keys(oldItem), ...Object.keys(newItem)]);
-      allKeys.forEach(key => {
-        if (key === 'id') return;
-        const before = oldItem[key];
-        const after = newItem[key];
-        if (JSON.stringify(before) !== JSON.stringify(after)) {
-          diffs.push({ field: `${newItem.description || newItem.id}.${key}`, before, after });
-        }
-      });
-    });
-    (oldItems || []).forEach(oldItem => {
-      if (!newItems.find(i => i.id === oldItem.id)) {
-        diffs.push({ field: `[DELETED] id=${oldItem.id}`, before: oldItem, after: null });
-      }
-    });
-    return diffs;
-  };
-
-  const addBudgetLog = (action, summary, extra = {}) => {
-    const entry = {
-      id: Date.now() + Math.random(),
-      time: new Date().toLocaleTimeString("el-GR"),
-      action,
-      summary,
-      details: extra.details || "",
-      diff: extra.diff || null,
-      itemSnapshot: extra.itemSnapshot || null,
-    };
-    setBudgetLog(prev => [entry, ...prev].slice(0, 100));
-  };
-
-  const updateBudgetItems = useCallback(async (updatedItems, logReason, triggerItem = null) => {
-    const previousItems = localBudgetItemsRef.current || [];
-    const totalBudget = updatedItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
-    const updatePayload = { budget_items: updatedItems, budget: totalBudget };
-
-    // Update ref + module cache immediately
-    localBudgetItemsRef.current = updatedItems;
-    budgetItemsCache[projectId] = updatedItems;
-    setLocalBudgetItems(updatedItems);
-    queryClient.setQueryData(["project", projectId], (old) => old ? { ...old, ...updatePayload } : old);
-
-    // Compute diff for debug log
-    const diff = computeDiff(previousItems, updatedItems);
-    addBudgetLog(
-      "SAVE",
-      `${logReason || "Save"} | ${updatedItems.length} items | €${totalBudget.toLocaleString()}`,
-      { diff, itemSnapshot: triggerItem }
-    );
-
-    setBudgetSaving(true);
-    try {
-      await base44.entities.Project.update(projectId, updatePayload);
-      addBudgetLog("DONE", `✓ Server αποθήκευσε ${updatedItems.length} items`);
-    } catch (err) {
-      addBudgetLog("ERROR", `✗ Αποτυχία αποθήκευσης: ${err.message}`);
-    }
-    setBudgetSaving(false);
-  }, [projectId, queryClient]);
-
-  const handleBudgetItemSubmit = async (data) => {
-    const currentBudgetItems = localBudgetItemsRef.current || [];
-    let updatedBudgetItems;
-    if (editingBudgetItem) {
-      // Merge: keep existing item fields, override with form data — never drop fields
-      const merged = { ...editingBudgetItem, ...data, id: editingBudgetItem.id };
-      updatedBudgetItems = currentBudgetItems.map(item =>
-        item.id === editingBudgetItem.id ? merged : item
-      );
-      await updateBudgetItems(updatedBudgetItems, `Επεξεργασία: "${merged.description || merged.category}"`, merged);
-    } else {
-      const newItem = { ...data, id: Date.now().toString() };
-      updatedBudgetItems = [...currentBudgetItems, newItem];
-      await updateBudgetItems(updatedBudgetItems, `Νέο item: "${newItem.description || newItem.category}"`, newItem);
-    }
-    setShowBudgetForm(false);
-    setEditingBudgetItem(null);
-  };
-
-  const handleDeleteBudgetItem = async (item) => {
-    if (window.confirm(`Delete this budget item?`)) {
-      const updatedBudgetItems = (localBudgetItemsRef.current || []).filter(i => i.id !== item.id);
-      await updateBudgetItems(updatedBudgetItems, `Διαγραφή: "${item.description || item.category}"`, item);
-    }
-  };
-
-  const handleBulkDeleteBudgetItems = async () => {
-    if (window.confirm(`Delete ${selectedBudgetItems.length} selected budget items?`)) {
-      const updatedBudgetItems = (localBudgetItemsRef.current || []).filter(item => !selectedBudgetItems.includes(item.id));
-      await updateBudgetItems(updatedBudgetItems, `Μαζική διαγραφή ${selectedBudgetItems.length} items`);
-      setSelectedBudgetItems([]);
-    }
-  };
-
-  const toggleSelectAllBudgetItems = () => {
-    const budgetItems = localBudgetItemsRef.current || [];
-    if (selectedBudgetItems.length === budgetItems.length) {
-      setSelectedBudgetItems([]);
-    } else {
-      setSelectedBudgetItems(budgetItems.map(item => item.id));
-    }
-  };
-
-  const toggleSelectBudgetItem = (id) => {
-    setSelectedBudgetItems(prev => 
-      prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
-    );
-  };
-
-
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("de-DE", {
-      style: "currency",
-      currency: "EUR",
-    }).format(amount);
-  };
-
-
-
-  const categoryConfig = {
-    labor: { label: "Labor", icon: Users, color: "bg-blue-100 text-blue-700" },
-    subcontractor: { label: "Subcontractor", icon: Wrench, color: "bg-purple-100 text-purple-700" },
-    materials: { label: "Materials", icon: Package, color: "bg-amber-100 text-amber-700" },
-    equipment: { label: "Equipment", icon: Truck, color: "bg-emerald-100 text-emerald-700" },
-    general_expenses: { label: "General", icon: Receipt, color: "bg-gray-100 text-gray-700" },
-  };
-
+  // ─── Derived data ─────────────────────────────────────────────────────────────
   const statusColors = {
     planning: "bg-blue-100 text-blue-700",
     in_progress: "bg-amber-100 text-amber-700",
     on_hold: "bg-gray-100 text-gray-700",
     completed: "bg-emerald-100 text-emerald-700",
-  };
-
-  const DEFAULT_LISTS = {
-    expense_categories: ["labor", "subcontractor", "materials", "equipment", "general_expenses"],
-  };
-
-  const getExpenseCategories = () => {
-    const list = dropdownLists.find(l => l.list_name === "expense_categories");
-    return list?.options || DEFAULT_LISTS.expense_categories;
   };
 
   const defaultImages = {
@@ -477,62 +323,37 @@ export default function ProjectDetails() {
 
   const taskStats = {
     total: tasks.length,
-    completed: tasks.filter((t) => t.status === "completed").length,
-    inProgress: tasks.filter((t) => t.status === "in_progress").length,
-    todo: tasks.filter((t) => t.status === "todo").length,
+    completed: tasks.filter(t => t.status === "completed").length,
   };
 
-  // Include transferred invoices (expense type) in total spend calculations
   const totalInvoiceExpenses = projectInvoices
     .filter(inv => inv.type === "expense")
     .reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-  const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0) + totalInvoiceExpenses;
-  const budgetRemaining = (project.budget || 0) - totalExpenses;
-  const budgetUsedPercent = project.budget ? (totalExpenses / project.budget) * 100 : 0;
+  const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0) + totalInvoiceExpenses;
 
-  // Calculate phase chart data
   const subcategoryToPhase = {};
-  subcategories.forEach(subcat => {
-    if (subcat.phase_id) {
-      subcategoryToPhase[subcat.name] = subcat.phase_id;
-    }
-  });
+  subcategories.forEach(s => { if (s.phase_id) subcategoryToPhase[s.name] = s.phase_id; });
 
   const phaseChartData = projectPhases.map(phase => {
-    const subcategoryNames = Object.keys(subcategoryToPhase).filter(
-      name => subcategoryToPhase[name] === phase.id
-    );
-    
-    const phaseBudget = (localBudgetItems || [])
-      .filter(item => subcategoryNames.includes(item.subcategory))
+    const subcatNames = Object.keys(subcategoryToPhase).filter(n => subcategoryToPhase[n] === phase.id);
+    const phaseBudget = budgetItems
+      .filter(item => subcatNames.includes(item.subcategory))
       .reduce((sum, item) => sum + (item.total_cost || 0), 0);
-    
     const phaseExpenses = expenses
-      .filter(exp => subcategoryNames.includes(exp.subcategory))
+      .filter(exp => subcatNames.includes(exp.subcategory))
       .reduce((sum, exp) => sum + (exp.amount || 0), 0);
-
     const phaseInvoiceExpenses = projectInvoices
-      .filter(inv => inv.type === "expense" && subcategoryNames.includes(inv.subcategory))
+      .filter(inv => inv.type === "expense" && subcatNames.includes(inv.subcategory))
       .reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-    
-    return {
-      name: phase.name,
-      Budget: phaseBudget,
-      Expenses: phaseExpenses + phaseInvoiceExpenses,
-    };
+    return { name: phase.name, Budget: phaseBudget, Expenses: phaseExpenses + phaseInvoiceExpenses };
   });
-
-
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
       {/* Hero Section */}
-      <div 
+      <div
         className="relative h-64 md:h-80 overflow-hidden group cursor-move"
-        onMouseDown={(e) => {
-          setIsDragging(true);
-          e.preventDefault();
-        }}
+        onMouseDown={(e) => { setIsDragging(true); e.preventDefault(); }}
         onMouseMove={(e) => {
           if (isDragging) {
             const rect = e.currentTarget.getBoundingClientRect();
@@ -547,18 +368,15 @@ export default function ProjectDetails() {
         <img
           src={project.cover_image || defaultImages[project.property_type] || defaultImages.residential}
           alt={project.name}
-          className="w-full h-full object-cover transition-all"
+          className="w-full h-full object-cover"
           style={{ objectPosition: `${imagePosition.x}% ${imagePosition.y}%` }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
-        
-        {/* Position indicator */}
         <div className="absolute top-20 right-6 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           <div className="bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs">
             Drag to adjust image position
           </div>
         </div>
-        
         <div className="absolute top-6 left-3 pointer-events-auto">
           <Link to={createPageUrl("Projects")}>
             <Button variant="ghost" className="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20">
@@ -567,7 +385,6 @@ export default function ProjectDetails() {
             </Button>
           </Link>
         </div>
-
         <div className="absolute bottom-6 left-3 right-3 pointer-events-auto">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -597,7 +414,7 @@ export default function ProjectDetails() {
       </div>
 
       <div className="max-w-7xl mx-auto px-3 py-8">
-        {/* Project Stats */}
+        {/* Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -615,7 +432,6 @@ export default function ProjectDetails() {
             </div>
             <Progress value={project.progress || 0} className="mt-3 h-1.5" />
           </div>
-
           <div className="bg-white rounded-xl p-5 shadow-lg border border-gray-100">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-[#c9a962]/10">
@@ -624,12 +440,11 @@ export default function ProjectDetails() {
               <div>
                 <p className="text-sm text-gray-500">Budget</p>
                 <p className="text-xl font-bold text-[#1e3a5f]">
-                  {project.budget ? `$${(project.budget / 1000000).toFixed(1)}M` : "—"}
+                  {project.budget ? `€${(project.budget / 1000).toFixed(0)}k` : "—"}
                 </p>
               </div>
             </div>
           </div>
-
           <div className="bg-white rounded-xl p-5 shadow-lg border border-gray-100">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-emerald-100">
@@ -638,14 +453,11 @@ export default function ProjectDetails() {
               <div>
                 <p className="text-sm text-gray-500">Target Date</p>
                 <p className="text-xl font-bold text-[#1e3a5f]">
-                  {project.target_completion
-                    ? format(new Date(project.target_completion), "dd/MM/yy")
-                    : "—"}
+                  {project.target_completion ? format(new Date(project.target_completion), "dd/MM/yy") : "—"}
                 </p>
               </div>
             </div>
           </div>
-
           <div className="bg-white rounded-xl p-5 shadow-lg border border-gray-100">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-blue-100">
@@ -653,9 +465,7 @@ export default function ProjectDetails() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Tasks</p>
-                <p className="text-xl font-bold text-[#1e3a5f]">
-                  {taskStats.completed}/{taskStats.total}
-                </p>
+                <p className="text-xl font-bold text-[#1e3a5f]">{taskStats.completed}/{taskStats.total}</p>
               </div>
             </div>
           </div>
@@ -688,10 +498,7 @@ export default function ProjectDetails() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" stroke="#666" angle={-45} textAnchor="end" interval={0} tick={{ fontSize: 11 }} height={80} />
                 <YAxis stroke="#666" />
-                <Tooltip 
-                  formatter={(value) => `€${value.toLocaleString()}`}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                />
+                <Tooltip formatter={(value) => `€${value.toLocaleString()}`} contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                 <Legend />
                 <Bar dataKey="Budget" fill="#c9a962" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Expenses" fill="#1e3a5f" radius={[4, 4, 0, 0]} />
@@ -700,57 +507,33 @@ export default function ProjectDetails() {
           </motion.div>
         )}
 
-        {/* Tasks and Budget Tabs Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
+        {/* Tabs */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="flex items-center justify-between mb-6">
               <TabsList>
-              <TabsTrigger value="board">Tasks</TabsTrigger>
+                <TabsTrigger value="board">Tasks</TabsTrigger>
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
                 <TabsTrigger value="budget">Budget</TabsTrigger>
-
                 <TabsTrigger value="insurance">Ασφαλιστικές</TabsTrigger>
                 <TabsTrigger value="workdays">Ένσημα ΕΦΚΑ</TabsTrigger>
-                </TabsList>
+              </TabsList>
 
-              {activeTab === "board" ? (
-                <Button
-                  onClick={() => {
-                    setEditingTask(null);
-                    setShowTaskForm(true);
-                  }}
-                  className="bg-[#1e3a5f] hover:bg-[#152a45]"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Task
+              {activeTab === "board" && (
+                <Button onClick={() => { setEditingTask(null); setShowTaskForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45]">
+                  <Plus className="w-4 h-4 mr-2" /> Add Task
                 </Button>
-              ) : activeTab === "expenses" ? (
-                <Button
-                  onClick={() => {
-                    setEditingExpense(null);
-                    setShowExpenseForm(true);
-                  }}
-                  className="bg-[#1e3a5f] hover:bg-[#152a45]"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Expense
+              )}
+              {activeTab === "expenses" && (
+                <Button onClick={() => { setEditingExpense(null); setShowExpenseForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45]">
+                  <Plus className="w-4 h-4 mr-2" /> Add Expense
                 </Button>
-              ) : activeTab === "budget" ? (
-                <Button
-                  onClick={() => {
-                    setEditingBudgetItem(null);
-                    setShowBudgetForm(true);
-                  }}
-                  className="bg-[#1e3a5f] hover:bg-[#152a45]"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Budget Item
+              )}
+              {activeTab === "budget" && (
+                <Button onClick={() => { setEditingBudgetItem(null); setShowBudgetForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45]">
+                  <Plus className="w-4 h-4 mr-2" /> Add Budget Item
                 </Button>
-              ) : null}
+              )}
             </div>
 
             <TabsContent value="board">
@@ -760,10 +543,7 @@ export default function ProjectDetails() {
                 <TaskBoard
                   tasks={tasks}
                   onAddTask={() => setShowTaskForm(true)}
-                  onEditTask={(task) => {
-                    setEditingTask(task);
-                    setShowTaskForm(true);
-                  }}
+                  onEditTask={(task) => { setEditingTask(task); setShowTaskForm(true); }}
                   onDeleteTask={handleDeleteTask}
                   onStatusChange={handleStatusChange}
                 />
@@ -771,16 +551,11 @@ export default function ProjectDetails() {
             </TabsContent>
 
             <TabsContent value="expenses">
-              <ExpenseSummaryBySubcategory expenses={expenses} invoices={projectInvoices} budgetItems={localBudgetItems || []} />
+              <ExpenseSummaryBySubcategory expenses={expenses} invoices={projectInvoices} budgetItems={budgetItems} />
             </TabsContent>
 
             <TabsContent value="budget">
-              {/* Budget Debug Log */}
-              <BudgetDebugLog
-                log={budgetLog}
-                visible={showBudgetLog}
-                onToggle={() => setShowBudgetLog(v => !v)}
-              />
+              <BudgetDebugLog log={budgetLog} visible={showBudgetLog} onToggle={() => setShowBudgetLog(v => !v)} />
 
               {selectedBudgetItems.length > 0 && (
                 <motion.div
@@ -789,57 +564,22 @@ export default function ProjectDetails() {
                   className="bg-[#1e3a5f] text-white rounded-xl p-4 flex items-center justify-between mb-4"
                 >
                   <span className="font-medium">{selectedBudgetItems.length} selected</span>
-                  <Button
-                    onClick={handleBulkDeleteBudgetItems}
-                    variant="destructive"
-                    size="sm"
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Selected
+                  <Button onClick={handleBulkDeleteBudgetItems} variant="destructive" size="sm" className="bg-red-600 hover:bg-red-700">
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete Selected
                   </Button>
                 </motion.div>
               )}
 
               <BudgetTable
-                budgetItems={localBudgetItems || []}
+                budgetItems={budgetItems}
                 selectedItems={selectedBudgetItems}
                 onSelectAll={toggleSelectAllBudgetItems}
                 onSelectItem={toggleSelectBudgetItem}
-                onEdit={(item) => {
-                  setEditingBudgetItem(item);
-                  setShowBudgetForm(true);
-                }}
+                onEdit={(item) => { setEditingBudgetItem(item); setShowBudgetForm(true); }}
                 onDelete={handleDeleteBudgetItem}
-                onUpdate={(item, changes) => {
-                  // Only skip truly invalid values (undefined, NaN numbers)
-                  const safeChanges = {};
-                  Object.entries(changes).forEach(([k, v]) => {
-                    if (v === undefined) return;
-                    if (typeof v === "number" && isNaN(v)) return;
-                    safeChanges[k] = v;
-                  });
-                  if (Object.keys(safeChanges).length === 0) return;
-
-                  const current = localBudgetItemsRef.current || [];
-                  let mergedItem = null;
-                  const updatedItems = current.map((i) => {
-                    if (i.id !== item.id) return i;
-                    const merged = { ...i, ...safeChanges };
-                    if (!('total_cost' in safeChanges) && ('quantity' in safeChanges || 'unit_cost' in safeChanges)) {
-                      merged.total_cost = (merged.quantity || 0) * (merged.unit_cost || 0);
-                    }
-                    mergedItem = merged;
-                    return merged;
-                  });
-                  if (!mergedItem) return;
-                  const changedKeys = Object.keys(safeChanges).join(", ");
-                  updateBudgetItems(updatedItems, `Inline [${changedKeys}]: "${item.description || item.category}"`, mergedItem);
-                }}
+                onUpdate={handleBudgetInlineUpdate}
               />
             </TabsContent>
-
-
 
             <TabsContent value="insurance">
               <InsurancePanel projectId={projectId} />
@@ -850,7 +590,6 @@ export default function ProjectDetails() {
             </TabsContent>
           </Tabs>
         </motion.div>
-
       </div>
 
       {/* Forms */}
@@ -858,10 +597,7 @@ export default function ProjectDetails() {
         task={editingTask}
         projectId={projectId}
         open={showTaskForm}
-        onClose={() => {
-          setShowTaskForm(false);
-          setEditingTask(null);
-        }}
+        onClose={() => { setShowTaskForm(false); setEditingTask(null); }}
         onSubmit={handleTaskSubmit}
         users={users}
       />
@@ -878,20 +614,14 @@ export default function ProjectDetails() {
         projects={[project]}
         projectId={projectId}
         open={showExpenseForm}
-        onClose={() => {
-          setShowExpenseForm(false);
-          setEditingExpense(null);
-        }}
+        onClose={() => { setShowExpenseForm(false); setEditingExpense(null); }}
         onSubmit={handleExpenseSubmit}
       />
 
       <BudgetForm
         item={editingBudgetItem}
         open={showBudgetForm}
-        onClose={() => {
-          setShowBudgetForm(false);
-          setEditingBudgetItem(null);
-        }}
+        onClose={() => { setShowBudgetForm(false); setEditingBudgetItem(null); }}
         onSubmit={handleBudgetItemSubmit}
       />
 

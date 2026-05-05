@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,6 +53,7 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
 
   useEffect(() => {
     if (open) {
+      isFirstRender.current = true; // reset so total auto-calc doesn't fire on load
       if (item) {
         setFormData({
           category: item.category || "",
@@ -60,10 +61,10 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
           payee: item.payee || "",
           description: item.description || "",
           payment_source: item.payment_source || "",
-          quantity: item.quantity || 1,
+          quantity: item.quantity ?? 1,
           unit: item.unit || "",
-          unit_cost: item.unit_cost || 0,
-          total_cost: item.total_cost || 0,
+          unit_cost: item.unit_cost ?? 0,
+          total_cost: item.total_cost ?? 0,
         });
       } else {
         setFormData({
@@ -81,7 +82,10 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
     }
   }, [item, open]);
 
+  // Only auto-calculate total when user edits quantity or unit_cost (not on initial load)
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
     const total = (Number(formData.quantity) || 0) * (Number(formData.unit_cost) || 0);
     setFormData(prev => ({ ...prev, total_cost: total }));
   }, [formData.quantity, formData.unit_cost]);
