@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExpenseSummaryBySubcategory from "@/components/expenses/ExpenseSummaryBySubcategory";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
 import InsurancePanel from "@/components/project/InsurancePanel";
+import BudgetPanel from "@/components/budget/BudgetPanel";
 import WorkDaysPanel from "@/components/project/WorkDaysPanel";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
@@ -363,6 +364,7 @@ export default function ProjectDetails() {
               <TabsList>
                 <TabsTrigger value="board">Tasks</TabsTrigger>
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
+                <TabsTrigger value="budget">Προϋπολογισμός</TabsTrigger>
                 <TabsTrigger value="insurance">Ασφαλιστικές</TabsTrigger>
                 <TabsTrigger value="workdays">Ένσημα ΕΦΚΑ</TabsTrigger>
               </TabsList>
@@ -395,6 +397,10 @@ export default function ProjectDetails() {
 
             <TabsContent value="expenses">
               <ExpenseSummaryBySubcategory expenses={expenses} invoices={projectInvoices} budgetItems={[]} />
+            </TabsContent>
+
+            <TabsContent value="budget">
+              <BudgetPanel projectId={projectId} />
             </TabsContent>
 
             <TabsContent value="insurance">
