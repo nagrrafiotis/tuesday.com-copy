@@ -211,7 +211,7 @@ export default function BudgetItemForm({ item, projectId, open, onClose, onSubmi
             />
           </div>
 
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
               <Label>Ποσότητα</Label>
               <Input

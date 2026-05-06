@@ -371,13 +371,15 @@ export default function ProjectDetails() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="flex items-center justify-between mb-6">
-              <TabsList>
+              <div className="overflow-x-auto -mx-1 px-1">
+              <TabsList className="flex w-max min-w-full">
                 <TabsTrigger value="board">Tasks</TabsTrigger>
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
                 <TabsTrigger value="budget">Προϋπολογισμός</TabsTrigger>
                 <TabsTrigger value="insurance">Ασφαλιστικές</TabsTrigger>
                 <TabsTrigger value="workdays">Ένσημα ΕΦΚΑ</TabsTrigger>
               </TabsList>
+            </div>
 
               {activeTab === "board" && (
                 <Button onClick={() => { setEditingTask(null); setShowTaskForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45]">
