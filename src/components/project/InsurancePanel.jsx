@@ -201,20 +201,20 @@ export default function InsurancePanel({ projectId }) {
 
       {/* ── Λίστα 1: Εργαζόμενοι / Ένσημα ── */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#1e3a5f]" />
-            <h3 className="font-semibold text-gray-800">Εργαζόμενοι & Ένσημα</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Users className="w-5 h-5 text-[#1e3a5f] shrink-0" />
+            <h3 className="font-semibold text-gray-800 truncate">Εργαζόμενοι & Ένσημα</h3>
             {employees.length > 0 && (
-              <span className="text-sm text-gray-500 ml-2">Σύνολο μισθοδοσίας: <span className="font-semibold text-[#1e3a5f]">{fmt(totalSalary)}</span></span>
+              <span className="text-sm text-gray-500 whitespace-nowrap">Σύνολο: <span className="font-semibold text-[#1e3a5f]">{fmt(totalSalary)}</span></span>
             )}
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowEmpScan(true)}>
-              <ScanLine className="w-4 h-4 mr-2" /> Σάρωση PDF
+          <div className="flex gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => setShowEmpScan(true)}>
+              <ScanLine className="w-4 h-4 mr-1" /> Σάρωση PDF
             </Button>
-            <Button className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={() => { setEditingEmp(null); setShowEmpForm(true); }}>
-              <Plus className="w-4 h-4 mr-2" /> Νέα Εγγραφή
+            <Button size="sm" className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={() => { setEditingEmp(null); setShowEmpForm(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> Νέα Εγγραφή
             </Button>
           </div>
         </div>
@@ -275,22 +275,22 @@ export default function InsurancePanel({ projectId }) {
 
       {/* ── Λίστα 2: Εισφορές ανά μήνα ── */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-[#1e3a5f]" />
-            <h3 className="font-semibold text-gray-800">Εισφορές ανά Μήνα</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <ShieldCheck className="w-5 h-5 text-[#1e3a5f] shrink-0" />
+            <h3 className="font-semibold text-gray-800 truncate">Εισφορές ανά Μήνα</h3>
             {contributions.length > 0 && (
-              <span className="text-sm text-gray-500 ml-2">
+              <span className="text-sm text-gray-500 whitespace-nowrap">
                 Σύνολο: <span className="font-semibold text-[#1e3a5f]">{fmt(contributions.reduce((s,c) => s+(c.total_amount||0),0))}</span>
               </span>
             )}
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowScan(true)}>
-              <ScanLine className="w-4 h-4 mr-2" /> Σάρωση PDF
+          <div className="flex gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => setShowScan(true)}>
+              <ScanLine className="w-4 h-4 mr-1" /> Σάρωση PDF
             </Button>
-            <Button className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={() => { setEditingContrib(null); setShowContribForm(true); }}>
-              <Plus className="w-4 h-4 mr-2" /> Χειροκίνητη
+            <Button size="sm" className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={() => { setEditingContrib(null); setShowContribForm(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> Χειροκίνητη
             </Button>
           </div>
         </div>

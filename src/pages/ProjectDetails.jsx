@@ -370,27 +370,29 @@ export default function ProjectDetails() {
         {/* Tabs */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div className="flex items-center justify-between mb-6">
-              <div className="overflow-x-auto -mx-1 px-1">
-              <TabsList className="flex w-max min-w-full">
-                <TabsTrigger value="board">Tasks</TabsTrigger>
-                <TabsTrigger value="expenses">Expenses</TabsTrigger>
-                <TabsTrigger value="budget">Προϋπολογισμός</TabsTrigger>
-                <TabsTrigger value="insurance">Ασφαλιστικές</TabsTrigger>
-                <TabsTrigger value="workdays">Ένσημα ΕΦΚΑ</TabsTrigger>
-              </TabsList>
-            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+              <div className="overflow-x-auto">
+                <TabsList className="flex w-max">
+                  <TabsTrigger value="board">Tasks</TabsTrigger>
+                  <TabsTrigger value="expenses">Expenses</TabsTrigger>
+                  <TabsTrigger value="budget">Προϋπολογισμός</TabsTrigger>
+                  <TabsTrigger value="insurance">Ασφαλιστικές</TabsTrigger>
+                  <TabsTrigger value="workdays">Ένσημα ΕΦΚΑ</TabsTrigger>
+                </TabsList>
+              </div>
 
-              {activeTab === "board" && (
-                <Button onClick={() => { setEditingTask(null); setShowTaskForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45]">
-                  <Plus className="w-4 h-4 mr-2" /> Add Task
-                </Button>
-              )}
-              {activeTab === "expenses" && (
-                <Button onClick={() => { setEditingExpense(null); setShowExpenseForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45]">
-                  <Plus className="w-4 h-4 mr-2" /> Add Expense
-                </Button>
-              )}
+              <div className="shrink-0">
+                {activeTab === "board" && (
+                  <Button onClick={() => { setEditingTask(null); setShowTaskForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45] w-full sm:w-auto">
+                    <Plus className="w-4 h-4 mr-2" /> Add Task
+                  </Button>
+                )}
+                {activeTab === "expenses" && (
+                  <Button onClick={() => { setEditingExpense(null); setShowExpenseForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45] w-full sm:w-auto">
+                    <Plus className="w-4 h-4 mr-2" /> Add Expense
+                  </Button>
+                )}
+              </div>
             </div>
 
             <TabsContent value="board">
