@@ -17,7 +17,6 @@ import BudgetTable from "@/components/budget/BudgetTable";
 import BudgetForm from "@/components/budget/BudgetForm";
 import InsurancePanel from "@/components/project/InsurancePanel";
 import WorkDaysPanel from "@/components/project/WorkDaysPanel";
-import BudgetDebugLog from "@/components/budget/BudgetDebugLog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   ArrowLeft, MapPin, Calendar, DollarSign, Pencil, Plus,
@@ -53,13 +52,11 @@ export default function ProjectDetails() {
   const [editingBudgetItem, setEditingBudgetItem] = useState(null);
   const [selectedBudgetItems, setSelectedBudgetItems] = useState([]);
 
-  // Budget items: kept in a ref for instant access in callbacks, and state for rendering
   const [budgetItems, setBudgetItems] = useState([]);
   const budgetItemsRef = useRef([]);
-  const budgetLoadedRef = useRef(false); // prevent server data from overwriting pending local changes
+  const budgetLoadedRef = useRef(false);
   const [budgetSaving, setBudgetSaving] = useState(false);
-  const [budgetLog, setBudgetLog] = useState([]);
-  const [showBudgetLog, setShowBudgetLog] = useState(false);
+  const saveTimerRef = useRef(null);
 
   const queryClient = useQueryClient();
 
@@ -131,49 +128,32 @@ export default function ProjectDetails() {
   });
 
   // ─── Budget persistence ─────────────────────────────────────────────────────
-  const saveTimerRef = useRef(null);
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, []);
 
-  const saveBudgetToServer = useCallback(async (items, logMsg) => {
+  const saveBudgetToServer = useCallback(async (items) => {
     const totalBudget = items.reduce((sum, i) => sum + (i.total_cost || 0), 0);
     setBudgetSaving(true);
-    setBudgetLog(prev => [{
-      id: Date.now(),
-      time: new Date().toLocaleTimeString("el-GR"),
-      action: "SAVE",
-      summary: `${logMsg} | ${items.length} items | €${totalBudget.toLocaleString()}`,
-    }, ...prev].slice(0, 50));
     try {
       await base44.entities.Project.update(projectId, {
         budget_items: items,
         budget: totalBudget,
       });
-      setBudgetLog(prev => [{
-        id: Date.now(),
-        time: new Date().toLocaleTimeString("el-GR"),
-        action: "DONE",
-        summary: `✓ Αποθηκεύτηκε`,
-      }, ...prev].slice(0, 50));
     } catch (err) {
-      setBudgetLog(prev => [{
-        id: Date.now(),
-        time: new Date().toLocaleTimeString("el-GR"),
-        action: "ERROR",
-        summary: `✗ ${err.message}`,
-      }, ...prev].slice(0, 50));
+      console.error("Budget save error:", err);
     }
     setBudgetSaving(false);
   }, [projectId]);
 
-  const applyBudgetUpdate = useCallback((newItems, logMsg) => {
-    // Update ref and state immediately (optimistic)
-    budgetItemsRef.current = newItems;
+  const applyBudgetUpdate = useCallback((newItems) => {
+    budgetItemsRef.current = [...newItems];
     setBudgetItems([...newItems]);
-    // Debounce server save: wait 400ms after last change before saving
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      // Always save the LATEST ref value (not closure value)
-      saveBudgetToServer(budgetItemsRef.current, logMsg);
-    }, 400);
+      saveBudgetToServer(budgetItemsRef.current);
+    }, 600);
   }, [saveBudgetToServer]);
 
   // ─── Budget CRUD ─────────────────────────────────────────────────────────────
@@ -184,43 +164,46 @@ export default function ProjectDetails() {
       newItems = current.map(i =>
         i.id === editingBudgetItem.id ? { ...i, ...data, id: editingBudgetItem.id } : i
       );
-      applyBudgetUpdate(newItems, `Επεξεργασία: "${data.description || data.subcategory || editingBudgetItem.id}"`);
     } else {
       const newItem = { ...data, id: Date.now().toString() };
       newItems = [...current, newItem];
-      applyBudgetUpdate(newItems, `Νέο: "${data.description || data.subcategory || 'item'}"`);
     }
     setShowBudgetForm(false);
     setEditingBudgetItem(null);
+    // Save immediately (no debounce) for explicit user actions
+    budgetItemsRef.current = [...newItems];
+    setBudgetItems([...newItems]);
+    await saveBudgetToServer(newItems);
   };
 
   const handleBudgetInlineUpdate = useCallback((item, changes) => {
-    // Always use budgetItemsRef (latest) as base — never trust stale 'item' from render
     const current = budgetItemsRef.current;
     const newItems = current.map(i => {
       if (i.id !== item.id) return i;
-      // Merge: start from ref's version (most up-to-date), apply only the changed fields
       const merged = { ...i, ...changes };
-      // Auto-recalculate total if qty or unit_cost changed but total not explicitly set
       if (!('total_cost' in changes) && ('quantity' in changes || 'unit_cost' in changes)) {
         merged.total_cost = (merged.quantity || 0) * (merged.unit_cost || 0);
       }
       return merged;
     });
-    applyBudgetUpdate(newItems, `Inline edit: "${item.description || item.subcategory || item.id}"`);
+    applyBudgetUpdate(newItems);
   }, [applyBudgetUpdate]);
 
   const handleDeleteBudgetItem = async (item) => {
     if (!window.confirm(`Διαγραφή budget item;`)) return;
     const newItems = budgetItemsRef.current.filter(i => i.id !== item.id);
-    applyBudgetUpdate(newItems, `Διαγραφή: "${item.description || item.subcategory || item.id}"`);
+    budgetItemsRef.current = [...newItems];
+    setBudgetItems([...newItems]);
+    await saveBudgetToServer(newItems);
   };
 
   const handleBulkDeleteBudgetItems = async () => {
     if (!window.confirm(`Διαγραφή ${selectedBudgetItems.length} items;`)) return;
     const newItems = budgetItemsRef.current.filter(i => !selectedBudgetItems.includes(i.id));
-    applyBudgetUpdate(newItems, `Μαζική διαγραφή ${selectedBudgetItems.length} items`);
     setSelectedBudgetItems([]);
+    budgetItemsRef.current = [...newItems];
+    setBudgetItems([...newItems]);
+    await saveBudgetToServer(newItems);
   };
 
   const toggleSelectAllBudgetItems = () => {
@@ -562,8 +545,6 @@ export default function ProjectDetails() {
             </TabsContent>
 
             <TabsContent value="budget">
-              <BudgetDebugLog log={budgetLog} visible={showBudgetLog} onToggle={() => setShowBudgetLog(v => !v)} />
-
               {selectedBudgetItems.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
