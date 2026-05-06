@@ -93,6 +93,12 @@ export default function ProjectDetails() {
     queryFn: () => base44.entities.ProjectPhase.list("order"),
   });
 
+  const { data: budgetItems = [] } = useQuery({
+    queryKey: ["budget-items", projectId],
+    queryFn: () => base44.entities.BudgetItem.filter({ project_id: projectId }),
+    enabled: !!projectId,
+  });
+
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
   });
@@ -196,7 +202,10 @@ export default function ProjectDetails() {
     const phaseInvoiceExpenses = projectInvoices
       .filter(inv => inv.type === "expense" && subcatNames.includes(inv.subcategory))
       .reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-    return { name: phase.name, Expenses: phaseExpenses + phaseInvoiceExpenses };
+    const phaseBudget = budgetItems
+      .filter(b => subcatNames.includes(b.subcategory))
+      .reduce((sum, b) => sum + (b.total_cost || 0), 0);
+    return { name: phase.name, Προϋπολογισμός: phaseBudget, Expenses: phaseExpenses + phaseInvoiceExpenses };
   });
 
   return (
@@ -336,7 +345,7 @@ export default function ProjectDetails() {
         )}
 
         {/* Phase Chart */}
-        {projectPhases.length > 0 && phaseChartData.some(d => d.Expenses > 0) && (
+        {projectPhases.length > 0 && phaseChartData.some(d => d.Expenses > 0 || d.Προϋπολογισμός > 0) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -351,7 +360,8 @@ export default function ProjectDetails() {
                 <YAxis stroke="#666" />
                 <Tooltip formatter={(value) => `€${value.toLocaleString()}`} contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                 <Legend />
-                <Bar dataKey="Expenses" fill="#1e3a5f" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Προϋπολογισμός" fill="#1e3a5f" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Expenses" fill="#c9a962" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </motion.div>
