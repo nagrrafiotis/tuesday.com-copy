@@ -71,16 +71,13 @@ export default function ProjectDetails() {
     refetchOnWindowFocus: false,
   });
 
-  // Load budget items from server — reload every time project data arrives (catches external changes)
+  // Load budget items from server ONCE per project — after that, local ref is the truth
   useEffect(() => {
-    if (project) {
-      // Only load from server if we have no pending local edits (saveTimerRef is null)
-      if (!budgetLoadedRef.current || !saveTimerRef.current) {
-        budgetLoadedRef.current = true;
-        const items = project.budget_items || [];
-        setBudgetItems(items);
-        budgetItemsRef.current = items;
-      }
+    if (project && !budgetLoadedRef.current) {
+      budgetLoadedRef.current = true;
+      const items = project.budget_items || [];
+      setBudgetItems(items);
+      budgetItemsRef.current = items;
     }
   }, [project]);
 
@@ -137,8 +134,9 @@ export default function ProjectDetails() {
   }, []);
 
   /**
-   * THE ONLY save function. Always reads from budgetItemsRef.current (latest truth).
-   * Builds a PATCH by doing a deep merge per-item-id so no field is ever lost.
+   * THE ONLY save function.
+   * Always reads from budgetItemsRef.current — the single source of truth.
+   * No server fetch, no race conditions.
    */
   const flushBudgetSave = useCallback(async () => {
     if (!projectId) return;
@@ -146,28 +144,10 @@ export default function ProjectDetails() {
     const totalBudget = items.reduce((sum, i) => sum + (i.total_cost || 0), 0);
     setBudgetSaving(true);
     try {
-      // Fetch the CURRENT server state so we can deep-merge (never overwrite unknown fields)
-      const serverProjects = await base44.entities.Project.filter({ id: projectId });
-      const serverItems = (serverProjects[0]?.budget_items) || [];
-
-      // Build a map of server items by id
-      const serverMap = {};
-      serverItems.forEach(si => { serverMap[si.id] = si; });
-
-      // Merge: for each local item, start with server version (if exists), overlay local changes
-      const mergedItems = items.map(localItem => {
-        const serverItem = serverMap[localItem.id] || {};
-        return { ...serverItem, ...localItem };
-      });
-
       await base44.entities.Project.update(projectId, {
-        budget_items: mergedItems,
+        budget_items: items,
         budget: totalBudget,
       });
-
-      // Update local ref/state with the merged result so future merges are correct
-      budgetItemsRef.current = mergedItems;
-      setBudgetItems([...mergedItems]);
     } catch (err) {
       console.error("Budget save error:", err);
     }
