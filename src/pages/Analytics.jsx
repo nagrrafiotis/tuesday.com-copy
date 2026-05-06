@@ -10,6 +10,7 @@ import { BarChart3, TrendingUp, Target, Clock, Folder, Activity, CheckCircle2, C
 import { subDays, isAfter, isBefore, format, isSameDay, startOfDay } from 'date-fns';
 import { motion } from "framer-motion";
 import ExpenseCharts from "@/components/analytics/ExpenseCharts";
+import BudgetVsExpensesChart from "@/components/analytics/BudgetVsExpensesChart";
 
 export default function AnalyticsPage() {
   const [boards, setBoards] = useState([]);
@@ -445,6 +446,11 @@ export default function AnalyticsPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Budget vs Expenses Chart */}
+        <div className="mb-8">
+          <BudgetVsExpensesChart />
         </div>
 
         {/* Expense Charts */}
