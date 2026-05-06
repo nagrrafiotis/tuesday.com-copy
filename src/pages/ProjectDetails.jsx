@@ -67,17 +67,20 @@ export default function ProjectDetails() {
       return projects[0];
     },
     enabled: !!projectId,
-    staleTime: 0, // always fresh from server on mount
+    staleTime: 0,
     refetchOnWindowFocus: false,
   });
 
-  // Load budget items from server ONCE on first load, then we manage locally
+  // Load budget items from server — reload every time project data arrives (catches external changes)
   useEffect(() => {
-    if (project && !budgetLoadedRef.current) {
-      budgetLoadedRef.current = true;
-      const items = project.budget_items || [];
-      setBudgetItems(items);
-      budgetItemsRef.current = items;
+    if (project) {
+      // Only load from server if we have no pending local edits (saveTimerRef is null)
+      if (!budgetLoadedRef.current || !saveTimerRef.current) {
+        budgetLoadedRef.current = true;
+        const items = project.budget_items || [];
+        setBudgetItems(items);
+        budgetItemsRef.current = items;
+      }
     }
   }, [project]);
 
@@ -87,6 +90,7 @@ export default function ProjectDetails() {
     setBudgetItems([]);
     budgetItemsRef.current = [];
     setSelectedBudgetItems([]);
+    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
   }, [projectId]);
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
@@ -128,82 +132,113 @@ export default function ProjectDetails() {
   });
 
   // ─── Budget persistence ─────────────────────────────────────────────────────
-  // Cleanup debounce timer on unmount
   useEffect(() => {
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, []);
 
-  const saveBudgetToServer = useCallback(async (items) => {
+  /**
+   * THE ONLY save function. Always reads from budgetItemsRef.current (latest truth).
+   * Builds a PATCH by doing a deep merge per-item-id so no field is ever lost.
+   */
+  const flushBudgetSave = useCallback(async () => {
+    if (!projectId) return;
+    const items = budgetItemsRef.current;
     const totalBudget = items.reduce((sum, i) => sum + (i.total_cost || 0), 0);
     setBudgetSaving(true);
     try {
+      // Fetch the CURRENT server state so we can deep-merge (never overwrite unknown fields)
+      const serverProjects = await base44.entities.Project.filter({ id: projectId });
+      const serverItems = (serverProjects[0]?.budget_items) || [];
+
+      // Build a map of server items by id
+      const serverMap = {};
+      serverItems.forEach(si => { serverMap[si.id] = si; });
+
+      // Merge: for each local item, start with server version (if exists), overlay local changes
+      const mergedItems = items.map(localItem => {
+        const serverItem = serverMap[localItem.id] || {};
+        return { ...serverItem, ...localItem };
+      });
+
       await base44.entities.Project.update(projectId, {
-        budget_items: items,
+        budget_items: mergedItems,
         budget: totalBudget,
       });
+
+      // Update local ref/state with the merged result so future merges are correct
+      budgetItemsRef.current = mergedItems;
+      setBudgetItems([...mergedItems]);
     } catch (err) {
       console.error("Budget save error:", err);
     }
     setBudgetSaving(false);
   }, [projectId]);
 
-  const applyBudgetUpdate = useCallback((newItems) => {
-    budgetItemsRef.current = [...newItems];
-    setBudgetItems([...newItems]);
+  /** Schedule a debounced save (for inline cell edits) */
+  const scheduleBudgetSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveBudgetToServer(budgetItemsRef.current);
-    }, 600);
-  }, [saveBudgetToServer]);
+      saveTimerRef.current = null;
+      flushBudgetSave();
+    }, 800);
+  }, [flushBudgetSave]);
 
   // ─── Budget CRUD ─────────────────────────────────────────────────────────────
+
+  /** Add or Edit via form — saves immediately */
   const handleBudgetItemSubmit = async (data) => {
     const current = budgetItemsRef.current;
     let newItems;
     if (editingBudgetItem) {
+      // Deep-merge: keep ALL existing fields, overlay with what the form returned
       newItems = current.map(i =>
         i.id === editingBudgetItem.id ? { ...i, ...data, id: editingBudgetItem.id } : i
       );
     } else {
-      const newItem = { ...data, id: Date.now().toString() };
-      newItems = [...current, newItem];
+      newItems = [...current, { ...data, id: Date.now().toString() }];
     }
     setShowBudgetForm(false);
     setEditingBudgetItem(null);
-    // Save immediately (no debounce) for explicit user actions
-    budgetItemsRef.current = [...newItems];
+    // Cancel any pending debounced save and save immediately
+    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
+    budgetItemsRef.current = newItems;
     setBudgetItems([...newItems]);
-    await saveBudgetToServer(newItems);
+    await flushBudgetSave();
   };
 
+  /** Inline cell edit — debounced, always merges into existing item */
   const handleBudgetInlineUpdate = useCallback((item, changes) => {
-    const current = budgetItemsRef.current;
-    const newItems = current.map(i => {
+    const newItems = budgetItemsRef.current.map(i => {
       if (i.id !== item.id) return i;
+      // Start from the REF version (most up-to-date), apply ONLY the changed keys
       const merged = { ...i, ...changes };
       if (!('total_cost' in changes) && ('quantity' in changes || 'unit_cost' in changes)) {
         merged.total_cost = (merged.quantity || 0) * (merged.unit_cost || 0);
       }
       return merged;
     });
-    applyBudgetUpdate(newItems);
-  }, [applyBudgetUpdate]);
+    budgetItemsRef.current = newItems;
+    setBudgetItems([...newItems]);
+    scheduleBudgetSave();
+  }, [scheduleBudgetSave]);
 
   const handleDeleteBudgetItem = async (item) => {
     if (!window.confirm(`Διαγραφή budget item;`)) return;
+    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
     const newItems = budgetItemsRef.current.filter(i => i.id !== item.id);
-    budgetItemsRef.current = [...newItems];
+    budgetItemsRef.current = newItems;
     setBudgetItems([...newItems]);
-    await saveBudgetToServer(newItems);
+    await flushBudgetSave();
   };
 
   const handleBulkDeleteBudgetItems = async () => {
     if (!window.confirm(`Διαγραφή ${selectedBudgetItems.length} items;`)) return;
+    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
     const newItems = budgetItemsRef.current.filter(i => !selectedBudgetItems.includes(i.id));
     setSelectedBudgetItems([]);
-    budgetItemsRef.current = [...newItems];
+    budgetItemsRef.current = newItems;
     setBudgetItems([...newItems]);
-    await saveBudgetToServer(newItems);
+    await flushBudgetSave();
   };
 
   const toggleSelectAllBudgetItems = () => {
