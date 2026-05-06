@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -13,15 +13,12 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExpenseSummaryBySubcategory from "@/components/expenses/ExpenseSummaryBySubcategory";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
-import BudgetTable from "@/components/budget/BudgetTable";
-import BudgetForm from "@/components/budget/BudgetForm";
 import InsurancePanel from "@/components/project/InsurancePanel";
 import WorkDaysPanel from "@/components/project/WorkDaysPanel";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   ArrowLeft, MapPin, Calendar, DollarSign, Pencil, Plus,
-  Building2, ClipboardList, BarChart3, Receipt, Trash2,
-  Users, Wrench, Package, Truck,
+  Building2, ClipboardList, BarChart3,
 } from "lucide-react";
 import { format } from "date-fns";
 import SaveIndicator from "@/components/ui/SaveIndicator";
@@ -48,15 +45,6 @@ export default function ProjectDetails() {
   const [isDragging, setIsDragging] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
-  const [showBudgetForm, setShowBudgetForm] = useState(false);
-  const [editingBudgetItem, setEditingBudgetItem] = useState(null);
-  const [selectedBudgetItems, setSelectedBudgetItems] = useState([]);
-
-  const [budgetItems, setBudgetItems] = useState([]);
-  const budgetItemsRef = useRef([]);
-  const budgetLoadedRef = useRef(false);
-  const [budgetSaving, setBudgetSaving] = useState(false);
-  const saveTimerRef = useRef(null);
 
   const queryClient = useQueryClient();
 
@@ -71,25 +59,6 @@ export default function ProjectDetails() {
     refetchOnWindowFocus: false,
   });
 
-  // Load budget items from server ONCE per project — after that, local ref is the truth
-  useEffect(() => {
-    if (project && !budgetLoadedRef.current) {
-      budgetLoadedRef.current = true;
-      const items = project.budget_items || [];
-      setBudgetItems(items);
-      budgetItemsRef.current = items;
-    }
-  }, [project]);
-
-  // Reset when projectId changes
-  useEffect(() => {
-    budgetLoadedRef.current = false;
-    setBudgetItems([]);
-    budgetItemsRef.current = [];
-    setSelectedBudgetItems([]);
-    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
-  }, [projectId]);
-
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["tasks", projectId],
     queryFn: () => base44.entities.Task.filter({ project_id: projectId }),
@@ -99,11 +68,6 @@ export default function ProjectDetails() {
   const { data: users = [] } = useQuery({
     queryKey: ["users"],
     queryFn: () => base44.entities.User.list(),
-  });
-
-  const { data: dropdownLists = [] } = useQuery({
-    queryKey: ["dropdown-lists"],
-    queryFn: () => base44.entities.DropdownList.list(),
   });
 
   const { data: expenses = [] } = useQuery({
@@ -128,115 +92,6 @@ export default function ProjectDetails() {
     queryFn: () => base44.entities.ProjectPhase.list("order"),
   });
 
-  // ─── Budget persistence ─────────────────────────────────────────────────────
-  useEffect(() => {
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, []);
-
-  /**
-   * THE ONLY save function.
-   * Always reads from budgetItemsRef.current — the single source of truth.
-   * No server fetch, no race conditions.
-   */
-  const flushBudgetSave = useCallback(async () => {
-    if (!projectId) return;
-    const items = budgetItemsRef.current;
-    const totalBudget = items.reduce((sum, i) => sum + (i.total_cost || 0), 0);
-    setBudgetSaving(true);
-    try {
-      await base44.entities.Project.update(projectId, {
-        budget_items: items,
-        budget: totalBudget,
-      });
-    } catch (err) {
-      console.error("Budget save error:", err);
-    }
-    setBudgetSaving(false);
-  }, [projectId]);
-
-  /** Schedule a debounced save (for inline cell edits) */
-  const scheduleBudgetSave = useCallback(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      saveTimerRef.current = null;
-      flushBudgetSave();
-    }, 800);
-  }, [flushBudgetSave]);
-
-  // ─── Budget CRUD ─────────────────────────────────────────────────────────────
-
-  /** Add or Edit via form — saves immediately */
-  const handleBudgetItemSubmit = async (data) => {
-    const current = budgetItemsRef.current;
-    let newItems;
-    if (editingBudgetItem) {
-      // Deep-merge: keep ALL existing fields, overlay with what the form returned
-      newItems = current.map(i =>
-        i.id === editingBudgetItem.id ? { ...i, ...data, id: editingBudgetItem.id } : i
-      );
-    } else {
-      newItems = [...current, { ...data, id: Date.now().toString() }];
-    }
-    setShowBudgetForm(false);
-    setEditingBudgetItem(null);
-    // Cancel any pending debounced save and save immediately
-    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
-    budgetItemsRef.current = newItems;
-    setBudgetItems([...newItems]);
-    await flushBudgetSave();
-  };
-
-  /** Inline cell edit — debounced, always merges into existing item */
-  const handleBudgetInlineUpdate = useCallback((item, changes) => {
-    const newItems = budgetItemsRef.current.map(i => {
-      if (i.id !== item.id) return i;
-      // Start from the REF version (most up-to-date), apply ONLY the changed keys
-      const merged = { ...i, ...changes };
-      if (!('total_cost' in changes) && ('quantity' in changes || 'unit_cost' in changes)) {
-        merged.total_cost = (merged.quantity || 0) * (merged.unit_cost || 0);
-      }
-      return merged;
-    });
-    budgetItemsRef.current = newItems;
-    setBudgetItems([...newItems]);
-    scheduleBudgetSave();
-  }, [scheduleBudgetSave]);
-
-  const handleDeleteBudgetItem = async (item) => {
-    if (!window.confirm(`Διαγραφή budget item;`)) return;
-    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
-    const newItems = budgetItemsRef.current.filter(i => i.id !== item.id);
-    budgetItemsRef.current = newItems;
-    setBudgetItems([...newItems]);
-    await flushBudgetSave();
-  };
-
-  const handleBulkDeleteBudgetItems = async () => {
-    if (!window.confirm(`Διαγραφή ${selectedBudgetItems.length} items;`)) return;
-    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
-    const newItems = budgetItemsRef.current.filter(i => !selectedBudgetItems.includes(i.id));
-    setSelectedBudgetItems([]);
-    budgetItemsRef.current = newItems;
-    setBudgetItems([...newItems]);
-    await flushBudgetSave();
-  };
-
-  const toggleSelectAllBudgetItems = () => {
-    const all = budgetItemsRef.current;
-    if (selectedBudgetItems.length === all.length) {
-      setSelectedBudgetItems([]);
-    } else {
-      setSelectedBudgetItems(all.map(i => i.id));
-    }
-  };
-
-  const toggleSelectBudgetItem = (id) => {
-    setSelectedBudgetItems(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
-
-  // ─── Tasks ────────────────────────────────────────────────────────────────────
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
   });
@@ -290,7 +145,6 @@ export default function ProjectDetails() {
   };
 
   const isSaving =
-    budgetSaving ||
     updateProjectMutation.isPending ||
     createTaskMutation.isPending ||
     updateTaskMutation.isPending ||
@@ -299,7 +153,6 @@ export default function ProjectDetails() {
     updateExpenseMutation.isPending ||
     deleteExpenseMutation.isPending;
 
-  // ─── Derived data ─────────────────────────────────────────────────────────────
   const statusColors = {
     planning: "bg-blue-100 text-blue-700",
     in_progress: "bg-amber-100 text-amber-700",
@@ -331,26 +184,18 @@ export default function ProjectDetails() {
     completed: tasks.filter(t => t.status === "completed").length,
   };
 
-  const totalInvoiceExpenses = projectInvoices
-    .filter(inv => inv.type === "expense")
-    .reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-  const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0) + totalInvoiceExpenses;
-
   const subcategoryToPhase = {};
   subcategories.forEach(s => { if (s.phase_id) subcategoryToPhase[s.name] = s.phase_id; });
 
   const phaseChartData = projectPhases.map(phase => {
     const subcatNames = Object.keys(subcategoryToPhase).filter(n => subcategoryToPhase[n] === phase.id);
-    const phaseBudget = budgetItems
-      .filter(item => subcatNames.includes(item.subcategory))
-      .reduce((sum, item) => sum + (item.total_cost || 0), 0);
     const phaseExpenses = expenses
       .filter(exp => subcatNames.includes(exp.subcategory))
       .reduce((sum, exp) => sum + (exp.amount || 0), 0);
     const phaseInvoiceExpenses = projectInvoices
       .filter(inv => inv.type === "expense" && subcatNames.includes(inv.subcategory))
       .reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-    return { name: phase.name, Budget: phaseBudget, Expenses: phaseExpenses + phaseInvoiceExpenses };
+    return { name: phase.name, Expenses: phaseExpenses + phaseInvoiceExpenses };
   });
 
   return (
@@ -490,14 +335,14 @@ export default function ProjectDetails() {
         )}
 
         {/* Phase Chart */}
-        {projectPhases.length > 0 && phaseChartData.some(d => d.Budget > 0 || d.Expenses > 0) && (
+        {projectPhases.length > 0 && phaseChartData.some(d => d.Expenses > 0) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8"
           >
-            <h2 className="text-xl font-semibold text-[#1e3a5f] mb-6">Budget vs Expenses by Phase</h2>
+            <h2 className="text-xl font-semibold text-[#1e3a5f] mb-6">Expenses by Phase</h2>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={phaseChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -505,7 +350,6 @@ export default function ProjectDetails() {
                 <YAxis stroke="#666" />
                 <Tooltip formatter={(value) => `€${value.toLocaleString()}`} contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                 <Legend />
-                <Bar dataKey="Budget" fill="#c9a962" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Expenses" fill="#1e3a5f" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -519,7 +363,6 @@ export default function ProjectDetails() {
               <TabsList>
                 <TabsTrigger value="board">Tasks</TabsTrigger>
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
-                <TabsTrigger value="budget">Budget</TabsTrigger>
                 <TabsTrigger value="insurance">Ασφαλιστικές</TabsTrigger>
                 <TabsTrigger value="workdays">Ένσημα ΕΦΚΑ</TabsTrigger>
               </TabsList>
@@ -532,11 +375,6 @@ export default function ProjectDetails() {
               {activeTab === "expenses" && (
                 <Button onClick={() => { setEditingExpense(null); setShowExpenseForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45]">
                   <Plus className="w-4 h-4 mr-2" /> Add Expense
-                </Button>
-              )}
-              {activeTab === "budget" && (
-                <Button onClick={() => { setEditingBudgetItem(null); setShowBudgetForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45]">
-                  <Plus className="w-4 h-4 mr-2" /> Add Budget Item
                 </Button>
               )}
             </div>
@@ -556,32 +394,7 @@ export default function ProjectDetails() {
             </TabsContent>
 
             <TabsContent value="expenses">
-              <ExpenseSummaryBySubcategory expenses={expenses} invoices={projectInvoices} budgetItems={budgetItems} />
-            </TabsContent>
-
-            <TabsContent value="budget">
-              {selectedBudgetItems.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-[#1e3a5f] text-white rounded-xl p-4 flex items-center justify-between mb-4"
-                >
-                  <span className="font-medium">{selectedBudgetItems.length} selected</span>
-                  <Button onClick={handleBulkDeleteBudgetItems} variant="destructive" size="sm" className="bg-red-600 hover:bg-red-700">
-                    <Trash2 className="w-4 h-4 mr-2" /> Delete Selected
-                  </Button>
-                </motion.div>
-              )}
-
-              <BudgetTable
-                budgetItems={budgetItems}
-                selectedItems={selectedBudgetItems}
-                onSelectAll={toggleSelectAllBudgetItems}
-                onSelectItem={toggleSelectBudgetItem}
-                onEdit={(item) => { setEditingBudgetItem(item); setShowBudgetForm(true); }}
-                onDelete={handleDeleteBudgetItem}
-                onUpdate={handleBudgetInlineUpdate}
-              />
+              <ExpenseSummaryBySubcategory expenses={expenses} invoices={projectInvoices} budgetItems={[]} />
             </TabsContent>
 
             <TabsContent value="insurance">
@@ -619,13 +432,6 @@ export default function ProjectDetails() {
         open={showExpenseForm}
         onClose={() => { setShowExpenseForm(false); setEditingExpense(null); }}
         onSubmit={handleExpenseSubmit}
-      />
-
-      <BudgetForm
-        item={editingBudgetItem}
-        open={showBudgetForm}
-        onClose={() => { setShowBudgetForm(false); setEditingBudgetItem(null); }}
-        onSubmit={handleBudgetItemSubmit}
       />
 
       <SaveIndicator isSaving={isSaving} />
