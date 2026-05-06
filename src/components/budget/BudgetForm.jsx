@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,7 +53,7 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
 
   useEffect(() => {
     if (open) {
-      isFirstRender.current = true; // reset so total auto-calc doesn't fire on load
+      userEditingRef.current = false; // reset: next qty/uc change from load, not user
       if (item) {
         setFormData({
           category: item.category || "",
@@ -82,10 +82,11 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
     }
   }, [item, open]);
 
-  // Only auto-calculate total when user edits quantity or unit_cost (not on initial load)
-  const isFirstRender = useRef(true);
+  // Auto-calculate total only when user manually edits qty/unit_cost
+  // We track whether the change came from user input (not from the load-item useEffect)
+  const userEditingRef = useRef(false);
   useEffect(() => {
-    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    if (!userEditingRef.current) return;
     const total = (Number(formData.quantity) || 0) * (Number(formData.unit_cost) || 0);
     setFormData(prev => ({ ...prev, total_cost: total }));
   }, [formData.quantity, formData.unit_cost]);
@@ -307,7 +308,7 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
               <Input
                 type="number"
                 value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                onChange={(e) => { userEditingRef.current = true; setFormData({ ...formData, quantity: e.target.value }); }}
                 step="0.01"
                 className="mt-1.5"
               />
@@ -330,7 +331,7 @@ export default function BudgetForm({ item, open, onClose, onSubmit }) {
               <Input
                 type="number"
                 value={formData.unit_cost}
-                onChange={(e) => setFormData({ ...formData, unit_cost: e.target.value })}
+                onChange={(e) => { userEditingRef.current = true; setFormData({ ...formData, unit_cost: e.target.value }); }}
                 step="0.01"
                 className="mt-1.5"
               />
