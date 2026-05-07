@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Pencil, BookOpen, Receipt } from "lucide-react";
+import { Plus, Trash2, Pencil, BookOpen, Receipt, Download } from "lucide-react";
 import BudgetItemForm from "./BudgetItemForm";
 import BudgetTemplatesDialog from "./BudgetTemplatesDialog";
 
@@ -82,6 +82,31 @@ export default function BudgetPanel({ projectId }) {
 
   const grandTotal = items.reduce((sum, i) => sum + (i.total_cost || 0), 0);
 
+  const exportToExcel = () => {
+    const rows = [
+      ["Κατηγορία", "Υποκατηγορία", "Περιγραφή", "Ποσότητα", "Μονάδα", "Τιμή/Μονάδα (€)", "Σύνολο (€)", "Σημειώσεις"],
+      ...items.map(item => [
+        item.category?.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || "",
+        item.subcategory || "",
+        item.description || "",
+        item.quantity ?? "",
+        item.unit || "",
+        item.unit_cost ?? "",
+        item.total_cost ?? "",
+        item.notes || "",
+      ]),
+      [],
+      ["", "", "", "", "", "ΣΥΝΟΛΟ", grandTotal],
+    ];
+    const bom = "\uFEFF";
+    const csv = bom + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `budget_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  };
+
   // Group by category for display
   const grouped = {};
   items.forEach(item => {
@@ -95,8 +120,8 @@ export default function BudgetPanel({ projectId }) {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             onClick={() => setShowTemplates(true)}
@@ -105,6 +130,12 @@ export default function BudgetPanel({ projectId }) {
             <BookOpen className="w-4 h-4 mr-2" />
             Πρότυπα
           </Button>
+          {items.length > 0 && (
+            <Button variant="outline" onClick={exportToExcel} className="text-emerald-700 border-emerald-300 hover:bg-emerald-50">
+              <Download className="w-4 h-4 mr-2" />
+              Export Excel
+            </Button>
+          )}
         </div>
         <Button
           onClick={() => { setEditingItem(null); setTemplateDefaults(null); setShowForm(true); }}

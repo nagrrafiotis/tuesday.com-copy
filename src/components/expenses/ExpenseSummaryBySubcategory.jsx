@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Receipt, FileText, ChevronDown, ChevronRight, ExternalLink, Image } from "lucide-react";
+import { Receipt, FileText, ChevronDown, ChevronRight, ExternalLink, Image, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(amount || 0);
@@ -136,8 +137,39 @@ export default function ExpenseSummaryBySubcategory({ expenses = [], invoices = 
 
   const toggleRow = (key) => setExpandedRows(prev => ({ ...prev, [key]: !prev[key] }));
 
+  const exportToExcel = () => {
+    const rows = [
+      ["Φάση", "Υποκατηγορία", "Τύπος", "Payee / Vendor", "Περιγραφή", "Ημερομηνία", "Πηγή Πληρωμής", "Ποσό (€)"],
+    ];
+    sortedKeys.forEach(key => {
+      const row = grouped[key];
+      const phase = getPhase(key);
+      row.expenses.forEach(exp => {
+        rows.push([phase?.name || "—", key, "Expense", exp.payee || "", exp.description || "", exp.date?.slice(0,10) || "", exp.payment_source || "", exp.amount ?? ""]);
+      });
+      row.invoices.forEach(inv => {
+        rows.push([phase?.name || "—", key, "Invoice", inv.vendor_client || "", inv.description || "", inv.date?.slice(0,10) || "", inv.payment_source || "", inv.total_amount ?? ""]);
+      });
+    });
+    rows.push([]);
+    rows.push(["", "ΣΥΝΟΛΟ", "", "", "", "", "", grandActual]);
+    const bom = "\uFEFF";
+    const csv = bom + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `expenses_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-auto">
+      <div className="flex justify-end px-4 pt-3 pb-1">
+        <Button variant="outline" size="sm" onClick={exportToExcel} className="text-emerald-700 border-emerald-300 hover:bg-emerald-50">
+          <Download className="w-4 h-4 mr-2" />
+          Export Excel
+        </Button>
+      </div>
       <Table>
         <TableHeader>
           <TableRow className="bg-gray-50">
