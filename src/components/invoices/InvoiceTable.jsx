@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import {
   Receipt, TrendingUp, Hash, Layers, Users, Wrench, Package, Truck,
-  CheckCircle2, ArrowRight, Pencil, Trash2, Building2, Calendar, Eye,
+  CheckCircle2, ArrowRight, Pencil, Trash2, Building2, Calendar, Eye, Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -44,6 +44,37 @@ export default function InvoiceTable({
   selectedInvoices = [], onSelectAll, onSelectInvoice,
   onEdit, onDelete, onTransfer, onBulkDelete,
 }) {
+  const exportToExcel = () => {
+    const rows = [
+      ["Ημερομηνία", "Φάση", "Κατηγορία", "Υποκατηγορία", "Έργο", "Vendor / Client", "Αρ. Τιμολογίου", "Τύπος", "Κατάσταση", "Πηγή Πληρωμής", "Σύνολο (€)", "Σημειώσεις"],
+      ...invoices.map(inv => {
+        const projectName = projects?.find(p => p.id === inv.project_id)?.name || "";
+        return [
+          inv.date?.slice(0,10) || "",
+          "", // phase - not directly stored
+          inv.category?.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || "",
+          inv.subcategory || "",
+          projectName,
+          inv.vendor_client || "",
+          inv.invoice_number || "",
+          inv.type === "expense" ? "Expense" : "Income",
+          inv.status === "transferred" ? "Transferred" : "Pending",
+          inv.payment_method || "",
+          inv.total_amount ?? "",
+          inv.notes || "",
+        ];
+      }),
+      [],
+      ["", "", "", "", "", "", "", "", "", "ΣΥΝΟΛΟ", invoices.reduce((s, i) => s + (i.total_amount || 0), 0)],
+    ];
+    const bom = "\uFEFF";
+    const csv = bom + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `invoices_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  };
   const [editingCell, setEditingCell] = useState(null);
   const [bulkField, setBulkField] = useState(null); // "phase" | "category" | "subcategory"
   const [viewingInvoice, setViewingInvoice] = useState(null);
@@ -187,13 +218,21 @@ export default function InvoiceTable({
             <button onClick={() => setBulkField(null)} className="text-xs text-gray-400 hover:text-gray-600 ml-1">✕</button>
           )}
 
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <Button onClick={exportToExcel} variant="outline" size="sm" className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50">
+              <Download className="w-3 h-3 mr-1" />Export
+            </Button>
             <Button onClick={onBulkDelete} variant="destructive" size="sm" className="bg-red-600 hover:bg-red-700 h-7 text-xs">
               <Trash2 className="w-3 h-3 mr-1" />Διαγραφή
             </Button>
           </div>
         </div>
       )}
+      <div className="flex justify-end px-3 py-2 border-b border-gray-100">
+        <Button variant="outline" size="sm" onClick={exportToExcel} className="text-emerald-700 border-emerald-300 hover:bg-emerald-50">
+          <Download className="w-4 h-4 mr-1" /> Export Excel
+        </Button>
+      </div>
       <div className="overflow-auto max-h-[480px] w-full">
       <Table className="w-auto min-w-full">
         <TableHeader className="sticky top-0 z-20 bg-gray-50 shadow-sm">
