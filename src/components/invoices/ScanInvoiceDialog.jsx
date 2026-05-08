@@ -186,9 +186,17 @@ Be precise with numbers. Use null for fields not found.`,
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label className="text-xs">Vendor / Client</Label>
+                <div className="col-span-2">
+                  <Label className="text-xs">Vendor / Client (Όνομα)</Label>
                   <Input value={result.vendor_client || ""} onChange={e => setResult(r => ({ ...r, vendor_client: e.target.value }))} className="h-9" />
+                </div>
+                <div>
+                  <Label className="text-xs">Επωνυμία</Label>
+                  <Input value={result.vendor_eponymia || ""} onChange={e => setResult(r => ({ ...r, vendor_eponymia: e.target.value }))} className="h-9" placeholder="Επωνυμία εταιρείας" />
+                </div>
+                <div>
+                  <Label className="text-xs">ΑΦΜ</Label>
+                  <Input value={result.vendor_afm || ""} onChange={e => setResult(r => ({ ...r, vendor_afm: e.target.value }))} className="h-9" placeholder="π.χ. 123456789" />
                 </div>
                 <div>
                   <Label className="text-xs">Invoice #</Label>

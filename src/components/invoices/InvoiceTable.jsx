@@ -46,7 +46,7 @@ export default function InvoiceTable({
 }) {
   const exportToExcel = () => {
     const rows = [
-      ["Ημερομηνία", "Φάση", "Κατηγορία", "Υποκατηγορία", "Έργο", "Vendor / Client", "ΑΦΜ", "Αρ. Τιμολογίου", "Τύπος", "Κατάσταση", "Πηγή Πληρωμής", "Σύνολο (€)", "Σημειώσεις"],
+      ["Ημερομηνία", "Φάση", "Κατηγορία", "Υποκατηγορία", "Έργο", "Vendor / Client", "Επωνυμία", "ΑΦΜ", "Αρ. Τιμολογίου", "Τύπος", "Κατάσταση", "Πηγή Πληρωμής", "Σύνολο (€)", "Σημειώσεις"],
       ...invoices.map(inv => {
         const projectName = projects?.find(p => p.id === inv.project_id)?.name || "";
         return [
@@ -56,6 +56,7 @@ export default function InvoiceTable({
           inv.subcategory || "",
           projectName,
           inv.vendor_client || "",
+          inv.vendor_eponymia || "",
           inv.vendor_afm || "",
           inv.invoice_number || "",
           inv.type === "expense" ? "Expense" : "Income",
@@ -250,7 +251,8 @@ export default function InvoiceTable({
             <TableHead className="bg-gray-50 whitespace-nowrap">Subcategory</TableHead>
             <TableHead className="bg-gray-50 whitespace-nowrap">Project</TableHead>
             <TableHead className="bg-gray-50 whitespace-nowrap">Vendor / Client</TableHead>
-            <TableHead className="bg-gray-50 whitespace-nowrap">Invoice #</TableHead>
+                        <TableHead className="bg-gray-50 whitespace-nowrap">ΑΦΜ</TableHead>
+                        <TableHead className="bg-gray-50 whitespace-nowrap">Invoice #</TableHead>
             <TableHead className="bg-gray-50 whitespace-nowrap">Type</TableHead>
             <TableHead className="bg-gray-50 whitespace-nowrap">Status</TableHead>
             <TableHead className="bg-gray-50 whitespace-nowrap">Payment Source</TableHead>
@@ -388,6 +390,10 @@ export default function InvoiceTable({
                    ) : (
                      <span className="hover:text-[#1e3a5f]">{invoice.vendor_client || "—"}</span>
                    )}
+                </TableCell>
+
+                <TableCell className="text-gray-500 text-xs whitespace-nowrap">
+                  {invoice.vendor_afm || "—"}
                 </TableCell>
 
                 <TableCell className="text-gray-400 text-xs cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`invoice-num-${invoice.id}`); }}>
@@ -558,6 +564,10 @@ export default function InvoiceTable({
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-400 mb-1">Payment Method</p>
                   <p className="font-medium capitalize">{viewingInvoice.payment_method ? viewingInvoice.payment_method.replace('_', ' ') : "—"}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Επωνυμία</p>
+                  <p className="font-medium">{viewingInvoice.vendor_eponymia || "—"}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-400 mb-1">ΑΦΜ</p>

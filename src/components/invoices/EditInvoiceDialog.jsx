@@ -85,9 +85,13 @@ export default function EditInvoiceDialog({ open, onClose, invoice, projects, on
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-xs">Vendor / Client</Label>
+            <div className="col-span-2">
+              <Label className="text-xs">Vendor / Client (Όνομα)</Label>
               <Input value={form.vendor_client || ""} onChange={e => set("vendor_client", e.target.value)} className="h-9" />
+            </div>
+            <div>
+              <Label className="text-xs">Επωνυμία</Label>
+              <Input value={form.vendor_eponymia || ""} onChange={e => set("vendor_eponymia", e.target.value)} className="h-9" placeholder="Επωνυμία εταιρείας" />
             </div>
             <div>
               <Label className="text-xs">ΑΦΜ</Label>
