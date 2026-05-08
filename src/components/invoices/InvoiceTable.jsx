@@ -424,10 +424,19 @@ export default function InvoiceTable({
                   </Badge>
                 </TableCell>
 
-                <TableCell>
-                  {invoice.status === "transferred"
-                    ? <Badge className="bg-blue-100 text-blue-700 border-0 gap-1 text-xs"><CheckCircle2 className="w-3 h-3" />Transferred</Badge>
-                    : <Badge className="bg-yellow-100 text-yellow-700 border-0 text-xs">Pending</Badge>}
+                <TableCell onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => updateInvoiceMutation.mutate({
+                      id: invoice.id,
+                      data: { ...invoice, status: invoice.status === "transferred" ? "pending" : "transferred" }
+                    })}
+                    title="Click to toggle status"
+                    className="cursor-pointer hover:opacity-70 transition-opacity"
+                  >
+                    {invoice.status === "transferred"
+                      ? <Badge className="bg-blue-100 text-blue-700 border-0 gap-1 text-xs"><CheckCircle2 className="w-3 h-3" />Transferred</Badge>
+                      : <Badge className="bg-yellow-100 text-yellow-700 border-0 text-xs">Pending</Badge>}
+                  </button>
                 </TableCell>
 
                 <TableCell className="text-gray-600 text-sm cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`method-${invoice.id}`); }}>
