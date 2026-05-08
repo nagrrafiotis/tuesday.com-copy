@@ -8,6 +8,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Pencil, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function EditInvoiceDialog({ open, onClose, invoice, projects, onSaved }) {
   const [form, setForm] = useState({});
@@ -36,6 +37,22 @@ export default function EditInvoiceDialog({ open, onClose, invoice, projects, on
     queryKey: ["dropdown-lists"],
     queryFn: () => base44.entities.DropdownList.list(),
   });
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => base44.entities.Contact.list("name"),
+  });
+
+  const handleVendorSelect = (contactId) => {
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact) return;
+    setForm(f => ({
+      ...f,
+      vendor_client: contact.name,
+      vendor_eponymia: contact.eponymia || f.vendor_eponymia || "",
+      vendor_afm: contact.afm || f.vendor_afm || "",
+    }));
+  };
 
   const expenseCategories = dropdownLists.find(l => l.list_name === "expense_categories")?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"];
 
@@ -86,8 +103,23 @@ export default function EditInvoiceDialog({ open, onClose, invoice, projects, on
               </Select>
             </div>
             <div className="col-span-2">
-              <Label className="text-xs">Vendor / Client (Όνομα)</Label>
-              <Input value={form.vendor_client || ""} onChange={e => set("vendor_client", e.target.value)} className="h-9" />
+              <Label className="text-xs">Vendor / Client</Label>
+              <SearchableSelect
+                value={contacts.find(c => c.name === form.vendor_client)?.id || ""}
+                onValueChange={handleVendorSelect}
+                placeholder="Επιλογή από επαφές..."
+                items={contacts.map(c => ({
+                  value: c.id,
+                  label: c.name + (c.afm ? ` (${c.afm})` : ""),
+                }))}
+                triggerClassName="h-9 w-full"
+              />
+              <Input
+                value={form.vendor_client || ""}
+                onChange={e => set("vendor_client", e.target.value)}
+                className="h-9 mt-1"
+                placeholder="ή πληκτρολογήστε όνομα"
+              />
             </div>
             <div>
               <Label className="text-xs">Επωνυμία</Label>

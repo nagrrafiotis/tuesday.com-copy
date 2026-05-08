@@ -22,6 +22,8 @@ function ContactForm({ contact, open, onClose, onSubmit }) {
   const [formData, setFormData] = useState(
     contact || {
       name: "",
+      afm: "",
+      eponymia: "",
       emails: [""],
       phones: [""],
       company: "",
@@ -41,6 +43,8 @@ function ContactForm({ contact, open, onClose, onSubmit }) {
     } else {
       setFormData({
         name: "",
+        afm: "",
+        eponymia: "",
         emails: [""],
         phones: [""],
         company: "",
@@ -180,9 +184,30 @@ function ContactForm({ contact, open, onClose, onSubmit }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <Label>ΑΦΜ</Label>
+              <Input
+                value={formData.afm || ""}
+                onChange={(e) => setFormData({ ...formData, afm: e.target.value })}
+                placeholder="π.χ. 123456789"
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Επωνυμία</Label>
+              <Input
+                value={formData.eponymia || ""}
+                onChange={(e) => setFormData({ ...formData, eponymia: e.target.value })}
+                placeholder="Επωνυμία εταιρείας"
+                className="mt-1.5"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <Label>Company</Label>
               <Input
-                value={formData.company}
+                value={formData.company || ""}
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                 placeholder="Company name"
                 className="mt-1.5"
@@ -191,7 +216,7 @@ function ContactForm({ contact, open, onClose, onSubmit }) {
             <div>
               <Label>Position</Label>
               <Input
-                value={formData.position}
+                value={formData.position || ""}
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                 placeholder="Job title"
                 className="mt-1.5"

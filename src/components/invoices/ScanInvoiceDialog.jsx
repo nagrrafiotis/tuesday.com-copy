@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScanLine, Upload, Loader2, ImageIcon } from "lucide-react";
 
 export default function ScanInvoiceDialog({ open, onClose, projects, onCreated }) {
@@ -16,6 +16,7 @@ export default function ScanInvoiceDialog({ open, onClose, projects, onCreated }
   const [saving, setSaving] = useState(false);
   const [fileError, setFileError] = useState(null);
   const fileRef = useRef();
+  const queryClient = useQueryClient();
 
   const { data: paymentSources = [] } = useQuery({
     queryKey: ["paymentSources"],
@@ -25,6 +26,11 @@ export default function ScanInvoiceDialog({ open, onClose, projects, onCreated }
   const { data: subcategories = [] } = useQuery({
     queryKey: ["subcategories"],
     queryFn: () => base44.entities.Subcategory.list(),
+  });
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => base44.entities.Contact.list("name"),
   });
 
   const handleFile = (e) => {
@@ -52,6 +58,8 @@ export default function ScanInvoiceDialog({ open, onClose, projects, onCreated }
         prompt: `Analyze this invoice image and extract all information. Return a JSON with:
 - invoice_number (string or null)
 - vendor_client (string - the company/person name on the invoice)
+- vendor_eponymia (string - the company trade name / επωνυμία if visible, or null)
+- vendor_afm (string - the tax ID / ΑΦΜ of the vendor if visible, or null)
 - date (ISO date string YYYY-MM-DD or null)
 - due_date (ISO date string YYYY-MM-DD or null)
 - items (array of {description, quantity, unit, unit_price, total})
@@ -70,6 +78,8 @@ Be precise with numbers. Use null for fields not found.`,
           properties: {
             invoice_number: { type: "string" },
             vendor_client: { type: "string" },
+            vendor_eponymia: { type: "string" },
+            vendor_afm: { type: "string" },
             date: { type: "string" },
             due_date: { type: "string" },
             items: {
@@ -96,7 +106,18 @@ Be precise with numbers. Use null for fields not found.`,
         }
       });
 
-      setResult({ ...extracted, image_url: file_url, status: "pending" });
+      // Auto-fill AFM from existing contact if not found in scan
+      const matchedContact = contacts.find(
+        c => c.name?.toLowerCase() === extracted.vendor_client?.toLowerCase() ||
+             c.afm === extracted.vendor_afm
+      );
+      const enriched = {
+        ...extracted,
+        vendor_afm: extracted.vendor_afm || matchedContact?.afm || "",
+        vendor_eponymia: extracted.vendor_eponymia || matchedContact?.eponymia || "",
+      };
+
+      setResult({ ...enriched, image_url: file_url, status: "pending" });
     } catch (err) {
       setFileError("Failed to analyze invoice. The file may be too large or unsupported. Try a smaller or compressed file.");
     } finally {
@@ -107,6 +128,21 @@ Be precise with numbers. Use null for fields not found.`,
   const handleSave = async () => {
     setSaving(true);
     await base44.entities.Invoice.create({ ...result });
+
+    // Save/update AFM on matching contact
+    if (result.vendor_client && result.vendor_afm) {
+      const existing = contacts.find(
+        c => c.name?.toLowerCase() === result.vendor_client?.toLowerCase()
+      );
+      if (existing && !existing.afm) {
+        await base44.entities.Contact.update(existing.id, {
+          afm: result.vendor_afm,
+          eponymia: result.vendor_eponymia || existing.eponymia || "",
+        });
+        queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      }
+    }
+
     onCreated();
     setSaving(false);
     handleClose();
@@ -279,6 +315,16 @@ Be precise with numbers. Use null for fields not found.`,
                   </div>
                 </div>
               )}
+
+              {result.vendor_afm && (() => {
+                const match = contacts.find(c => c.name?.toLowerCase() === result.vendor_client?.toLowerCase());
+                if (match && !match.afm) return (
+                  <p className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                    Το ΑΦΜ θα αποθηκευτεί αυτόματα στην επαφή «{match.name}»
+                  </p>
+                );
+                return null;
+              })()}
 
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" onClick={handleClose} className="flex-1">Cancel</Button>

@@ -1,0 +1,59 @@
+{
+  "name": "Contact",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Contact full name"
+    },
+    "afm": {
+      "type": "string",
+      "description": "\u0391\u03a6\u039c \u03b5\u03c4\u03b1\u03b9\u03c1\u03b5\u03af\u03b1\u03c2 / \u03b1\u03c4\u03cc\u03bc\u03bf\u03c5"
+    },
+    "eponymia": {
+      "type": "string",
+      "description": "\u0395\u03c0\u03c9\u03bd\u03c5\u03bc\u03af\u03b1 \u03b5\u03c4\u03b1\u03b9\u03c1\u03b5\u03af\u03b1\u03c2"
+    },
+    "emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Email addresses"
+    },
+    "phones": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Phone numbers"
+    },
+    "company": {
+      "type": "string",
+      "description": "Company name"
+    },
+    "position": {
+      "type": "string",
+      "description": "Job position"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "client",
+        "supplier",
+        "contractor",
+        "partner",
+        "other"
+      ],
+      "default": "other",
+      "description": "Contact category"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
