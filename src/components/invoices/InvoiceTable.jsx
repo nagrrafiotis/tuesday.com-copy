@@ -80,6 +80,10 @@ export default function InvoiceTable({
   const [editingCell, setEditingCell] = useState(null);
   const [bulkField, setBulkField] = useState(null); // "phase" | "category" | "subcategory"
   const [viewingInvoice, setViewingInvoice] = useState(null);
+  const [expandedCol, setExpandedCol] = useState(null);
+
+  const toggleCol = (col) => setExpandedCol(prev => prev === col ? null : col);
+  const colClass = (col) => expandedCol === col ? "whitespace-normal break-words max-w-xs" : "whitespace-nowrap max-w-[120px] truncate";
   const queryClient = useQueryClient();
 
   const { data: subcategories = [] } = useQuery({ queryKey: ["subcategories"], queryFn: () => base44.entities.Subcategory.list() });
@@ -245,17 +249,31 @@ export default function InvoiceTable({
                 onCheckedChange={onSelectAll}
               />
             </TableHead>
-            <TableHead className="bg-gray-50 whitespace-nowrap">Date</TableHead>
-            <TableHead className="bg-gray-50 whitespace-nowrap">Phase</TableHead>
-            <TableHead className="bg-gray-50 whitespace-nowrap">Category</TableHead>
-            <TableHead className="bg-gray-50 whitespace-nowrap">Subcategory</TableHead>
-            <TableHead className="bg-gray-50 whitespace-nowrap">Project</TableHead>
-            <TableHead className="bg-gray-50 whitespace-nowrap">Vendor / Client</TableHead>
-                        <TableHead className="bg-gray-50 whitespace-nowrap">ΑΦΜ</TableHead>
-                        <TableHead className="bg-gray-50 whitespace-nowrap">Invoice #</TableHead>
-            <TableHead className="bg-gray-50 whitespace-nowrap">Type</TableHead>
-            <TableHead className="bg-gray-50 whitespace-nowrap">Status</TableHead>
-            <TableHead className="bg-gray-50 whitespace-nowrap">Payment Source</TableHead>
+            {[
+              { key: "date", label: "Date" },
+              { key: "phase", label: "Phase" },
+              { key: "category", label: "Category" },
+              { key: "subcategory", label: "Subcategory" },
+              { key: "project", label: "Project" },
+              { key: "vendor", label: "Vendor / Client" },
+              { key: "afm", label: "ΑΦΜ" },
+              { key: "invoice_num", label: "Invoice #" },
+              { key: "type", label: "Type" },
+              { key: "status", label: "Status" },
+              { key: "method", label: "Payment Source" },
+            ].map(({ key, label }) => (
+              <TableHead
+                key={key}
+                className={`bg-gray-50 cursor-pointer select-none ${expandedCol === key ? "whitespace-normal" : "whitespace-nowrap"}`}
+                onDoubleClick={() => toggleCol(key)}
+                title="Double-click to expand/collapse column"
+              >
+                <span className={`flex items-center gap-1 ${expandedCol === key ? "text-[#1e3a5f]" : ""}`}>
+                  {label}
+                  {expandedCol === key && <span className="text-[10px] text-[#1e3a5f] font-normal ml-1">↔</span>}
+                </span>
+              </TableHead>
+            ))}
             <TableHead className="text-right bg-gray-50 whitespace-nowrap">Total</TableHead>
             <TableHead className="bg-gray-50 w-28"></TableHead>
           </TableRow>
@@ -286,7 +304,7 @@ export default function InvoiceTable({
                   />
                 </TableCell>
 
-                <TableCell className="text-gray-600 whitespace-nowrap cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`date-${invoice.id}`); }}>
+                <TableCell className={`text-gray-600 cursor-pointer ${colClass("date")}`} onClick={e => { e.stopPropagation(); setEditingCell(`date-${invoice.id}`); }}>
                    {editingCell === `date-${invoice.id}` ? (
                      <Input
                        type="date"
@@ -347,7 +365,7 @@ export default function InvoiceTable({
                     : <span className="text-gray-400 hover:text-[#1e3a5f]">—</span>}
                 </TableCell>
 
-                <TableCell className="cursor-pointer text-gray-600 text-sm" onClick={e => { e.stopPropagation(); setEditingCell(`sub-${invoice.id}`); }}>
+                <TableCell className={`cursor-pointer text-gray-600 text-sm ${colClass("subcategory")}`} onClick={e => { e.stopPropagation(); setEditingCell(`sub-${invoice.id}`); }}>
                   {editingCell === `sub-${invoice.id}` ? (() => {
                     const currentPhaseId = subcategories.find(s => s.name === invoice.subcategory)?.phase_id;
                     const filteredSubs = currentPhaseId
@@ -368,13 +386,13 @@ export default function InvoiceTable({
                     : <span className="text-gray-400 hover:text-[#1e3a5f]">—</span>}
                 </TableCell>
 
-                <TableCell className="text-gray-600 text-sm whitespace-nowrap">
+                <TableCell className={`text-gray-600 text-sm ${colClass("project")}`}>
                   <span className="flex items-center gap-1">
-                    <Building2 className="w-3 h-3 text-gray-400" />{projectName}
+                    <Building2 className="w-3 h-3 text-gray-400 shrink-0" />{projectName}
                   </span>
                 </TableCell>
 
-                <TableCell className="font-medium text-gray-900 text-sm cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`vendor-${invoice.id}`); }}>
+                <TableCell className={`font-medium text-gray-900 text-sm cursor-pointer ${colClass("vendor")}`} onClick={e => { e.stopPropagation(); setEditingCell(`vendor-${invoice.id}`); }}>
                    {editingCell === `vendor-${invoice.id}` ? (
                      <Input
                        value={invoice.vendor_client || ""}
@@ -392,11 +410,11 @@ export default function InvoiceTable({
                    )}
                 </TableCell>
 
-                <TableCell className="text-gray-500 text-xs whitespace-nowrap">
+                <TableCell className={`text-gray-500 text-xs ${colClass("afm")}`}>
                   {invoice.vendor_afm || "—"}
                 </TableCell>
 
-                <TableCell className="text-gray-400 text-xs cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`invoice-num-${invoice.id}`); }}>
+                <TableCell className={`text-gray-400 text-xs cursor-pointer ${colClass("invoice_num")}`} onClick={e => { e.stopPropagation(); setEditingCell(`invoice-num-${invoice.id}`); }}>
                    {editingCell === `invoice-num-${invoice.id}` ? (
                      <Input
                        value={invoice.invoice_number || ""}
@@ -439,7 +457,7 @@ export default function InvoiceTable({
                   </button>
                 </TableCell>
 
-                <TableCell className="text-gray-600 text-sm cursor-pointer" onClick={e => { e.stopPropagation(); setEditingCell(`method-${invoice.id}`); }}>
+                <TableCell className={`text-gray-600 text-sm cursor-pointer ${colClass("method")}`} onClick={e => { e.stopPropagation(); setEditingCell(`method-${invoice.id}`); }}>
                    {editingCell === `method-${invoice.id}` ? (
                      <SearchableSelect
                        value={invoice.payment_method || ""}
