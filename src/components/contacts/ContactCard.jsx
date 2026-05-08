@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, Building2, Briefcase, FileText, User, Package, Wrench, Handshake, CircleDot, Pencil } from "lucide-react";
+import { Mail, Phone, Building2, Briefcase, FileText, User, Package, Wrench, Handshake, CircleDot, Pencil, MapPin, CreditCard, Globe, Hash } from "lucide-react";
 
 const categoryIcons = {
   client: User,
@@ -114,6 +114,47 @@ export default function ContactCard({ contact, open, onClose, onEdit }) {
                     {phone}
                   </a>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {(contact.afm || contact.eponymia || contact.doy) && (
+            <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Φορολογικά Στοιχεία</p>
+              {contact.eponymia && <div className="flex justify-between text-sm"><span className="text-gray-500">Επωνυμία</span><span className="font-medium">{contact.eponymia}</span></div>}
+              {contact.afm && <div className="flex justify-between text-sm"><span className="text-gray-500">ΑΦΜ</span><span className="font-medium font-mono">{contact.afm}</span></div>}
+              {contact.doy && <div className="flex justify-between text-sm"><span className="text-gray-500">ΔΟΥ</span><span className="font-medium">{contact.doy}</span></div>}
+            </div>
+          )}
+
+          {(contact.address || contact.city) && (
+            <div className="flex items-start gap-3">
+              <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
+              <div>
+                <div className="text-sm text-gray-500">Διεύθυνση</div>
+                <div className="font-medium text-gray-900">
+                  {[contact.address, contact.city, contact.postal_code].filter(Boolean).join(", ")}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {contact.iban && (
+            <div className="flex items-start gap-3">
+              <CreditCard className="w-5 h-5 text-gray-400 mt-0.5" />
+              <div>
+                <div className="text-sm text-gray-500">IBAN</div>
+                <div className="font-medium text-gray-900 font-mono text-sm">{contact.iban}</div>
+              </div>
+            </div>
+          )}
+
+          {contact.website && (
+            <div className="flex items-start gap-3">
+              <Globe className="w-5 h-5 text-gray-400 mt-0.5" />
+              <div>
+                <div className="text-sm text-gray-500">Website</div>
+                <a href={contact.website} target="_blank" rel="noopener noreferrer" className="font-medium text-[#1e3a5f] hover:underline">{contact.website}</a>
               </div>
             </div>
           )}

@@ -14,6 +14,22 @@
       "type": "string",
       "description": "\u0395\u03c0\u03c9\u03bd\u03c5\u03bc\u03af\u03b1 \u03b5\u03c4\u03b1\u03b9\u03c1\u03b5\u03af\u03b1\u03c2"
     },
+    "doy": {
+      "type": "string",
+      "description": "\u0394\u039f\u03a5"
+    },
+    "address": {
+      "type": "string",
+      "description": "\u0394\u03b9\u03b5\u03cd\u03b8\u03c5\u03bd\u03c3\u03b7"
+    },
+    "city": {
+      "type": "string",
+      "description": "\u03a0\u03cc\u03bb\u03b7"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "\u03a4\u039a"
+    },
     "emails": {
       "type": "array",
       "items": {
@@ -27,6 +43,14 @@
         "type": "string"
       },
       "description": "Phone numbers"
+    },
+    "iban": {
+      "type": "string",
+      "description": "IBAN \u03c4\u03c1\u03b1\u03c0\u03b5\u03b6\u03b9\u03ba\u03bf\u03cd \u03bb\u03bf\u03b3\u03b1\u03c1\u03b9\u03b1\u03c3\u03bc\u03bf\u03cd"
+    },
+    "website": {
+      "type": "string",
+      "description": "Website"
     },
     "company": {
       "type": "string",
