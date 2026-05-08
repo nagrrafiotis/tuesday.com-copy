@@ -239,7 +239,7 @@ export default function InvoiceTable({
           <Download className="w-4 h-4 mr-1" /> Export Excel
         </Button>
       </div>
-      <div className="overflow-auto max-h-[480px] w-full">
+      <div className="overflow-auto max-h-[75vh] w-full">
       <Table className="w-auto min-w-full">
         <TableHeader className="sticky top-0 z-20 bg-gray-50 shadow-sm">
           <TableRow className="bg-gray-50">
