@@ -46,7 +46,7 @@ export default function InvoiceTable({
 }) {
   const exportToExcel = () => {
     const rows = [
-      ["Ημερομηνία", "Φάση", "Κατηγορία", "Υποκατηγορία", "Έργο", "Vendor / Client", "Αρ. Τιμολογίου", "Τύπος", "Κατάσταση", "Πηγή Πληρωμής", "Σύνολο (€)", "Σημειώσεις"],
+      ["Ημερομηνία", "Φάση", "Κατηγορία", "Υποκατηγορία", "Έργο", "Vendor / Client", "ΑΦΜ", "Αρ. Τιμολογίου", "Τύπος", "Κατάσταση", "Πηγή Πληρωμής", "Σύνολο (€)", "Σημειώσεις"],
       ...invoices.map(inv => {
         const projectName = projects?.find(p => p.id === inv.project_id)?.name || "";
         return [
@@ -56,6 +56,7 @@ export default function InvoiceTable({
           inv.subcategory || "",
           projectName,
           inv.vendor_client || "",
+          inv.vendor_afm || "",
           inv.invoice_number || "",
           inv.type === "expense" ? "Expense" : "Income",
           inv.status === "transferred" ? "Transferred" : "Pending",
@@ -557,6 +558,10 @@ export default function InvoiceTable({
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-400 mb-1">Payment Method</p>
                   <p className="font-medium capitalize">{viewingInvoice.payment_method ? viewingInvoice.payment_method.replace('_', ' ') : "—"}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">ΑΦΜ</p>
+                  <p className="font-medium">{viewingInvoice.vendor_afm || "—"}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-400 mb-1">Project</p>

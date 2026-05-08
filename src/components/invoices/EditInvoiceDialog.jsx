@@ -90,6 +90,10 @@ export default function EditInvoiceDialog({ open, onClose, invoice, projects, on
               <Input value={form.vendor_client || ""} onChange={e => set("vendor_client", e.target.value)} className="h-9" />
             </div>
             <div>
+              <Label className="text-xs">ΑΦΜ</Label>
+              <Input value={form.vendor_afm || ""} onChange={e => set("vendor_afm", e.target.value)} className="h-9" placeholder="π.χ. 123456789" />
+            </div>
+            <div>
               <Label className="text-xs">Invoice #</Label>
               <Input value={form.invoice_number || ""} onChange={e => set("invoice_number", e.target.value)} className="h-9" />
             </div>
