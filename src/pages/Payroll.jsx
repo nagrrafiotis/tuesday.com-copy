@@ -13,6 +13,7 @@ import APDScanDialog from "@/components/payroll/APDScanDialog";
 import GeneralExpensesTable from "@/components/company-expenses/GeneralExpensesTable";
 import GeneralIncomeTable from "@/components/company-expenses/GeneralIncomeTable";
 import BankTransactionsTable from "@/components/bank/BankTransactionsTable";
+import ReconciliationPanel from "@/components/bank/ReconciliationPanel";
 import {
   Plus, Search, Trash2, Pencil, FileText, ScanLine,
   Users, DollarSign, TrendingDown, Building2, ExternalLink
@@ -129,6 +130,7 @@ export default function Payroll() {
               <TabsTrigger value="general" className="whitespace-nowrap">General Expenses</TabsTrigger>
               <TabsTrigger value="income" className="whitespace-nowrap">General Income</TabsTrigger>
               <TabsTrigger value="bank" className="whitespace-nowrap">Κινήσεις Τράπεζας</TabsTrigger>
+              <TabsTrigger value="reconciliation" className="whitespace-nowrap">Αντιστοίχιση</TabsTrigger>
             </TabsList>
           </div>
 
@@ -303,6 +305,11 @@ export default function Payroll() {
           {/* ── BANK TRANSACTIONS TAB ── */}
           <TabsContent value="bank">
             <BankTransactionsTable paymentSources={paymentSources} />
+          </TabsContent>
+
+          {/* ── RECONCILIATION TAB ── */}
+          <TabsContent value="reconciliation">
+            <ReconciliationPanel />
           </TabsContent>
         </Tabs>
       </div>
