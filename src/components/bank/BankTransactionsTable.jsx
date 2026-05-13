@@ -128,10 +128,21 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     // 1. Upload file
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-    // 2. AI extraction
-    const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url,
-      json_schema: {
+    // 2. AI extraction via InvokeLLM with vision support
+    const result = await base44.integrations.Core.InvokeLLM({
+      prompt: `Ανάλυσε το συνημμένο αρχείο κίνησης τραπεζικού λογαριασμού και εξάγαγε ΟΛΕΣ τις κινήσεις που βρίσκεις.
+Για κάθε κίνηση συμπλήρωσε:
+- date: ημερομηνία σε μορφή YYYY-MM-DD
+- description: περιγραφή/αιτιολογία κίνησης
+- counterparty: αντισυμβαλλόμενος (δικαιούχος ή αποστολέας), αν υπάρχει
+- payment_source: τράπεζα ή αριθμός λογαριασμού, αν αναγράφεται
+- transaction_type: "debit" για χρεώσεις/αναλήψεις/εξόδους, "credit" για πιστώσεις/καταθέσεις/εισόδους
+- amount: το απόλυτο (θετικό) ποσό σε ευρώ
+- reference: αριθμός αναφοράς ή παραστατικού, αν υπάρχει
+
+Επέστρεψε ΠΑΝΤΑ JSON με όλες τις κινήσεις, ακόμα και αν το αρχείο έχει πολλές σελίδες ή γραμμές.`,
+      file_urls: [file_url],
+      response_json_schema: {
         type: "object",
         properties: {
           transactions: {
@@ -139,14 +150,13 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
             items: {
               type: "object",
               properties: {
-                date: { type: "string", description: "Ημερομηνία κίνησης σε μορφή YYYY-MM-DD" },
-                description: { type: "string", description: "Περιγραφή κίνησης" },
-                counterparty: { type: "string", description: "Αντισυμβαλλόμενος / δικαιούχος / αποστολέας" },
-                payment_source: { type: "string", description: "Τράπεζα ή λογαριασμός" },
-                transaction_type: { type: "string", enum: ["credit", "debit"], description: "credit=πίστωση/κατάθεση, debit=χρέωση/ανάληψη" },
-                amount: { type: "number", description: "Θετικό ποσό κίνησης σε €" },
-                reference: { type: "string", description: "Αριθμός αναφοράς / παραστατικού" },
-                notes: { type: "string", description: "Επιπλέον πληροφορίες" },
+                date: { type: "string" },
+                description: { type: "string" },
+                counterparty: { type: "string" },
+                payment_source: { type: "string" },
+                transaction_type: { type: "string", enum: ["credit", "debit"] },
+                amount: { type: "number" },
+                reference: { type: "string" },
               },
               required: ["date", "amount", "transaction_type"]
             }
@@ -155,15 +165,26 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
       }
     });
 
-    if (result.status !== "success" || !result.output?.transactions?.length) {
-      alert("Δεν εντοπίστηκαν κινήσεις στο αρχείο. Παρακαλώ ελέγξτε τη μορφή του.");
+    const transactions = result?.transactions || [];
+
+    if (!transactions.length) {
+      alert("Δεν εντοπίστηκαν κινήσεις στο αρχείο. Βεβαιωθείτε ότι το αρχείο περιέχει τραπεζικές κινήσεις.");
       setImporting(false);
       return;
     }
 
-    const toCreate = result.output.transactions
+    const toCreate = transactions
       .filter(r => r.date && r.amount)
-      .map(r => ({ ...r, amount: Math.abs(r.amount), reconciled: false }));
+      .map(r => ({
+        date: r.date,
+        description: r.description || "",
+        counterparty: r.counterparty || "",
+        payment_source: r.payment_source || "",
+        transaction_type: r.transaction_type,
+        amount: Math.abs(r.amount),
+        reference: r.reference || "",
+        reconciled: false,
+      }));
 
     await base44.entities.BankTransaction.bulkCreate(toCreate);
     queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
