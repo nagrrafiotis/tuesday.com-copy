@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Plus, Search, Trash2, Pencil, Upload, Loader2, Link2, Link2Off,
-  TrendingUp, TrendingDown, CheckCircle2, AlertCircle, X
+  Plus, Search, Trash2, Pencil, Upload, Loader2, Link2,
+  TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Download, FileSpreadsheet
 } from "lucide-react";
 import { format } from "date-fns";
+import * as XLSX from "xlsx";
 
 const RECONCILE_TYPES = [
   { value: "payroll", label: "Μισθοδοσία" },
@@ -44,8 +45,10 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [uploading, setUploading] = useState(false);
-  const [reconcileDialog, setReconcileDialog] = useState(null); // transaction being reconciled
+  const [reconcileDialog, setReconcileDialog] = useState(null);
   const [reconcileForm, setReconcileForm] = useState({ reconciled_with: "", reconciled_note: "" });
+  const [importing, setImporting] = useState(false);
+  const importRef = useRef(null);
 
   const queryClient = useQueryClient();
   const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(Math.abs(n || 0));
@@ -93,6 +96,70 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     mutationFn: id => base44.entities.BankTransaction.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bank-transactions"] }),
   });
+
+  // ── Excel Export ──
+  const handleExport = () => {
+    const rows = filtered.map(t => ({
+      "Ημερομηνία": t.date || "",
+      "Περιγραφή": t.description || "",
+      "Αντισυμβαλλόμενος": t.counterparty || "",
+      "Τράπεζα": t.payment_source || "",
+      "Τύπος": t.transaction_type === "debit" ? "Χρέωση" : "Πίστωση",
+      "Χρέωση (€)": t.transaction_type === "debit" ? Math.abs(t.amount || 0) : "",
+      "Πίστωση (€)": t.transaction_type === "credit" ? Math.abs(t.amount || 0) : "",
+      "Αναφορά": t.reference || "",
+      "Κατάσταση": t.reconciled ? "Αντιστοιχισμένη" : "Εκκρεμεί",
+      "Σημείωση": t.reconciled_note || "",
+      "Σημειώσεις": t.notes || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Κινήσεις");
+    XLSX.writeFile(wb, `κινήσεις_τράπεζας_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+  };
+
+  // ── Excel Import ──
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+    const toCreate = rows.map(r => {
+      const typeRaw = (r["Τύπος"] || "").toLowerCase();
+      const isDebit = typeRaw.includes("χρέωση") || typeRaw === "debit";
+      const credit = parseFloat(r["Πίστωση (€)"] || r["Πίστωση"] || 0);
+      const debit = parseFloat(r["Χρέωση (€)"] || r["Χρέωση"] || 0);
+      const rawAmt = debit || credit || parseFloat(r["Ποσό"] || r["amount"] || 0);
+      const amount = isDebit ? -Math.abs(rawAmt) : Math.abs(rawAmt);
+      return {
+        date: r["Ημερομηνία"] || r["date"] || "",
+        description: r["Περιγραφή"] || r["description"] || "",
+        counterparty: r["Αντισυμβαλλόμενος"] || r["counterparty"] || "",
+        payment_source: r["Τράπεζα"] || r["payment_source"] || "",
+        transaction_type: isDebit ? "debit" : "credit",
+        amount,
+        reference: r["Αναφορά"] || r["reference"] || "",
+        notes: r["Σημειώσεις"] || r["notes"] || "",
+        reconciled: false,
+      };
+    }).filter(r => r.date && r.amount !== 0);
+
+    if (toCreate.length === 0) {
+      alert("Δεν βρέθηκαν έγκυρες εγγραφές. Βεβαιωθείτε ότι υπάρχουν στήλες: Ημερομηνία, Τύπος, Χρέωση/Πίστωση.");
+      setImporting(false);
+      return;
+    }
+
+    await base44.entities.BankTransaction.bulkCreate(toCreate);
+    queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
+    setImporting(false);
+    e.target.value = "";
+    alert(`Εισήχθησαν ${toCreate.length} κινήσεις επιτυχώς.`);
+  };
 
   const openNew = () => { setEditing(null); setForm(emptyForm); setShowForm(true); };
   const openEdit = r => { setEditing(r); setForm({ ...r, amount: Math.abs(r.amount)?.toString() || "" }); setShowForm(true); };
@@ -237,9 +304,21 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
             </SelectContent>
           </Select>
         </div>
-        <Button className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={openNew}>
-          <Plus className="w-4 h-4 mr-2" />Νέα Κίνηση
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport} title="Εξαγωγή Excel">
+            <Download className="w-4 h-4 mr-1" />Excel
+          </Button>
+          <Button variant="outline" disabled={importing}
+            onClick={() => importRef.current?.click()}
+            title="Εισαγωγή από Excel">
+            {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-1" />}
+            Εισαγωγή
+          </Button>
+          <input ref={importRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
+          <Button className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={openNew}>
+            <Plus className="w-4 h-4 mr-2" />Νέα Κίνηση
+          </Button>
+        </div>
       </div>
 
       {/* Table */}
