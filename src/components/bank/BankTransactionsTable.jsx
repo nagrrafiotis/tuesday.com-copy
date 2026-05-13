@@ -118,73 +118,157 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     XLSX.writeFile(wb, `κινήσεις_τράπεζας_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   };
 
-  // ── AI Import ──
+  // ── Helpers ──
+  const parseGreekDate = (raw) => {
+    if (!raw) return "";
+    const s = String(raw).trim();
+    const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+    if (m) {
+      const year = m[3].length === 2 ? "20" + m[3] : m[3];
+      return `${year}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    // Excel serial
+    if (/^\d{5}$/.test(s)) {
+      const d = new Date(Math.round((parseInt(s) - 25569) * 86400 * 1000));
+      return d.toISOString().slice(0, 10);
+    }
+    return "";
+  };
+
+  const parseAmount = (raw) => {
+    if (!raw && raw !== 0) return 0;
+    return parseFloat(String(raw).replace(/\./g, "").replace(",", ".").replace(/[^\d\-\.]/g, "")) || 0;
+  };
+
+  // ── Direct XLSX parser (Piraeus & generic Greek bank format) ──
+  const parseXlsxDirect = async (file) => {
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data, { type: "array", raw: false, cellDates: false });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    // Get raw rows as arrays to inspect all cells
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true });
+
+    // Find header row by scanning for date + debit/credit/amount columns
+    let headerIdx = -1;
+    let cols = {};
+    for (let i = 0; i < Math.min(rows.length, 25); i++) {
+      const row = rows[i].map(c => String(c).toLowerCase().trim()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")); // strip accents for matching
+      const di = row.findIndex(c => c.includes("ημερομ") || c === "date" || c === "ημ/νια" || c === "ημ/νία");
+      const dbi = row.findIndex(c => c.includes("χρεωσ") || c === "debit" || c.includes("anaлиψη"));
+      const cri = row.findIndex(c => c.includes("πιστωσ") || c === "credit" || c.includes("καταθ"));
+      const ami = row.findIndex(c => c.includes("ποσο") || c === "amount" || c.includes("κινηση"));
+      const desi = row.findIndex(c => c.includes("περιγρ") || c.includes("αιτιολ") || c.includes("descr") || c.includes("λεπτομ"));
+      const refi = row.findIndex(c => c.includes("αναφορ") || c.includes("reference") || c.includes("ref"));
+      if (di >= 0 && (dbi >= 0 || cri >= 0 || ami >= 0)) {
+        headerIdx = i;
+        cols = { di, dbi, cri, ami, desi, refi };
+        break;
+      }
+    }
+    if (headerIdx < 0) return null;
+
+    const results = [];
+    for (let i = headerIdx + 1; i < rows.length; i++) {
+      const row = rows[i];
+      const rawDate = row[cols.di];
+      if (!rawDate || String(rawDate).trim() === "") continue;
+      const date = parseGreekDate(rawDate);
+      if (!date) continue;
+
+      const description = cols.desi >= 0 ? String(row[cols.desi] || "").trim() : "";
+
+      let amount = 0;
+      let transaction_type = "debit";
+
+      if (cols.dbi >= 0 && cols.cri >= 0) {
+        const debit = parseAmount(row[cols.dbi]);
+        const credit = parseAmount(row[cols.cri]);
+        if (credit > 0) { amount = credit; transaction_type = "credit"; }
+        else if (debit > 0) { amount = debit; transaction_type = "debit"; }
+        else continue;
+      } else if (cols.ami >= 0) {
+        const raw = parseAmount(row[cols.ami]);
+        if (!raw) continue;
+        amount = Math.abs(raw);
+        transaction_type = raw < 0 ? "debit" : "credit";
+      } else continue;
+
+      const reference = cols.refi >= 0 ? String(row[cols.refi] || "").trim() : "";
+      results.push({ date, description, amount, transaction_type, reference, reconciled: false });
+    }
+    return results.length > 0 ? results : null;
+  };
+
+  // ── Import handler ──
   const handleImport = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImporting(true);
     e.target.value = "";
 
-    // 1. Upload file
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    let toCreate = null;
 
-    // 2. AI extraction via InvokeLLM with vision support
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `Ανάλυσε το συνημμένο αρχείο κίνησης τραπεζικού λογαριασμού και εξάγαγε ΟΛΕΣ τις κινήσεις που βρίσκεις.
-Για κάθε κίνηση συμπλήρωσε:
-- date: ημερομηνία σε μορφή YYYY-MM-DD
-- description: περιγραφή/αιτιολογία κίνησης
-- counterparty: αντισυμβαλλόμενος (δικαιούχος ή αποστολέας), αν υπάρχει
-- payment_source: τράπεζα ή αριθμός λογαριασμού, αν αναγράφεται
-- transaction_type: "debit" για χρεώσεις/αναλήψεις/εξόδους, "credit" για πιστώσεις/καταθέσεις/εισόδους
-- amount: το απόλυτο (θετικό) ποσό σε ευρώ
-- reference: αριθμός αναφοράς ή παραστατικού, αν υπάρχει
+    // 1. Try direct parse for xlsx/xls
+    if (file.name.match(/\.xlsx?$/i)) {
+      toCreate = await parseXlsxDirect(file);
+    }
 
-Επέστρεψε ΠΑΝΤΑ JSON με όλες τις κινήσεις, ακόμα και αν το αρχείο έχει πολλές σελίδες ή γραμμές.`,
-      file_urls: [file_url],
-      response_json_schema: {
-        type: "object",
-        properties: {
-          transactions: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                date: { type: "string" },
-                description: { type: "string" },
-                counterparty: { type: "string" },
-                payment_source: { type: "string" },
-                transaction_type: { type: "string", enum: ["credit", "debit"] },
-                amount: { type: "number" },
-                reference: { type: "string" },
-              },
-              required: ["date", "amount", "transaction_type"]
+    // 2. AI fallback for PDF, DOC, or if direct parse found nothing
+    if (!toCreate) {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Αυτό είναι αρχείο κινήσεων από ελληνική τράπεζα (πιθανώς Πειραιώς). Εξάγαγε ΟΛΕΣ τις κινήσεις.
+Για κάθε κίνηση επίστρεψε:
+- date: YYYY-MM-DD
+- description: πλήρης αιτιολογία
+- counterparty: αντισυμβαλλόμενος (αν υπάρχει)
+- transaction_type: "debit" για χρεώσεις/πληρωμές, "credit" για πιστώσεις/εισπράξεις
+- amount: θετικό ποσό €
+- reference: κωδικός/αναφορά (αν υπάρχει)
+Μην παραλείψεις καμία γραμμή.`,
+        file_urls: [file_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            transactions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  date: { type: "string" },
+                  description: { type: "string" },
+                  counterparty: { type: "string" },
+                  transaction_type: { type: "string", enum: ["credit", "debit"] },
+                  amount: { type: "number" },
+                  reference: { type: "string" },
+                },
+                required: ["date", "amount", "transaction_type"]
+              }
             }
           }
         }
+      });
+      const aiTx = result?.transactions || [];
+      if (!aiTx.length) {
+        alert("Δεν εντοπίστηκαν κινήσεις. Βεβαιωθείτε ότι το αρχείο περιέχει τραπεζικές κινήσεις.");
+        setImporting(false);
+        return;
       }
-    });
+      toCreate = aiTx.filter(r => r.date && r.amount).map(r => ({
+        date: r.date, description: r.description || "",
+        counterparty: r.counterparty || "", payment_source: "",
+        transaction_type: r.transaction_type, amount: Math.abs(r.amount),
+        reference: r.reference || "", reconciled: false,
+      }));
+    }
 
-    const transactions = result?.transactions || [];
-
-    if (!transactions.length) {
-      alert("Δεν εντοπίστηκαν κινήσεις στο αρχείο. Βεβαιωθείτε ότι το αρχείο περιέχει τραπεζικές κινήσεις.");
+    if (!toCreate?.length) {
+      alert("Δεν εντοπίστηκαν έγκυρες κινήσεις στο αρχείο.");
       setImporting(false);
       return;
     }
-
-    const toCreate = transactions
-      .filter(r => r.date && r.amount)
-      .map(r => ({
-        date: r.date,
-        description: r.description || "",
-        counterparty: r.counterparty || "",
-        payment_source: r.payment_source || "",
-        transaction_type: r.transaction_type,
-        amount: Math.abs(r.amount),
-        reference: r.reference || "",
-        reconciled: false,
-      }));
 
     await base44.entities.BankTransaction.bulkCreate(toCreate);
     queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
