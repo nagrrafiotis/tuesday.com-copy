@@ -118,46 +118,56 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     XLSX.writeFile(wb, `κινήσεις_τράπεζας_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   };
 
-  // ── Excel Import ──
+  // ── AI Import ──
   const handleImport = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImporting(true);
-    const data = await file.arrayBuffer();
-    const wb = XLSX.read(data);
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+    e.target.value = "";
 
-    const toCreate = rows.map(r => {
-      const typeRaw = (r["Τύπος"] || "").toLowerCase();
-      const isDebit = typeRaw.includes("χρέωση") || typeRaw === "debit";
-      const credit = parseFloat(r["Πίστωση (€)"] || r["Πίστωση"] || 0);
-      const debit = parseFloat(r["Χρέωση (€)"] || r["Χρέωση"] || 0);
-      const rawAmt = debit || credit || parseFloat(r["Ποσό"] || r["amount"] || 0);
-      const amount = isDebit ? -Math.abs(rawAmt) : Math.abs(rawAmt);
-      return {
-        date: r["Ημερομηνία"] || r["date"] || "",
-        description: r["Περιγραφή"] || r["description"] || "",
-        counterparty: r["Αντισυμβαλλόμενος"] || r["counterparty"] || "",
-        payment_source: r["Τράπεζα"] || r["payment_source"] || "",
-        transaction_type: isDebit ? "debit" : "credit",
-        amount,
-        reference: r["Αναφορά"] || r["reference"] || "",
-        notes: r["Σημειώσεις"] || r["notes"] || "",
-        reconciled: false,
-      };
-    }).filter(r => r.date && r.amount !== 0);
+    // 1. Upload file
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-    if (toCreate.length === 0) {
-      alert("Δεν βρέθηκαν έγκυρες εγγραφές. Βεβαιωθείτε ότι υπάρχουν στήλες: Ημερομηνία, Τύπος, Χρέωση/Πίστωση.");
+    // 2. AI extraction
+    const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+      file_url,
+      json_schema: {
+        type: "object",
+        properties: {
+          transactions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                date: { type: "string", description: "Ημερομηνία κίνησης σε μορφή YYYY-MM-DD" },
+                description: { type: "string", description: "Περιγραφή κίνησης" },
+                counterparty: { type: "string", description: "Αντισυμβαλλόμενος / δικαιούχος / αποστολέας" },
+                payment_source: { type: "string", description: "Τράπεζα ή λογαριασμός" },
+                transaction_type: { type: "string", enum: ["credit", "debit"], description: "credit=πίστωση/κατάθεση, debit=χρέωση/ανάληψη" },
+                amount: { type: "number", description: "Θετικό ποσό κίνησης σε €" },
+                reference: { type: "string", description: "Αριθμός αναφοράς / παραστατικού" },
+                notes: { type: "string", description: "Επιπλέον πληροφορίες" },
+              },
+              required: ["date", "amount", "transaction_type"]
+            }
+          }
+        }
+      }
+    });
+
+    if (result.status !== "success" || !result.output?.transactions?.length) {
+      alert("Δεν εντοπίστηκαν κινήσεις στο αρχείο. Παρακαλώ ελέγξτε τη μορφή του.");
       setImporting(false);
       return;
     }
 
+    const toCreate = result.output.transactions
+      .filter(r => r.date && r.amount)
+      .map(r => ({ ...r, amount: Math.abs(r.amount), reconciled: false }));
+
     await base44.entities.BankTransaction.bulkCreate(toCreate);
     queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
     setImporting(false);
-    e.target.value = "";
     alert(`Εισήχθησαν ${toCreate.length} κινήσεις επιτυχώς.`);
   };
 
@@ -314,7 +324,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
             {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-1" />}
             Εισαγωγή
           </Button>
-          <input ref={importRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
+          <input ref={importRef} type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg" className="hidden" onChange={handleImport} />
           <Button className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={openNew}>
             <Plus className="w-4 h-4 mr-2" />Νέα Κίνηση
           </Button>
