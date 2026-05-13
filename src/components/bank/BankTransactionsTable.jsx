@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus, Search, Trash2, Pencil, Upload, Loader2, Link2,
-  TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Download, FileSpreadsheet
+  TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Download, FileSpreadsheet, X
 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
@@ -49,6 +50,9 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const [reconcileForm, setReconcileForm] = useState({ reconciled_with: "", reconciled_note: "" });
   const [importing, setImporting] = useState(false);
   const importRef = useRef(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkEditForm, setBulkEditForm] = useState({ payment_source: "", transaction_type: "" });
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
 
   const queryClient = useQueryClient();
   const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(Math.abs(n || 0));
@@ -349,6 +353,38 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     return suggestions.slice(0, 5);
   };
 
+  // ── Bulk actions ──
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(t => t.id)));
+    }
+  };
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Διαγραφή ${selectedIds.size} κινήσεων;`)) return;
+    await Promise.all([...selectedIds].map(id => deleteMutation.mutateAsync(id)));
+    setSelectedIds(new Set());
+  };
+  const handleBulkEdit = async () => {
+    const updates = {};
+    if (bulkEditForm.payment_source) updates.payment_source = bulkEditForm.payment_source;
+    if (bulkEditForm.transaction_type) updates.transaction_type = bulkEditForm.transaction_type;
+    if (!Object.keys(updates).length) return;
+    const selected = filtered.filter(t => selectedIds.has(t.id));
+    await Promise.all(selected.map(t => updateMutation.mutateAsync({ id: t.id, data: { ...t, ...updates } })));
+    setSelectedIds(new Set());
+    setShowBulkEdit(false);
+    setBulkEditForm({ payment_source: "", transaction_type: "" });
+  };
+
   const allSources = [...new Set(transactions.map(t => t.payment_source).filter(Boolean))];
 
   const filtered = transactions
@@ -436,6 +472,63 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
         </div>
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 bg-[#1e3a5f] text-white rounded-xl px-4 py-3">
+          <span className="text-sm font-medium">{selectedIds.size} επιλεγμένες</span>
+          <div className="flex-1 flex gap-2">
+            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              onClick={() => { setShowBulkEdit(true); setBulkEditForm({ payment_source: "", transaction_type: "" }); }}>
+              <Pencil className="w-3.5 h-3.5 mr-1" />Επεξεργασία
+            </Button>
+            <Button size="sm" variant="outline" className="bg-red-500/30 border-red-400/40 text-white hover:bg-red-500/50"
+              onClick={handleBulkDelete}>
+              <Trash2 className="w-3.5 h-3.5 mr-1" />Διαγραφή
+            </Button>
+          </div>
+          <button onClick={() => setSelectedIds(new Set())} className="p-1 rounded hover:bg-white/20">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Bulk Edit Dialog */}
+      <Dialog open={showBulkEdit} onOpenChange={setShowBulkEdit}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Μαζική Επεξεργασία ({selectedIds.size} κινήσεις)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">Συμπληρώστε μόνο τα πεδία που θέλετε να αλλάξετε.</p>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Τύπος κίνησης</label>
+              <Select value={bulkEditForm.transaction_type} onValueChange={v => setBulkEditForm(f => ({ ...f, transaction_type: v }))}>
+                <SelectTrigger><SelectValue placeholder="Χωρίς αλλαγή" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="debit">Χρέωση</SelectItem>
+                  <SelectItem value="credit">Πίστωση</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Τράπεζα / Λογαριασμός</label>
+              <Input value={bulkEditForm.payment_source}
+                onChange={e => setBulkEditForm(f => ({ ...f, payment_source: e.target.value }))}
+                placeholder="π.χ. Πειραιώς..." list="bulk-sources-list" />
+              <datalist id="bulk-sources-list">
+                {paymentSources.map(ps => <option key={ps.id} value={ps.name} />)}
+              </datalist>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button className="flex-1 bg-[#1e3a5f] hover:bg-[#152a45]" onClick={handleBulkEdit}>
+                Εφαρμογή
+              </Button>
+              <Button variant="outline" onClick={() => setShowBulkEdit(false)}>Ακύρωση</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {isLoading ? (
@@ -452,6 +545,12 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
+                  <th className="px-3 py-3 w-8">
+                    <Checkbox
+                      checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="text-left px-3 py-3 font-medium text-gray-500 w-24">Ημ/νία</th>
                   <th className="text-left px-3 py-3 font-medium text-gray-500">Περιγραφή</th>
                   <th className="text-left px-3 py-3 font-medium text-gray-500 w-36">Αντισυμβαλλόμενος</th>
@@ -466,7 +565,10 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
                 <AnimatePresence>
                   {filtered.map(t => (
                     <motion.tr key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${!t.reconciled ? "bg-amber-50/30" : ""}`}>
+                      className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${selectedIds.has(t.id) ? "bg-blue-50/50" : !t.reconciled ? "bg-amber-50/30" : ""}`}>
+                      <td className="px-3 py-3">
+                        <Checkbox checked={selectedIds.has(t.id)} onCheckedChange={() => toggleSelect(t.id)} />
+                      </td>
                       <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">
                         {t.date ? format(new Date(t.date), "dd/MM/yyyy") : "—"}
                       </td>
@@ -521,7 +623,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
               </tbody>
               <tfoot className="bg-gray-50 border-t border-gray-200">
                 <tr>
-                  <td colSpan={4} className="px-3 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} κινήσεις)</td>
+                  <td colSpan={5} className="px-3 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} κινήσεις)</td>
                   <td className="px-3 py-3 text-right font-semibold text-red-600 tabular-nums">{fmt(totalDebit)}</td>
                   <td className="px-3 py-3 text-right font-semibold text-green-600 tabular-nums">{fmt(totalCredit)}</td>
                   <td colSpan={2}></td>
