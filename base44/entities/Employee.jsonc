@@ -1,0 +1,45 @@
+{
+  "name": "Employee",
+  "type": "object",
+  "properties": {
+    "employee_name": {
+      "type": "string",
+      "description": "\u039f\u03bd\u03bf\u03bc\u03b1\u03c4\u03b5\u03c0\u03ce\u03bd\u03c5\u03bc\u03bf \u03b5\u03c1\u03b3\u03b1\u03b6\u03bf\u03bc\u03ad\u03bd\u03bf\u03c5"
+    },
+    "employee_afm": {
+      "type": "string",
+      "description": "\u0391\u03a6\u039c \u03b5\u03c1\u03b3\u03b1\u03b6\u03bf\u03bc\u03ad\u03bd\u03bf\u03c5"
+    },
+    "employee_amka": {
+      "type": "string",
+      "description": "\u0391\u039c\u039a\u0391 \u03b5\u03c1\u03b3\u03b1\u03b6\u03bf\u03bc\u03ad\u03bd\u03bf\u03c5"
+    },
+    "specialty": {
+      "type": "string",
+      "description": "\u0395\u03b9\u03b4\u03b9\u03ba\u03cc\u03c4\u03b7\u03c4\u03b1"
+    },
+    "contract_type": {
+      "type": "string",
+      "description": "\u03a4\u03cd\u03c0\u03bf\u03c2 \u03c3\u03cd\u03bc\u03b2\u03b1\u03c3\u03b7\u03c2"
+    },
+    "bank_name": {
+      "type": "string",
+      "description": "\u03a4\u03c1\u03ac\u03c0\u03b5\u03b6\u03b1"
+    },
+    "bank_account": {
+      "type": "string",
+      "description": "\u0391\u03c1\u03b9\u03b8\u03bc\u03cc\u03c2 \u039b\u03bf\u03b3\u03b1\u03c1\u03b9\u03b1\u03c3\u03bc\u03bf\u03cd (IBAN)"
+    },
+    "basic_salary": {
+      "type": "number",
+      "description": "\u0392\u03b1\u03c3\u03b9\u03ba\u03cc\u03c2 \u039c\u03b9\u03c3\u03b8\u03cc\u03c2 (\u20ac)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "\u03a3\u03b7\u03bc\u03b5\u03b9\u03ce\u03c3\u03b5\u03b9\u03c2"
+    }
+  },
+  "required": [
+    "employee_name"
+  ]
+}

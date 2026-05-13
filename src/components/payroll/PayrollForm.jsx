@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, FileText, Calculator } from "lucide-react";
+import { Upload, FileText, Calculator, Users } from "lucide-react";
+import EmployeePicker from "./EmployeePicker";
 
 const periodTypes = [
   { value: "regular", label: "Κανονικές Αποδοχές" },
@@ -52,6 +53,7 @@ export default function PayrollForm({ record, open, onClose, onSubmit }) {
   const [form, setForm] = useState(defaultForm);
   const [uploadingApd, setUploadingApd] = useState(false);
   const [uploadingPayslip, setUploadingPayslip] = useState(false);
+  const [showEmployeePicker, setShowEmployeePicker] = useState(false);
   const [apdFileName, setApdFileName] = useState("");
   const [payslipFileName, setPayslipFileName] = useState("");
 
@@ -167,7 +169,12 @@ export default function PayrollForm({ record, open, onClose, onSubmit }) {
 
           {/* Στοιχεία Εργαζομένου */}
           <div>
-            <h3 className="font-semibold text-[#1e3a5f] mb-3 text-sm uppercase tracking-wide">Στοιχεία Εργαζομένου</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-[#1e3a5f] text-sm uppercase tracking-wide">Στοιχεία Εργαζομένου</h3>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowEmployeePicker(true)}>
+                <Users className="w-3.5 h-3.5 mr-1" /> Επιλογή από λίστα
+              </Button>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label>Ονοματεπώνυμο *</Label>
@@ -344,6 +351,24 @@ export default function PayrollForm({ record, open, onClose, onSubmit }) {
             <Label>Σημειώσεις</Label>
             <Textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} />
           </div>
+
+          <EmployeePicker
+            open={showEmployeePicker}
+            onClose={() => setShowEmployeePicker(false)}
+            onSelect={(emp) => {
+              setForm(prev => ({
+                ...prev,
+                employee_name: emp.employee_name || prev.employee_name,
+                employee_afm: emp.employee_afm || prev.employee_afm,
+                employee_amka: emp.employee_amka || prev.employee_amka,
+                specialty: emp.specialty || prev.specialty,
+                contract_type: emp.contract_type || prev.contract_type,
+                bank_name: emp.bank_name || prev.bank_name,
+                bank_account: emp.bank_account || prev.bank_account,
+                basic_salary: emp.basic_salary != null ? emp.basic_salary : prev.basic_salary,
+              }));
+            }}
+          />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Ακύρωση</Button>
