@@ -11,6 +11,7 @@ import { subDays, isAfter, isBefore, format, isSameDay, startOfDay } from 'date-
 import { motion } from "framer-motion";
 import ExpenseCharts from "@/components/analytics/ExpenseCharts";
 import BudgetVsExpensesChart from "@/components/analytics/BudgetVsExpensesChart";
+import PaymentSourceSummary from "@/components/bank/PaymentSourceSummary";
 
 export default function AnalyticsPage() {
   const [boards, setBoards] = useState([]);
@@ -446,6 +447,11 @@ export default function AnalyticsPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Payment Source Summary */}
+        <div className="mb-8">
+          <PaymentSourceSummary />
         </div>
 
         {/* Budget vs Expenses Chart */}

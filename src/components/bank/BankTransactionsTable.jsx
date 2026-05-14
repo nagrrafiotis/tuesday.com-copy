@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus, Search, Trash2, Pencil, Upload, Loader2, Link2,
-  TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Download, FileSpreadsheet, X, Save
+  TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Download, FileSpreadsheet, X, Save, Zap, FileText
 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import CategoryRulesManager, { loadRules, matchCategory, CATEGORY_OPTIONS } from "./CategoryRulesManager";
 
 const RECONCILE_TYPES = [
   { value: "payroll", label: "Μισθοδοσία" },
@@ -178,6 +180,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const [showBulkEdit, setShowBulkEdit] = useState(false);
   const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
   const tableRef = useRef(null);
+  const [showRulesManager, setShowRulesManager] = useState(false);
 
   const queryClient = useQueryClient();
   const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(Math.abs(n || 0));
@@ -249,6 +252,98 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     });
     setColWidths(prev => ({ ...prev, [col]: Math.min(maxW, 400) }));
   }, []);
+
+  // PDF Export of selected (or all filtered) transactions
+  const handlePdfExport = () => {
+    const toExport = selectedIds.size > 0
+      ? filtered.filter(t => selectedIds.has(t.id))
+      : filtered;
+
+    const fmtNum = n => new Intl.NumberFormat("el-GR", { minimumFractionDigits: 2 }).format(Math.abs(n || 0));
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFillColor(30, 58, 95);
+    doc.rect(0, 0, pageW, 20, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.text("Κινήσεις Τράπεζας", 14, 13);
+    doc.setFontSize(9);
+    doc.text(`${format(new Date(), "dd/MM/yyyy HH:mm")} | ${toExport.length} κινήσεις`, pageW - 14, 13, { align: "right" });
+
+    // Column definitions [label, x, width, align]
+    const cols = [
+      ["Ημερομηνία", 14, 28, "left"],
+      ["Περιγραφή", 44, 70, "left"],
+      ["Αντισυμβαλλόμενος", 116, 50, "left"],
+      ["Τράπεζα", 168, 35, "left"],
+      ["Χρέωση (€)", 205, 30, "right"],
+      ["Πίστωση (€)", 237, 30, "right"],
+      ["Κατάσταση", 269, 20, "left"],
+    ];
+
+    // Table header row
+    let y = 28;
+    doc.setFillColor(243, 244, 246);
+    doc.rect(14, y - 4, pageW - 28, 7, "F");
+    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(7);
+    cols.forEach(([label, x, w, align]) => {
+      doc.text(label, align === "right" ? x + w : x, y, { align });
+    });
+    y += 5;
+
+    doc.setFontSize(7.5);
+    toExport.forEach((t, i) => {
+      if (y > 190) {
+        doc.addPage();
+        y = 15;
+      }
+      if (i % 2 === 0) {
+        doc.setFillColor(249, 250, 251);
+        doc.rect(14, y - 3.5, pageW - 28, 6, "F");
+      }
+      const row = [
+        t.date ? format(new Date(t.date), "dd/MM/yy") : "",
+        (t.description || "").slice(0, 40),
+        (t.counterparty || "").slice(0, 28),
+        (t.payment_source || "").slice(0, 18),
+        t.transaction_type === "debit" ? fmtNum(t.amount) : "",
+        t.transaction_type === "credit" ? fmtNum(t.amount) : "",
+        t.reconciled ? "Συνδεδεμένη" : "Εκκρεμεί",
+      ];
+      cols.forEach(([, x, w, align], ci) => {
+        if (ci === 4) doc.setTextColor(220, 38, 38);
+        else if (ci === 5) doc.setTextColor(22, 163, 74);
+        else doc.setTextColor(50, 50, 50);
+        doc.text(row[ci], align === "right" ? x + w : x, y, { align });
+      });
+      y += 6;
+    });
+
+    // Footer totals
+    const totalDb = toExport.filter(t => t.transaction_type === "debit").reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+    const totalCr = toExport.filter(t => t.transaction_type === "credit").reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+    y += 2;
+    doc.setFillColor(30, 58, 95);
+    doc.rect(14, y - 3.5, pageW - 28, 7, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.text(`Σύνολο (${toExport.length} κινήσεις)`, 14, y + 0.5);
+    doc.setTextColor(255, 150, 150);
+    doc.text(fmtNum(totalDb), cols[4][1] + cols[4][2], y + 0.5, { align: "right" });
+    doc.setTextColor(150, 255, 180);
+    doc.text(fmtNum(totalCr), cols[5][1] + cols[5][2], y + 0.5, { align: "right" });
+
+    doc.save(`κινήσεις_τράπεζας_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+  };
+
+  // Auto-suggest category from rules when reconciling
+  const autoSuggestCategory = (tx) => {
+    const rules = loadRules();
+    return matchCategory(tx, rules);
+  };
 
   // Excel Export
   const handleExport = () => {
@@ -504,9 +599,15 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={handleExport} title="Εξαγωγή Excel">
             <Download className="w-4 h-4 mr-1" />Excel
+          </Button>
+          <Button variant="outline" onClick={handlePdfExport} title={selectedIds.size > 0 ? `Εξαγωγή ${selectedIds.size} επιλεγμένων σε PDF` : "Εξαγωγή σε PDF"}>
+            <FileText className="w-4 h-4 mr-1" />PDF{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
+          </Button>
+          <Button variant="outline" onClick={() => setShowRulesManager(true)} title="Κανόνες Κατηγοριοποίησης">
+            <Zap className="w-4 h-4 mr-1" />Κανόνες
           </Button>
           <Button variant="outline" disabled={importing} onClick={() => importRef.current?.click()} title="Εισαγωγή από Excel">
             {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-1" />}
@@ -679,7 +780,11 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
                         <div className="flex items-center gap-1 justify-end">
                           {!t.reconciled && (
                             <button title="Σύνδεση με εγγραφή"
-                              onClick={() => { setReconcileDialog(t); setReconcileForm({ reconciled_with: "", reconciled_note: "" }); }}
+                              onClick={() => {
+                                const autoCategory = autoSuggestCategory(t);
+                                setReconcileDialog(t);
+                                setReconcileForm({ reconciled_with: autoCategory || "", reconciled_note: "" });
+                              }}
                               className="p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-colors">
                               <Link2 className="w-3.5 h-3.5" />
                             </button>
@@ -784,6 +889,9 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Category Rules Manager */}
+      <CategoryRulesManager open={showRulesManager} onClose={() => setShowRulesManager(false)} />
 
       {/* Reconcile Dialog */}
       {reconcileDialog && (
