@@ -28,5 +28,6 @@
       "type": "string",
       "description": "Last time backup was downloaded"
     }
-  }
+  },
+  "required": []
 }
