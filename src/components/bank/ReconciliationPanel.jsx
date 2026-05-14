@@ -100,6 +100,24 @@ function buildAllRecords(payroll, genExpenses, genIncomes, projExpenses, projInc
   return records;
 }
 
+function Section({ id, title, count, countColor, icon: SectionIcon, expandedSection, setExpandedSection, children }) {
+  const open = expandedSection === id;
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <button className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+        onClick={() => setExpandedSection(open ? null : id)}>
+        <div className="flex items-center gap-3">
+          <SectionIcon className="w-5 h-5 text-gray-500" />
+          <span className="font-semibold text-gray-800">{title}</span>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${countColor}`}>{count}</span>
+        </div>
+        {open ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+      </button>
+      {open && <div className="px-4 pb-4 border-t border-gray-50">{children}</div>}
+    </div>
+  );
+}
+
 const COLOR_MAP = {
   purple: "bg-purple-100 text-purple-700",
   red: "bg-red-100 text-red-700",
@@ -418,23 +436,7 @@ export default function ReconciliationPanel() {
     setSaving(false);
   };
 
-  const Section = ({ id, title, count, countColor, icon: Icon, children }) => {
-    const open = expandedSection === id;
-    return (
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <button className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
-          onClick={() => setExpandedSection(open ? null : id)}>
-          <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5 text-gray-500" />
-            <span className="font-semibold text-gray-800">{title}</span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${countColor}`}>{count}</span>
-          </div>
-          {open ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
-        </button>
-        {open && <div className="px-4 pb-4 border-t border-gray-50">{children}</div>}
-      </div>
-    );
-  };
+
 
   if (loadingTx) return <div className="text-center py-16 text-gray-400">Φόρτωση...</div>;
 
@@ -474,7 +476,8 @@ export default function ReconciliationPanel() {
       </div>
 
       <Section id="suggestions" title="Προτεινόμενες Αντιστοιχίσεις" count={suggestions.length}
-        countColor={suggestions.length > 0 ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"} icon={Link2}>
+        countColor={suggestions.length > 0 ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"} icon={Link2}
+        expandedSection={expandedSection} setExpandedSection={setExpandedSection}>
         {suggestions.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-green-400" />
@@ -490,7 +493,8 @@ export default function ReconciliationPanel() {
       </Section>
 
       <Section id="unmatched_tx" title="Κινήσεις Χωρίς Αντιστοιχία" count={unmatchedTx.length}
-        countColor={unmatchedTx.length > 0 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"} icon={AlertCircle}>
+        countColor={unmatchedTx.length > 0 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"} icon={AlertCircle}
+        expandedSection={expandedSection} setExpandedSection={setExpandedSection}>
         {unmatchedTx.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-green-400" />
@@ -506,7 +510,8 @@ export default function ReconciliationPanel() {
       </Section>
 
       <Section id="unmatched_records" title="Εγγραφές Τραπέζης Χωρίς Κίνηση" count={unmatchedRecords.length}
-        countColor={unmatchedRecords.length > 0 ? "bg-gray-200 text-gray-600" : "bg-gray-100 text-gray-500"} icon={TrendingDown}>
+        countColor={unmatchedRecords.length > 0 ? "bg-gray-200 text-gray-600" : "bg-gray-100 text-gray-500"} icon={TrendingDown}
+        expandedSection={expandedSection} setExpandedSection={setExpandedSection}>
         <p className="text-xs text-gray-400 mt-3 mb-2">Εγγραφές με τραπεζική πληρωμή που δεν έχουν συνδεθεί με κάποια κίνηση.</p>
         {unmatchedRecords.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
