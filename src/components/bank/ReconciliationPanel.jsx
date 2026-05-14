@@ -8,8 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { format } from "date-fns";
 import {
   CheckCircle2, AlertCircle, Link2, TrendingDown,
-  ChevronDown, ChevronRight, Zap, RefreshCw, Search, X
+  ChevronDown, ChevronRight, Zap, RefreshCw, Search, X, Plus
 } from "lucide-react";
+import CreateRecordFromTxDialog from "./CreateRecordFromTxDialog";
 
 const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(Math.abs(n || 0));
 const DAYS_TOLERANCE = 30;
@@ -294,6 +295,7 @@ function MatchRow({ match, onReconcile, saving }) {
 
 function UnmatchedTxRow({ tx, allRecords, onLink, saving }) {
   const [showLink, setShowLink] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-amber-200 bg-amber-50 mb-1.5">
       <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-500" />
@@ -304,7 +306,10 @@ function UnmatchedTxRow({ tx, allRecords, onLink, saving }) {
       <span className={`text-sm font-semibold flex-shrink-0 ${tx.transaction_type === "debit" ? "text-red-600" : "text-green-600"}`}>
         {fmt(tx.amount)}
       </span>
-      <Button size="sm" variant="outline" className="flex-shrink-0 text-xs h-7 px-2" disabled={saving} onClick={() => setShowLink(true)}>
+      <Button size="sm" variant="outline" className="flex-shrink-0 text-xs h-7 px-2 bg-white" disabled={saving} onClick={() => setShowCreate(true)}>
+        <Plus className="w-3 h-3 mr-1" />Νέα Εγγραφή
+      </Button>
+      <Button size="sm" variant="outline" className="flex-shrink-0 text-xs h-7 px-2 bg-white" disabled={saving} onClick={() => setShowLink(true)}>
         <Link2 className="w-3 h-3 mr-1" />Σύνδεση
       </Button>
       {showLink && (
@@ -313,6 +318,13 @@ function UnmatchedTxRow({ tx, allRecords, onLink, saving }) {
           allRecords={allRecords}
           onLink={(tx, rec) => { onLink(tx, rec); setShowLink(false); }}
           onClose={() => setShowLink(false)}
+        />
+      )}
+      {showCreate && (
+        <CreateRecordFromTxDialog
+          tx={tx}
+          onCreated={(tx, rec) => { onLink(tx, rec); setShowCreate(false); }}
+          onClose={() => setShowCreate(false)}
         />
       )}
     </div>
