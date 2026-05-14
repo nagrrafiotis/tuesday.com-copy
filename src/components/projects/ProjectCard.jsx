@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Calendar, DollarSign, MoreHorizontal, Ruler, Home } from "lucide-react";
+import { MapPin, Calendar, DollarSign, MoreHorizontal, Ruler, Home, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -12,10 +12,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import AssignClientDialog from "./AssignClientDialog";
 
 export default function ProjectCard({ project, onEdit, onDelete, onUpdate, index = 0 }) {
   const [editingBudget, setEditingBudget] = useState(false);
   const [budgetValue, setBudgetValue] = useState("");
+  const [showAssignClient, setShowAssignClient] = useState(false);
 
   const handleBudgetClick = (e) => {
     e.preventDefault();
@@ -204,6 +206,10 @@ export default function ProjectCard({ project, onEdit, onDelete, onUpdate, index
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onEdit?.(project)}>Edit Project</DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.preventDefault(); setShowAssignClient(true); }}>
+                <UserCheck className="w-4 h-4 mr-2 text-emerald-600" />
+                Assign Client
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onDelete?.(project)} className="text-red-600">
                 Delete Project
               </DropdownMenuItem>
@@ -211,6 +217,12 @@ export default function ProjectCard({ project, onEdit, onDelete, onUpdate, index
           </DropdownMenu>
         </div>
       </div>
+
+      <AssignClientDialog
+        project={project}
+        open={showAssignClient}
+        onClose={() => setShowAssignClient(false)}
+      />
     </motion.div>
   );
 }
