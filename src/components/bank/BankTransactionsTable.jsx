@@ -557,7 +557,6 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
                   <th className="text-left px-3 py-3 font-medium text-gray-500 w-32">Τράπεζα</th>
                   <th className="text-right px-3 py-3 font-medium text-gray-500 w-28">Χρέωση</th>
                   <th className="text-right px-3 py-3 font-medium text-gray-500 w-28">Πίστωση</th>
-                  <th className="text-center px-3 py-3 font-medium text-gray-500 w-32">Κατάσταση</th>
                   <th className="px-3 py-3 w-24"></th>
                 </tr>
               </thead>
@@ -584,20 +583,6 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
                       </td>
                       <td className="px-3 py-3 text-right tabular-nums">
                         {t.transaction_type === "credit" ? <span className="font-semibold text-green-600">{fmt(t.amount)}</span> : <span className="text-gray-300">—</span>}
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        {t.reconciled ? (
-                          <Badge className="bg-blue-100 text-blue-700 border-0 gap-1 text-xs cursor-pointer hover:bg-blue-200"
-                            onClick={() => handleUnreconcile(t)} title="Κλικ για αναίρεση">
-                            <CheckCircle2 className="w-3 h-3" />
-                            {RECONCILE_TYPES.find(r => r.value === t.reconciled_with)?.label || "Συνδεδεμένη"}
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-amber-100 text-amber-700 border-0 gap-1 text-xs cursor-pointer hover:bg-amber-200"
-                            onClick={() => { setReconcileDialog(t); setReconcileForm({ reconciled_with: "", reconciled_note: "" }); }}>
-                            <AlertCircle className="w-3 h-3" />Εκκρεμεί
-                          </Badge>
-                        )}
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-1 justify-end">
@@ -626,7 +611,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
                   <td colSpan={5} className="px-3 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} κινήσεις)</td>
                   <td className="px-3 py-3 text-right font-semibold text-red-600 tabular-nums">{fmt(totalDebit)}</td>
                   <td className="px-3 py-3 text-right font-semibold text-green-600 tabular-nums">{fmt(totalCredit)}</td>
-                  <td colSpan={2}></td>
+                  <td colSpan={1}></td>
                 </tr>
               </tfoot>
             </table>
