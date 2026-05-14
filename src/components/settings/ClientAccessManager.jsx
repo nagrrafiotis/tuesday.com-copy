@@ -5,12 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Users, Eye, Check, X } from "lucide-react";
+import { Users, Check, X, Shield, User, Eye } from "lucide-react";
+
+const ROLE_CONFIG = {
+  admin: { label: "Admin", icon: Shield, color: "bg-red-100 text-red-700" },
+  user:  { label: "User",  icon: User,   color: "bg-blue-100 text-blue-700" },
+  client:{ label: "Client",icon: Eye,    color: "bg-emerald-100 text-emerald-700" },
+};
 
 export default function ClientAccessManager() {
   const queryClient = useQueryClient();
   const [savingId, setSavingId] = useState(null);
-  const [pendingChanges, setPendingChanges] = useState({}); // { userId: { role, allowed_project_id } }
+  const [pendingChanges, setPendingChanges] = useState({});
 
   const { data: users = [] } = useQuery({
     queryKey: ["all-users-settings"],
@@ -22,17 +28,12 @@ export default function ClientAccessManager() {
     queryFn: () => base44.entities.Project.list("name"),
   });
 
-  const clientUsers = users.filter(u => u.role === "client");
-  const nonClientUsers = users.filter(u => u.role !== "client");
-
-  const getPending = (userId) => pendingChanges[userId];
-
   const handleChange = (userId, field, value) => {
     const user = users.find(u => u.id === userId);
     setPendingChanges(prev => ({
       ...prev,
       [userId]: {
-        role: user.role,
+        role: user.role || "user",
         allowed_project_id: user.allowed_project_id || "",
         ...prev[userId],
         [field]: value,
@@ -50,175 +51,143 @@ export default function ClientAccessManager() {
     });
     setPendingChanges(prev => { const n = { ...prev }; delete n[userId]; return n; });
     queryClient.invalidateQueries({ queryKey: ["all-users-settings"] });
-    setSavingId(false);
+    setSavingId(null);
   };
 
   const handleCancel = (userId) => {
     setPendingChanges(prev => { const n = { ...prev }; delete n[userId]; return n; });
   };
 
-  const getEffectiveValue = (user, field) => {
-    return pendingChanges[user.id]?.[field] ?? user[field] ?? "";
-  };
+  const getEffective = (user, field) =>
+    pendingChanges[user.id]?.[field] ?? user[field] ?? "";
 
   return (
     <Card className="bg-white shadow-sm mb-8">
       <CardHeader className="border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <Eye className="w-6 h-6 text-[#1e3a5f]" />
+          <Users className="w-6 h-6 text-[#1e3a5f]" />
           <div>
-            <CardTitle className="text-xl text-[#1e3a5f]">Πρόσβαση Πελατών (View-Only)</CardTitle>
+            <CardTitle className="text-xl text-[#1e3a5f]">Διαχείριση Χρηστών</CardTitle>
             <p className="text-sm text-gray-500 mt-1">
-              Δώστε σε χρήστες ρόλο "client" και ορίστε ποιο έργο μπορούν να παρακολουθούν
+              Ορίστε ρόλο και πρόσβαση για κάθε χρήστη. Οι <strong>clients</strong> βλέπουν μόνο το έργο τους.
             </p>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-6 space-y-6">
-        {/* How it works info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-          <strong>Πώς λειτουργεί:</strong> Οι χρήστες με ρόλο <strong>client</strong> ανακατευθύνονται αυτόματα στη σελίδα παρακολούθησης του έργου τους (read-only). Δεν βλέπουν τίποτα άλλο από την εφαρμογή.
-          <br />
-          <strong>Για να προσθέσετε πελάτη:</strong> Προσκαλέστε τον από το Dashboard → Users, στη συνέχεια ορίστε εδώ τον ρόλο "client" και το αντίστοιχο έργο.
+      <CardContent className="pt-6 space-y-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+          <strong>Για να προσθέσετε χρήστη:</strong> Προσκαλέστε τον από το Dashboard → Users, κι έπειτα ορίστε εδώ τον ρόλο του.
         </div>
 
-        {/* Current clients */}
-        {clientUsers.length > 0 && (
-          <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <Badge className="bg-emerald-100 text-emerald-700 border-0">
-                {clientUsers.length} ενεργοί πελάτες
-              </Badge>
-            </h3>
-            <div className="space-y-2">
-              {clientUsers.map(user => {
-                const project = projects.find(p => p.id === getEffectiveValue(user, "allowed_project_id"));
-                const hasPending = !!pendingChanges[user.id];
-                return (
-                  <div key={user.id} className="flex flex-wrap items-center gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-gray-800 truncate">{user.full_name}</p>
-                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={getEffectiveValue(user, "role")}
-                        onValueChange={(v) => handleChange(user.id, "role", v)}
-                      >
-                        <SelectTrigger className="h-8 w-28 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="user">user</SelectItem>
-                          <SelectItem value="admin">admin</SelectItem>
-                          <SelectItem value="client">client</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {getEffectiveValue(user, "role") === "client" && (
-                        <Select
-                          value={getEffectiveValue(user, "allowed_project_id") || "none"}
-                          onValueChange={(v) => handleChange(user.id, "allowed_project_id", v === "none" ? "" : v)}
-                        >
-                          <SelectTrigger className="h-8 w-44 text-xs">
-                            <SelectValue placeholder="Επιλογή έργου..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">— Κανένα έργο —</SelectItem>
-                            {projects.map(p => (
-                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                      {hasPending && (
-                        <>
-                          <Button size="icon" className="h-8 w-8 bg-emerald-600 hover:bg-emerald-700"
-                            onClick={() => handleSave(user.id)} disabled={savingId === user.id}>
-                            <Check className="w-4 h-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8"
-                            onClick={() => handleCancel(user.id)}>
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                    {!hasPending && project && (
-                      <Badge className="bg-[#1e3a5f]/10 text-[#1e3a5f] border-0 text-xs">
-                        📂 {project.name}
-                      </Badge>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        {/* Table header */}
+        <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 bg-gray-50 rounded-lg text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <div className="col-span-4">Χρήστης</div>
+          <div className="col-span-3">Ρόλος</div>
+          <div className="col-span-4">Έργο (μόνο για clients)</div>
+          <div className="col-span-1"></div>
+        </div>
+
+        {users.length === 0 && (
+          <p className="text-sm text-gray-400 text-center py-6">Δεν βρέθηκαν χρήστες.</p>
         )}
 
-        {/* All other users — assign client role */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Λοιποί χρήστες</h3>
-          <div className="space-y-2">
-            {nonClientUsers.map(user => {
-              const hasPending = !!pendingChanges[user.id];
-              const effectiveRole = getEffectiveValue(user, "role");
-              return (
-                <div key={user.id} className="flex flex-wrap items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-gray-800 truncate">{user.full_name}</p>
-                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={effectiveRole}
-                      onValueChange={(v) => handleChange(user.id, "role", v)}
-                    >
-                      <SelectTrigger className="h-8 w-28 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="user">user</SelectItem>
-                        <SelectItem value="admin">admin</SelectItem>
-                        <SelectItem value="client">client</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {effectiveRole === "client" && (
-                      <Select
-                        value={getEffectiveValue(user, "allowed_project_id") || "none"}
-                        onValueChange={(v) => handleChange(user.id, "allowed_project_id", v === "none" ? "" : v)}
-                      >
-                        <SelectTrigger className="h-8 w-44 text-xs">
-                          <SelectValue placeholder="Επιλογή έργου..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">— Κανένα έργο —</SelectItem>
-                          {projects.map(p => (
-                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    {hasPending && (
-                      <>
-                        <Button size="icon" className="h-8 w-8 bg-[#1e3a5f] hover:bg-[#152a45]"
-                          onClick={() => handleSave(user.id)} disabled={savingId === user.id}>
-                          <Check className="w-4 h-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8"
-                          onClick={() => handleCancel(user.id)}>
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
+        {users.map(user => {
+          const hasPending = !!pendingChanges[user.id];
+          const effectiveRole = getEffective(user, "role") || "user";
+          const effectiveProjectId = getEffective(user, "allowed_project_id");
+          const assignedProject = projects.find(p => p.id === (hasPending ? effectiveProjectId : user.allowed_project_id));
+          const roleCfg = ROLE_CONFIG[effectiveRole] || ROLE_CONFIG.user;
+
+          return (
+            <div
+              key={user.id}
+              className={`grid grid-cols-1 sm:grid-cols-12 gap-2 items-center p-3 rounded-lg border transition-colors ${
+                hasPending ? "bg-amber-50 border-amber-200" : "bg-gray-50 border-gray-100 hover:border-gray-200"
+              }`}
+            >
+              {/* User info */}
+              <div className="sm:col-span-4 flex items-center gap-3 min-w-0">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${roleCfg.color}`}>
+                  {user.full_name?.[0]?.toUpperCase() || "?"}
                 </div>
-              );
-            })}
-            {nonClientUsers.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-4">Δεν υπάρχουν άλλοι χρήστες.</p>
-            )}
-          </div>
-        </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-sm text-gray-900 truncate">{user.full_name || "—"}</p>
+                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                </div>
+              </div>
+
+              {/* Role selector */}
+              <div className="sm:col-span-3">
+                <Select value={effectiveRole} onValueChange={(v) => handleChange(user.id, "role", v)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">
+                      <span className="flex items-center gap-1.5"><Shield className="w-3 h-3 text-red-500" />Admin</span>
+                    </SelectItem>
+                    <SelectItem value="user">
+                      <span className="flex items-center gap-1.5"><User className="w-3 h-3 text-blue-500" />User</span>
+                    </SelectItem>
+                    <SelectItem value="client">
+                      <span className="flex items-center gap-1.5"><Eye className="w-3 h-3 text-emerald-500" />Client</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Project selector (only for client role) */}
+              <div className="sm:col-span-4">
+                {effectiveRole === "client" ? (
+                  <Select
+                    value={effectiveProjectId || "none"}
+                    onValueChange={(v) => handleChange(user.id, "allowed_project_id", v === "none" ? "" : v)}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Επιλογή έργου..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— Κανένα έργο —</SelectItem>
+                      {projects.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <span className="text-xs text-gray-300 italic">—</span>
+                )}
+              </div>
+
+              {/* Save / Cancel or status badge */}
+              <div className="sm:col-span-1 flex items-center gap-1 justify-end">
+                {hasPending ? (
+                  <>
+                    <Button
+                      size="icon"
+                      className="h-7 w-7 bg-emerald-600 hover:bg-emerald-700"
+                      onClick={() => handleSave(user.id)}
+                      disabled={savingId === user.id}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => handleCancel(user.id)}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </>
+                ) : (
+                  <Badge className={`text-xs border-0 ${roleCfg.color}`}>
+                    {roleCfg.label}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );
