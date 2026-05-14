@@ -207,12 +207,19 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bank-transactions"] }),
   });
 
-  // Inline cell save
+  // Inline cell save — if multiple rows are selected and the edited row is among them, apply to all selected
   const handleCellSave = useCallback((tx, field, newVal) => {
     let val = newVal;
     if (field === "amount") val = Math.abs(parseFloat(newVal) || 0);
-    updateMutation.mutate({ id: tx.id, data: { ...tx, [field]: val } });
-  }, [updateMutation]);
+
+    const applyToIds = selectedIds.size > 1 && selectedIds.has(tx.id)
+      ? filtered.filter(t => selectedIds.has(t.id))
+      : [tx];
+
+    applyToIds.forEach(t => {
+      updateMutation.mutate({ id: t.id, data: { ...t, [field]: val } });
+    });
+  }, [updateMutation, selectedIds, filtered]);
 
   // Auto-fit column width based on content
   const autoFitCol = useCallback((col) => {
