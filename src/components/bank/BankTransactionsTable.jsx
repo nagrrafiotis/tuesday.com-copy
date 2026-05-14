@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -433,7 +433,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const allSources = [...new Set(transactions.map(t => t.payment_source).filter(Boolean))];
   const allCounterparties = [...new Set(transactions.map(t => t.counterparty).filter(Boolean))];
 
-  const filtered = transactions
+  const filtered = useMemo(() => transactions
     .filter(t => {
       const q = search.toLowerCase();
       const matchSearch = !q || t.description?.toLowerCase().includes(q) || t.counterparty?.toLowerCase().includes(q) || t.reference?.toLowerCase().includes(q);
@@ -442,7 +442,9 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
       const matchType = filterType === "all" || t.transaction_type === filterType;
       return matchSearch && matchSource && matchReconciled && matchType;
     })
-    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)),
+    [transactions, search, filterSource, filterReconciled, filterType]
+  );
 
   const totalCredit = filtered.filter(t => t.transaction_type === "credit").reduce((s, t) => s + Math.abs(t.amount || 0), 0);
   const totalDebit = filtered.filter(t => t.transaction_type === "debit").reduce((s, t) => s + Math.abs(t.amount || 0), 0);
