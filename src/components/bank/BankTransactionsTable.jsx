@@ -207,6 +207,23 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bank-transactions"] }),
   });
 
+  // Computed early so it can be used by handleCellSave and other callbacks
+  const filtered = useMemo(() => transactions
+    .filter(t => {
+      const q = search.toLowerCase();
+      const matchSearch = !q || t.description?.toLowerCase().includes(q) || t.counterparty?.toLowerCase().includes(q) || t.reference?.toLowerCase().includes(q);
+      const matchSource = filterSource === "all" || t.payment_source === filterSource;
+      const matchReconciled = filterReconciled === "all" || (filterReconciled === "yes" ? t.reconciled : !t.reconciled);
+      const matchType = filterType === "all" || t.transaction_type === filterType;
+      return matchSearch && matchSource && matchReconciled && matchType;
+    })
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)),
+    [transactions, search, filterSource, filterReconciled, filterType]
+  );
+
+  const allSources = useMemo(() => [...new Set(transactions.map(t => t.payment_source).filter(Boolean))], [transactions]);
+  const allCounterparties = useMemo(() => [...new Set(transactions.map(t => t.counterparty).filter(Boolean))], [transactions]);
+
   // Inline cell save — if multiple rows are selected and the edited row is among them, apply to all selected
   const handleCellSave = useCallback((tx, field, newVal) => {
     let val = newVal;
@@ -429,22 +446,6 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     setShowBulkEdit(false);
     setBulkEditForm({ payment_source: "", transaction_type: "" });
   };
-
-  const allSources = [...new Set(transactions.map(t => t.payment_source).filter(Boolean))];
-  const allCounterparties = [...new Set(transactions.map(t => t.counterparty).filter(Boolean))];
-
-  const filtered = useMemo(() => transactions
-    .filter(t => {
-      const q = search.toLowerCase();
-      const matchSearch = !q || t.description?.toLowerCase().includes(q) || t.counterparty?.toLowerCase().includes(q) || t.reference?.toLowerCase().includes(q);
-      const matchSource = filterSource === "all" || t.payment_source === filterSource;
-      const matchReconciled = filterReconciled === "all" || (filterReconciled === "yes" ? t.reconciled : !t.reconciled);
-      const matchType = filterType === "all" || t.transaction_type === filterType;
-      return matchSearch && matchSource && matchReconciled && matchType;
-    })
-    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)),
-    [transactions, search, filterSource, filterReconciled, filterType]
-  );
 
   const totalCredit = filtered.filter(t => t.transaction_type === "credit").reduce((s, t) => s + Math.abs(t.amount || 0), 0);
   const totalDebit = filtered.filter(t => t.transaction_type === "debit").reduce((s, t) => s + Math.abs(t.amount || 0), 0);
