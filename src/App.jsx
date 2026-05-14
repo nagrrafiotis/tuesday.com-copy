@@ -1,5 +1,6 @@
 import './App.css'
 import { Toaster } from "@/components/ui/toaster"
+import ClientProjectView from '@/pages/ClientProjectView'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import VisualEditAgent from '@/lib/VisualEditAgent'
@@ -41,9 +42,19 @@ const AuthenticatedApp = () => {
     }
   }
 
+  // Redirect clients to their project view
+  if (!isLoadingAuth && isAuthenticated && authError === null) {
+    // will be handled in the route below
+  }
+
   // Render the main app
   return (
     <Routes>
+      <Route path="/ClientProjectView" element={
+        <LayoutWrapper currentPageName="ClientProjectView">
+          <ClientProjectView />
+        </LayoutWrapper>
+      } />
       <Route path="/" element={
         <LayoutWrapper currentPageName={mainPageKey}>
           <MainPage />

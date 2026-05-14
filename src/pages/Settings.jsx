@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X, Palette, RefreshCw, Clock, Settings as SettingsGear, CheckSquare, Square, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X, Palette, RefreshCw, Clock, Settings as SettingsGear, CheckSquare, Square, AlertTriangle, Loader2, Users, Eye } from "lucide-react";
+import ClientAccessManager from "@/components/settings/ClientAccessManager";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1431,6 +1432,9 @@ export default function Settings() {
             </Card>
           </div>
         </div>
+
+        {/* Client Access Management */}
+        <ClientAccessManager />
 
         {/* Danger Zone */}
         <Card className="bg-white shadow-sm border-red-200 mb-8">

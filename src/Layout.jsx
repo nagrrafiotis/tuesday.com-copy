@@ -64,6 +64,15 @@ export default function Layout({ children, currentPageName }) {
     refetchOnWindowFocus: true,
   });
 
+  // Redirect clients to their project view
+  useEffect(() => {
+    if (user?.role === "client" && currentPageName !== "ClientProjectView") {
+      window.location.href = "/ClientProjectView";
+    }
+  }, [user?.role, currentPageName]);
+
+  const isClient = user?.role === "client";
+
   useEffect(() => {
     if (user?.logo_url !== undefined) setLogoUrl(user.logo_url);
   }, [user?.logo_url]);
@@ -101,6 +110,44 @@ export default function Layout({ children, currentPageName }) {
 
   // Hide layout for project details hero
   const isProjectDetails = currentPageName === "ProjectDetails";
+
+  // Client: no sidebar, just a simple top bar
+  if (isClient) {
+    return (
+      <div className="min-h-screen bg-[#fafafa]">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-8 object-contain" />
+            ) : (
+              <Building2 className="w-6 h-6 text-[#1e3a5f]" />
+            )}
+            <span className="font-semibold text-[#1e3a5f] text-sm">Παρακολούθηση Έργου</span>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
+                <Avatar className="w-8 h-8">
+                  <AvatarFallback className="bg-[#c9a962] text-white text-xs">
+                    {getInitials(user?.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm text-gray-700 hidden sm:block">{user?.full_name}</span>
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                <LogOut className="w-4 h-4 mr-2" />
+                Αποσύνδεση
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </header>
+        <main className="pt-14">{children}</main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafa]">

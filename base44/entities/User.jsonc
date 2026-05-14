@@ -1,0 +1,32 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user",
+        "client"
+      ],
+      "default": "user",
+      "description": "User role"
+    },
+    "allowed_project_id": {
+      "type": "string",
+      "description": "For client role: the project ID this user is allowed to view"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Company logo URL"
+    },
+    "last_settings_saved_date": {
+      "type": "string",
+      "description": "Last time settings were saved"
+    },
+    "last_backup_download_date": {
+      "type": "string",
+      "description": "Last time backup was downloaded"
+    }
+  }
+}
