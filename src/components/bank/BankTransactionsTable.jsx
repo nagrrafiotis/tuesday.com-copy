@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus, Search, Trash2, Pencil, Upload, Loader2, Link2,
-  TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Download, FileSpreadsheet, X
+  TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Download, FileSpreadsheet, X, Save
 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
@@ -37,6 +37,129 @@ const emptyForm = {
   file_url: "",
 };
 
+// Default column widths
+const DEFAULT_COL_WIDTHS = {
+  date: 100,
+  description: 240,
+  counterparty: 160,
+  payment_source: 140,
+  debit: 110,
+  credit: 110,
+};
+
+// Inline editable cell
+function EditableCell({ value, onSave, type = "text", options, className = "", datalistId, datalistOptions }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value);
+  const inputRef = useRef(null);
+
+  const startEdit = () => {
+    setVal(value);
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const commit = () => {
+    setEditing(false);
+    if (val !== value) onSave(val);
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === "Enter") commit();
+    if (e.key === "Escape") { setEditing(false); setVal(value); }
+  };
+
+  if (editing) {
+    if (type === "select" && options) {
+      return (
+        <Select value={val} onValueChange={v => { setVal(v); setEditing(false); if (v !== value) onSave(v); }}>
+          <SelectTrigger className="h-7 text-xs border-blue-300 bg-blue-50 focus:ring-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      );
+    }
+    return (
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type={type}
+          value={val}
+          onChange={e => setVal(e.target.value)}
+          onBlur={commit}
+          onKeyDown={onKeyDown}
+          list={datalistId}
+          step={type === "number" ? "0.01" : undefined}
+          className="w-full h-7 px-2 text-xs border border-blue-300 rounded bg-blue-50 outline-none"
+          style={{ minWidth: 60 }}
+        />
+        {datalistId && datalistOptions && (
+          <datalist id={datalistId}>
+            {datalistOptions.map((o, i) => <option key={i} value={o} />)}
+          </datalist>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={startEdit}
+      className={`cursor-pointer rounded px-1 py-0.5 hover:bg-blue-50 hover:outline hover:outline-1 hover:outline-blue-200 transition-all min-h-[1.5rem] ${className}`}
+      title="Κλικ για επεξεργασία"
+    >
+      {value || <span className="text-gray-300">—</span>}
+    </div>
+  );
+}
+
+// Resizable column header
+function ResizableHeader({ width, onResize, onAutoFit, children, className = "" }) {
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const startW = useRef(0);
+
+  const onMouseDown = (e) => {
+    e.preventDefault();
+    dragging.current = true;
+    startX.current = e.clientX;
+    startW.current = width;
+
+    const onMove = (ev) => {
+      if (!dragging.current) return;
+      const delta = ev.clientX - startX.current;
+      onResize(Math.max(60, startW.current + delta));
+    };
+    const onUp = () => {
+      dragging.current = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  return (
+    <th
+      className={`relative select-none px-3 py-3 font-medium text-gray-500 ${className}`}
+      style={{ width, minWidth: width }}
+    >
+      {children}
+      <div
+        className="absolute right-0 top-0 h-full w-2 cursor-col-resize flex items-center justify-center hover:bg-blue-200/40 group"
+        onMouseDown={onMouseDown}
+        onDoubleClick={onAutoFit}
+        title="Drag για resize | Double-click για auto-fit"
+      >
+        <div className="w-px h-4 bg-gray-300 group-hover:bg-blue-400" />
+      </div>
+    </th>
+  );
+}
+
 export default function BankTransactionsTable({ paymentSources = [] }) {
   const [search, setSearch] = useState("");
   const [filterSource, setFilterSource] = useState("all");
@@ -53,6 +176,8 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkEditForm, setBulkEditForm] = useState({ payment_source: "", transaction_type: "" });
   const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
+  const tableRef = useRef(null);
 
   const queryClient = useQueryClient();
   const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(Math.abs(n || 0));
@@ -62,59 +187,57 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     queryFn: () => base44.entities.BankTransaction.list("-date"),
   });
 
-  // Load related records for reconcile matching
-  const { data: payrollRecords = [] } = useQuery({
-    queryKey: ["payroll"],
-    queryFn: () => base44.entities.Payroll.list("-payment_date"),
-  });
-  const { data: generalExpenses = [] } = useQuery({
-    queryKey: ["general-expenses"],
-    queryFn: () => base44.entities.GeneralExpense.list("-date"),
-  });
-  const { data: generalIncomes = [] } = useQuery({
-    queryKey: ["general-incomes"],
-    queryFn: () => base44.entities.GeneralIncome.list("-date"),
-  });
-  const { data: invoices = [] } = useQuery({
-    queryKey: ["invoices"],
-    queryFn: () => base44.entities.Invoice.list("-date"),
-  });
-  const { data: projectExpenses = [] } = useQuery({
-    queryKey: ["expenses"],
-    queryFn: () => base44.entities.Expense.list("-date"),
-  });
-  const { data: projectIncomes = [] } = useQuery({
-    queryKey: ["incomes"],
-    queryFn: () => base44.entities.Income.list("-date"),
-  });
+  const { data: payrollRecords = [] } = useQuery({ queryKey: ["payroll"], queryFn: () => base44.entities.Payroll.list("-payment_date") });
+  const { data: generalExpenses = [] } = useQuery({ queryKey: ["general-expenses"], queryFn: () => base44.entities.GeneralExpense.list("-date") });
+  const { data: generalIncomes = [] } = useQuery({ queryKey: ["general-incomes"], queryFn: () => base44.entities.GeneralIncome.list("-date") });
+  const { data: invoices = [] } = useQuery({ queryKey: ["invoices"], queryFn: () => base44.entities.Invoice.list("-date") });
+  const { data: projectExpenses = [] } = useQuery({ queryKey: ["expenses"], queryFn: () => base44.entities.Expense.list("-date") });
+  const { data: projectIncomes = [] } = useQuery({ queryKey: ["incomes"], queryFn: () => base44.entities.Income.list("-date") });
 
-  const createMutation = useMutation({
-    mutationFn: data => base44.entities.BankTransaction.create(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["bank-transactions"] }); closeForm(); },
-  });
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.BankTransaction.update(id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["bank-transactions"] }); closeForm(); setReconcileDialog(null); },
+  });
+  const createMutation = useMutation({
+    mutationFn: data => base44.entities.BankTransaction.create(data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["bank-transactions"] }); closeForm(); },
   });
   const deleteMutation = useMutation({
     mutationFn: id => base44.entities.BankTransaction.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bank-transactions"] }),
   });
 
-  // ── Excel Export ──
+  // Inline cell save
+  const handleCellSave = useCallback((tx, field, newVal) => {
+    let val = newVal;
+    if (field === "amount") val = Math.abs(parseFloat(newVal) || 0);
+    updateMutation.mutate({ id: tx.id, data: { ...tx, [field]: val } });
+  }, [updateMutation]);
+
+  // Auto-fit column width based on content
+  const autoFitCol = useCallback((col) => {
+    if (!tableRef.current) return;
+    const cells = tableRef.current.querySelectorAll(`[data-col="${col}"]`);
+    let maxW = DEFAULT_COL_WIDTHS[col] || 100;
+    cells.forEach(cell => {
+      const w = cell.scrollWidth + 24;
+      if (w > maxW) maxW = w;
+    });
+    setColWidths(prev => ({ ...prev, [col]: Math.min(maxW, 400) }));
+  }, []);
+
+  // Excel Export
   const handleExport = () => {
     const rows = filtered.map(t => ({
       "Ημερομηνία": t.date || "",
       "Περιγραφή": t.description || "",
       "Αντισυμβαλλόμενος": t.counterparty || "",
       "Τράπεζα": t.payment_source || "",
-      "Τύπος": t.transaction_type === "debit" ? "Χρέωση" : "Πίστωση",
       "Χρέωση (€)": t.transaction_type === "debit" ? Math.abs(t.amount || 0) : "",
       "Πίστωση (€)": t.transaction_type === "credit" ? Math.abs(t.amount || 0) : "",
       "Αναφορά": t.reference || "",
       "Κατάσταση": t.reconciled ? "Αντιστοιχισμένη" : "Εκκρεμεί",
       "Σημείωση": t.reconciled_note || "",
-      "Σημειώσεις": t.notes || "",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -122,7 +245,6 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     XLSX.writeFile(wb, `κινήσεις_τράπεζας_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   };
 
-  // ── Helpers ──
   const parseGreekDate = (raw) => {
     if (!raw) return "";
     const s = String(raw).trim();
@@ -132,7 +254,6 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
       return `${year}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
     }
     if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-    // Excel serial
     if (/^\d{5}$/.test(s)) {
       const d = new Date(Math.round((parseInt(s) - 25569) * 86400 * 1000));
       return d.toISOString().slice(0, 10);
@@ -145,34 +266,23 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     return parseFloat(String(raw).replace(/\./g, "").replace(",", ".").replace(/[^\d\-\.]/g, "")) || 0;
   };
 
-  // ── Direct XLSX parser (Piraeus & generic Greek bank format) ──
   const parseXlsxDirect = async (file) => {
     const data = await file.arrayBuffer();
     const wb = XLSX.read(data, { type: "array", raw: false, cellDates: false });
     const ws = wb.Sheets[wb.SheetNames[0]];
-    // Get raw rows as arrays to inspect all cells
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true });
-
-    // Find header row by scanning for date + debit/credit/amount columns
-    let headerIdx = -1;
-    let cols = {};
+    let headerIdx = -1, cols = {};
     for (let i = 0; i < Math.min(rows.length, 25); i++) {
-      const row = rows[i].map(c => String(c).toLowerCase().trim()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")); // strip accents for matching
+      const row = rows[i].map(c => String(c).toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
       const di = row.findIndex(c => c.includes("ημερομ") || c === "date" || c === "ημ/νια" || c === "ημ/νία");
-      const dbi = row.findIndex(c => c.includes("χρεωσ") || c === "debit" || c.includes("anaлиψη"));
-      const cri = row.findIndex(c => c.includes("πιστωσ") || c === "credit" || c.includes("καταθ"));
-      const ami = row.findIndex(c => c.includes("ποσο") || c === "amount" || c.includes("κινηση"));
-      const desi = row.findIndex(c => c.includes("περιγρ") || c.includes("αιτιολ") || c.includes("descr") || c.includes("λεπτομ"));
-      const refi = row.findIndex(c => c.includes("αναφορ") || c.includes("reference") || c.includes("ref"));
-      if (di >= 0 && (dbi >= 0 || cri >= 0 || ami >= 0)) {
-        headerIdx = i;
-        cols = { di, dbi, cri, ami, desi, refi };
-        break;
-      }
+      const dbi = row.findIndex(c => c.includes("χρεωσ") || c === "debit");
+      const cri = row.findIndex(c => c.includes("πιστωσ") || c === "credit");
+      const ami = row.findIndex(c => c.includes("ποσο") || c === "amount");
+      const desi = row.findIndex(c => c.includes("περιγρ") || c.includes("αιτιολ") || c.includes("descr"));
+      const refi = row.findIndex(c => c.includes("αναφορ") || c.includes("reference"));
+      if (di >= 0 && (dbi >= 0 || cri >= 0 || ami >= 0)) { headerIdx = i; cols = { di, dbi, cri, ami, desi, refi }; break; }
     }
     if (headerIdx < 0) return null;
-
     const results = [];
     for (let i = headerIdx + 1; i < rows.length; i++) {
       const row = rows[i];
@@ -180,12 +290,8 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
       if (!rawDate || String(rawDate).trim() === "") continue;
       const date = parseGreekDate(rawDate);
       if (!date) continue;
-
       const description = cols.desi >= 0 ? String(row[cols.desi] || "").trim() : "";
-
-      let amount = 0;
-      let transaction_type = "debit";
-
+      let amount = 0, transaction_type = "debit";
       if (cols.dbi >= 0 && cols.cri >= 0) {
         const debit = parseAmount(row[cols.dbi]);
         const credit = parseAmount(row[cols.cri]);
@@ -198,40 +304,24 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
         amount = Math.abs(raw);
         transaction_type = raw < 0 ? "debit" : "credit";
       } else continue;
-
       const reference = cols.refi >= 0 ? String(row[cols.refi] || "").trim() : "";
       results.push({ date, description, amount, transaction_type, reference, reconciled: false });
     }
     return results.length > 0 ? results : null;
   };
 
-  // ── Import handler ──
   const handleImport = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImporting(true);
     e.target.value = "";
-
     let toCreate = null;
-
-    // 1. Try direct parse for xlsx/xls
-    if (file.name.match(/\.xlsx?$/i)) {
-      toCreate = await parseXlsxDirect(file);
-    }
-
-    // 2. AI fallback for PDF, DOC, or if direct parse found nothing
+    if (file.name.match(/\.xlsx?$/i)) toCreate = await parseXlsxDirect(file);
     if (!toCreate) {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Αυτό είναι αρχείο κινήσεων από ελληνική τράπεζα (πιθανώς Πειραιώς). Εξάγαγε ΟΛΕΣ τις κινήσεις.
-Για κάθε κίνηση επίστρεψε:
-- date: YYYY-MM-DD
-- description: πλήρης αιτιολογία
-- counterparty: αντισυμβαλλόμενος (αν υπάρχει)
-- transaction_type: "debit" για χρεώσεις/πληρωμές, "credit" για πιστώσεις/εισπράξεις
-- amount: θετικό ποσό €
-- reference: κωδικός/αναφορά (αν υπάρχει)
-Μην παραλείψεις καμία γραμμή.`,
+        prompt: `Αυτό είναι αρχείο κινήσεων από ελληνική τράπεζα. Εξάγαγε ΟΛΕΣ τις κινήσεις.
+Για κάθε κίνηση επίστρεψε: date (YYYY-MM-DD), description, counterparty, transaction_type ("debit"/"credit"), amount (θετικό), reference.`,
         file_urls: [file_url],
         response_json_schema: {
           type: "object",
@@ -241,12 +331,8 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
               items: {
                 type: "object",
                 properties: {
-                  date: { type: "string" },
-                  description: { type: "string" },
-                  counterparty: { type: "string" },
-                  transaction_type: { type: "string", enum: ["credit", "debit"] },
-                  amount: { type: "number" },
-                  reference: { type: "string" },
+                  date: { type: "string" }, description: { type: "string" }, counterparty: { type: "string" },
+                  transaction_type: { type: "string", enum: ["credit", "debit"] }, amount: { type: "number" }, reference: { type: "string" },
                 },
                 required: ["date", "amount", "transaction_type"]
               }
@@ -255,25 +341,14 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
         }
       });
       const aiTx = result?.transactions || [];
-      if (!aiTx.length) {
-        alert("Δεν εντοπίστηκαν κινήσεις. Βεβαιωθείτε ότι το αρχείο περιέχει τραπεζικές κινήσεις.");
-        setImporting(false);
-        return;
-      }
+      if (!aiTx.length) { alert("Δεν εντοπίστηκαν κινήσεις."); setImporting(false); return; }
       toCreate = aiTx.filter(r => r.date && r.amount).map(r => ({
-        date: r.date, description: r.description || "",
-        counterparty: r.counterparty || "", payment_source: "",
-        transaction_type: r.transaction_type, amount: Math.abs(r.amount),
+        date: r.date, description: r.description || "", counterparty: r.counterparty || "",
+        payment_source: "", transaction_type: r.transaction_type, amount: Math.abs(r.amount),
         reference: r.reference || "", reconciled: false,
       }));
     }
-
-    if (!toCreate?.length) {
-      alert("Δεν εντοπίστηκαν έγκυρες κινήσεις στο αρχείο.");
-      setImporting(false);
-      return;
-    }
-
+    if (!toCreate?.length) { alert("Δεν εντοπίστηκαν έγκυρες κινήσεις."); setImporting(false); return; }
     await base44.entities.BankTransaction.bulkCreate(toCreate);
     queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
     setImporting(false);
@@ -303,89 +378,53 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const handleReconcile = async () => {
     await updateMutation.mutateAsync({
       id: reconcileDialog.id,
-      data: {
-        ...reconcileDialog,
-        reconciled: true,
-        reconciled_with: reconcileForm.reconciled_with,
-        reconciled_note: reconcileForm.reconciled_note,
-      }
+      data: { ...reconcileDialog, reconciled: true, reconciled_with: reconcileForm.reconciled_with, reconciled_note: reconcileForm.reconciled_note }
     });
   };
 
   const handleUnreconcile = async (tx) => {
-    await updateMutation.mutateAsync({
-      id: tx.id,
-      data: { ...tx, reconciled: false, reconciled_with: null, reconciled_id: null, reconciled_note: "" }
-    });
+    await updateMutation.mutateAsync({ id: tx.id, data: { ...tx, reconciled: false, reconciled_with: null, reconciled_id: null, reconciled_note: "" } });
   };
 
-  // Get matching records for auto-suggest
   const getMatchingSuggestions = (tx) => {
     if (!tx) return [];
     const amt = Math.abs(tx.amount);
     const txDate = tx.date ? new Date(tx.date) : null;
     const suggestions = [];
-
-    const isClose = (recordDate) => {
-      if (!txDate || !recordDate) return false;
-      const d = new Date(recordDate);
-      return Math.abs(d - txDate) < 7 * 24 * 60 * 60 * 1000; // within 7 days
-    };
-
+    const isClose = (d) => txDate && d && Math.abs(new Date(d) - txDate) < 7 * 864e5;
     if (tx.transaction_type === "debit") {
-      payrollRecords.filter(r => Math.abs((r.net_salary || 0) - amt) < 1 || Math.abs((r.final_payment || 0) - amt) < 1)
-        .forEach(r => suggestions.push({ type: "payroll", label: `Μισθοδοσία: ${r.employee_name} - ${r.period}`, id: r.id, amount: r.net_salary, date: r.payment_date }));
-      generalExpenses.filter(r => Math.abs((r.amount || 0) - amt) < 1 && isClose(r.date))
-        .forEach(r => suggestions.push({ type: "general_expense", label: `Γεν. Έξοδο: ${r.description}`, id: r.id, amount: r.amount, date: r.date }));
-      projectExpenses.filter(r => Math.abs((r.amount || 0) - amt) < 1 && isClose(r.date))
-        .forEach(r => suggestions.push({ type: "project_expense", label: `Έξοδο Έργου: ${r.payee} - ${r.description}`, id: r.id, amount: r.amount, date: r.date }));
-      invoices.filter(r => r.type === "expense" && Math.abs((r.total_amount || 0) - amt) < 1 && isClose(r.date))
-        .forEach(r => suggestions.push({ type: "invoice", label: `Τιμολόγιο: ${r.vendor_client} #${r.invoice_number || ""}`, id: r.id, amount: r.total_amount, date: r.date }));
+      payrollRecords.filter(r => Math.abs((r.net_salary || 0) - amt) < 1).forEach(r => suggestions.push({ type: "payroll", label: `Μισθοδοσία: ${r.employee_name} - ${r.period}`, id: r.id, amount: r.net_salary, date: r.payment_date }));
+      generalExpenses.filter(r => Math.abs((r.amount || 0) - amt) < 1 && isClose(r.date)).forEach(r => suggestions.push({ type: "general_expense", label: `Γεν. Έξοδο: ${r.description}`, id: r.id, amount: r.amount, date: r.date }));
+      projectExpenses.filter(r => Math.abs((r.amount || 0) - amt) < 1 && isClose(r.date)).forEach(r => suggestions.push({ type: "project_expense", label: `Έξοδο Έργου: ${r.payee} - ${r.description}`, id: r.id, amount: r.amount, date: r.date }));
     } else {
-      generalIncomes.filter(r => Math.abs((r.total_amount || r.net_amount || 0) - amt) < 1 && isClose(r.date))
-        .forEach(r => suggestions.push({ type: "general_income", label: `Γεν. Έσοδο: ${r.description}`, id: r.id, amount: r.total_amount || r.net_amount, date: r.date }));
-      projectIncomes.filter(r => Math.abs((r.amount || 0) - amt) < 1 && isClose(r.date))
-        .forEach(r => suggestions.push({ type: "project_income", label: `Έσοδο Έργου: ${r.source} - ${r.description}`, id: r.id, amount: r.amount, date: r.date }));
-      invoices.filter(r => r.type === "income" && Math.abs((r.total_amount || 0) - amt) < 1 && isClose(r.date))
-        .forEach(r => suggestions.push({ type: "invoice", label: `Τιμολόγιο: ${r.vendor_client} #${r.invoice_number || ""}`, id: r.id, amount: r.total_amount, date: r.date }));
+      generalIncomes.filter(r => Math.abs((r.total_amount || r.net_amount || 0) - amt) < 1 && isClose(r.date)).forEach(r => suggestions.push({ type: "general_income", label: `Γεν. Έσοδο: ${r.description}`, id: r.id, amount: r.total_amount || r.net_amount, date: r.date }));
+      projectIncomes.filter(r => Math.abs((r.amount || 0) - amt) < 1 && isClose(r.date)).forEach(r => suggestions.push({ type: "project_income", label: `Έσοδο Έργου: ${r.source} - ${r.description}`, id: r.id, amount: r.amount, date: r.date }));
     }
-
     return suggestions.slice(0, 5);
   };
 
-  // ── Bulk actions ──
-  const toggleSelect = (id) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filtered.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filtered.map(t => t.id)));
-    }
-  };
+  const toggleSelect = (id) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSelectAll = () => selectedIds.size === filtered.length ? setSelectedIds(new Set()) : setSelectedIds(new Set(filtered.map(t => t.id)));
+
   const handleBulkDelete = async () => {
     if (!window.confirm(`Διαγραφή ${selectedIds.size} κινήσεων;`)) return;
     await Promise.all([...selectedIds].map(id => deleteMutation.mutateAsync(id)));
     setSelectedIds(new Set());
   };
+
   const handleBulkEdit = async () => {
     const updates = {};
     if (bulkEditForm.payment_source) updates.payment_source = bulkEditForm.payment_source;
     if (bulkEditForm.transaction_type) updates.transaction_type = bulkEditForm.transaction_type;
     if (!Object.keys(updates).length) return;
-    const selected = filtered.filter(t => selectedIds.has(t.id));
-    await Promise.all(selected.map(t => updateMutation.mutateAsync({ id: t.id, data: { ...t, ...updates } })));
+    await Promise.all(filtered.filter(t => selectedIds.has(t.id)).map(t => updateMutation.mutateAsync({ id: t.id, data: { ...t, ...updates } })));
     setSelectedIds(new Set());
     setShowBulkEdit(false);
     setBulkEditForm({ payment_source: "", transaction_type: "" });
   };
 
   const allSources = [...new Set(transactions.map(t => t.payment_source).filter(Boolean))];
+  const allCounterparties = [...new Set(transactions.map(t => t.counterparty).filter(Boolean))];
 
   const filtered = transactions
     .filter(t => {
@@ -459,9 +498,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
           <Button variant="outline" onClick={handleExport} title="Εξαγωγή Excel">
             <Download className="w-4 h-4 mr-1" />Excel
           </Button>
-          <Button variant="outline" disabled={importing}
-            onClick={() => importRef.current?.click()}
-            title="Εισαγωγή από Excel">
+          <Button variant="outline" disabled={importing} onClick={() => importRef.current?.click()} title="Εισαγωγή από Excel">
             {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-1" />}
             Εισαγωγή
           </Button>
@@ -481,23 +518,18 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
               onClick={() => { setShowBulkEdit(true); setBulkEditForm({ payment_source: "", transaction_type: "" }); }}>
               <Pencil className="w-3.5 h-3.5 mr-1" />Επεξεργασία
             </Button>
-            <Button size="sm" variant="outline" className="bg-red-500/30 border-red-400/40 text-white hover:bg-red-500/50"
-              onClick={handleBulkDelete}>
+            <Button size="sm" variant="outline" className="bg-red-500/30 border-red-400/40 text-white hover:bg-red-500/50" onClick={handleBulkDelete}>
               <Trash2 className="w-3.5 h-3.5 mr-1" />Διαγραφή
             </Button>
           </div>
-          <button onClick={() => setSelectedIds(new Set())} className="p-1 rounded hover:bg-white/20">
-            <X className="w-4 h-4" />
-          </button>
+          <button onClick={() => setSelectedIds(new Set())} className="p-1 rounded hover:bg-white/20"><X className="w-4 h-4" /></button>
         </div>
       )}
 
       {/* Bulk Edit Dialog */}
       <Dialog open={showBulkEdit} onOpenChange={setShowBulkEdit}>
         <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Μαζική Επεξεργασία ({selectedIds.size} κινήσεις)</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Μαζική Επεξεργασία ({selectedIds.size} κινήσεις)</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <p className="text-xs text-gray-500">Συμπληρώστε μόνο τα πεδία που θέλετε να αλλάξετε.</p>
             <div>
@@ -512,17 +544,12 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
             </div>
             <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">Τράπεζα / Λογαριασμός</label>
-              <Input value={bulkEditForm.payment_source}
-                onChange={e => setBulkEditForm(f => ({ ...f, payment_source: e.target.value }))}
+              <Input value={bulkEditForm.payment_source} onChange={e => setBulkEditForm(f => ({ ...f, payment_source: e.target.value }))}
                 placeholder="π.χ. Πειραιώς..." list="bulk-sources-list" />
-              <datalist id="bulk-sources-list">
-                {paymentSources.map(ps => <option key={ps.id} value={ps.name} />)}
-              </datalist>
+              <datalist id="bulk-sources-list">{paymentSources.map(ps => <option key={ps.id} value={ps.name} />)}</datalist>
             </div>
             <div className="flex gap-2 pt-1">
-              <Button className="flex-1 bg-[#1e3a5f] hover:bg-[#152a45]" onClick={handleBulkEdit}>
-                Εφαρμογή
-              </Button>
+              <Button className="flex-1 bg-[#1e3a5f] hover:bg-[#152a45]" onClick={handleBulkEdit}>Εφαρμογή</Button>
               <Button variant="outline" onClick={() => setShowBulkEdit(false)}>Ακύρωση</Button>
             </div>
           </div>
@@ -536,55 +563,109 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-gray-400">Δεν βρέθηκαν κινήσεις</p>
-            <Button className="mt-4 bg-[#1e3a5f] hover:bg-[#152a45]" onClick={openNew}>
-              <Plus className="w-4 h-4 mr-2" />Νέα Κίνηση
-            </Button>
+            <Button className="mt-4 bg-[#1e3a5f] hover:bg-[#152a45]" onClick={openNew}><Plus className="w-4 h-4 mr-2" />Νέα Κίνηση</Button>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table ref={tableRef} className="text-sm" style={{ tableLayout: "fixed", width: "100%" }}>
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
                   <th className="px-3 py-3 w-8">
-                    <Checkbox
-                      checked={filtered.length > 0 && selectedIds.size === filtered.length}
-                      onCheckedChange={toggleSelectAll}
-                    />
+                    <Checkbox checked={filtered.length > 0 && selectedIds.size === filtered.length} onCheckedChange={toggleSelectAll} />
                   </th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-24">Ημ/νία</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500">Περιγραφή</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-36">Αντισυμβαλλόμενος</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-32">Τράπεζα</th>
-                  <th className="text-right px-3 py-3 font-medium text-gray-500 w-28">Χρέωση</th>
-                  <th className="text-right px-3 py-3 font-medium text-gray-500 w-28">Πίστωση</th>
-                  <th className="px-3 py-3 w-24"></th>
+                  <ResizableHeader width={colWidths.date} onResize={w => setColWidths(p => ({ ...p, date: w }))} onAutoFit={() => autoFitCol("date")} className="text-left">Ημ/νία</ResizableHeader>
+                  <ResizableHeader width={colWidths.description} onResize={w => setColWidths(p => ({ ...p, description: w }))} onAutoFit={() => autoFitCol("description")} className="text-left">Περιγραφή</ResizableHeader>
+                  <ResizableHeader width={colWidths.counterparty} onResize={w => setColWidths(p => ({ ...p, counterparty: w }))} onAutoFit={() => autoFitCol("counterparty")} className="text-left">Αντισυμβαλλόμενος</ResizableHeader>
+                  <ResizableHeader width={colWidths.payment_source} onResize={w => setColWidths(p => ({ ...p, payment_source: w }))} onAutoFit={() => autoFitCol("payment_source")} className="text-left">Τράπεζα</ResizableHeader>
+                  <ResizableHeader width={colWidths.debit} onResize={w => setColWidths(p => ({ ...p, debit: w }))} onAutoFit={() => autoFitCol("debit")} className="text-right">Χρέωση</ResizableHeader>
+                  <ResizableHeader width={colWidths.credit} onResize={w => setColWidths(p => ({ ...p, credit: w }))} onAutoFit={() => autoFitCol("credit")} className="text-right">Πίστωση</ResizableHeader>
+                  <th className="px-3 py-3 w-20"></th>
                 </tr>
               </thead>
               <tbody>
                 <AnimatePresence>
                   {filtered.map(t => (
                     <motion.tr key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${selectedIds.has(t.id) ? "bg-blue-50/50" : !t.reconciled ? "bg-amber-50/30" : ""}`}>
-                      <td className="px-3 py-3">
+                      className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${selectedIds.has(t.id) ? "bg-blue-50/50" : !t.reconciled ? "bg-amber-50/30" : ""}`}>
+                      <td className="px-3 py-2">
                         <Checkbox checked={selectedIds.has(t.id)} onCheckedChange={() => toggleSelect(t.id)} />
                       </td>
-                      <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">
-                        {t.date ? format(new Date(t.date), "dd/MM/yyyy") : "—"}
+                      {/* Date */}
+                      <td className="px-3 py-2" data-col="date">
+                        <EditableCell
+                          value={t.date || ""}
+                          type="date"
+                          onSave={v => handleCellSave(t, "date", v)}
+                          className="text-gray-500 text-xs"
+                        />
+                        {t.date && <span className="text-gray-400 text-xs pointer-events-none select-none hidden" data-col="date">{format(new Date(t.date), "dd/MM/yyyy")}</span>}
                       </td>
-                      <td className="px-3 py-3">
-                        <p className="font-medium text-gray-800 truncate max-w-[220px]">{t.description || "—"}</p>
-                        {t.reference && <p className="text-xs text-gray-400">Ref: {t.reference}</p>}
-                        {t.reconciled && t.reconciled_note && <p className="text-xs text-blue-600 truncate">{t.reconciled_note}</p>}
+                      {/* Description */}
+                      <td className="px-2 py-2" data-col="description">
+                        <EditableCell
+                          value={t.description || ""}
+                          onSave={v => handleCellSave(t, "description", v)}
+                          className="font-medium text-gray-800 text-sm truncate"
+                        />
+                        {t.reference && <p className="text-xs text-gray-400 px-1">Ref: {t.reference}</p>}
+                        {t.reconciled && t.reconciled_note && <p className="text-xs text-blue-600 truncate px-1">{t.reconciled_note}</p>}
                       </td>
-                      <td className="px-3 py-3 text-gray-600 text-xs truncate max-w-[140px]">{t.counterparty || "—"}</td>
-                      <td className="px-3 py-3 text-gray-500 text-xs truncate">{t.payment_source || "—"}</td>
-                      <td className="px-3 py-3 text-right tabular-nums">
-                        {t.transaction_type === "debit" ? <span className="font-semibold text-red-600">{fmt(t.amount)}</span> : <span className="text-gray-300">—</span>}
+                      {/* Counterparty */}
+                      <td className="px-2 py-2" data-col="counterparty">
+                        <EditableCell
+                          value={t.counterparty || ""}
+                          onSave={v => handleCellSave(t, "counterparty", v)}
+                          className="text-gray-600 text-xs"
+                          datalistId={`cp-${t.id}`}
+                          datalistOptions={allCounterparties}
+                        />
                       </td>
-                      <td className="px-3 py-3 text-right tabular-nums">
-                        {t.transaction_type === "credit" ? <span className="font-semibold text-green-600">{fmt(t.amount)}</span> : <span className="text-gray-300">—</span>}
+                      {/* Bank */}
+                      <td className="px-2 py-2" data-col="payment_source">
+                        <EditableCell
+                          value={t.payment_source || ""}
+                          onSave={v => handleCellSave(t, "payment_source", v)}
+                          className="text-gray-500 text-xs"
+                          datalistId={`ps-${t.id}`}
+                          datalistOptions={[...allSources, ...paymentSources.map(p => p.name)]}
+                        />
                       </td>
-                      <td className="px-3 py-3">
+                      {/* Debit */}
+                      <td className="px-2 py-2 text-right" data-col="debit">
+                        {t.transaction_type === "debit" ? (
+                          <EditableCell
+                            value={Math.abs(t.amount || 0).toString()}
+                            type="number"
+                            onSave={v => handleCellSave(t, "amount", v)}
+                            className="font-semibold text-red-600 text-right tabular-nums"
+                          />
+                        ) : (
+                          <div
+                            onClick={() => handleCellSave(t, "transaction_type", "debit")}
+                            className="text-gray-200 text-right cursor-pointer hover:text-red-300 transition-colors"
+                            title="Κλικ για να γίνει Χρέωση"
+                          >—</div>
+                        )}
+                      </td>
+                      {/* Credit */}
+                      <td className="px-2 py-2 text-right" data-col="credit">
+                        {t.transaction_type === "credit" ? (
+                          <EditableCell
+                            value={Math.abs(t.amount || 0).toString()}
+                            type="number"
+                            onSave={v => handleCellSave(t, "amount", v)}
+                            className="font-semibold text-green-600 text-right tabular-nums"
+                          />
+                        ) : (
+                          <div
+                            onClick={() => handleCellSave(t, "transaction_type", "credit")}
+                            className="text-gray-200 text-right cursor-pointer hover:text-green-300 transition-colors"
+                            title="Κλικ για να γίνει Πίστωση"
+                          >—</div>
+                        )}
+                      </td>
+                      {/* Actions */}
+                      <td className="px-3 py-2">
                         <div className="flex items-center gap-1 justify-end">
                           {!t.reconciled && (
                             <button title="Σύνδεση με εγγραφή"
@@ -593,9 +674,12 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
                               <Link2 className="w-3.5 h-3.5" />
                             </button>
                           )}
-                          <button onClick={() => openEdit(t)} className="p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-colors">
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
+                          {t.reconciled && (
+                            <button title="Αναίρεση αντιστοίχισης" onClick={() => handleUnreconcile(t)}
+                              className="p-1 rounded hover:bg-green-50 text-green-500 hover:text-green-700 transition-colors">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button onClick={() => { if (window.confirm("Διαγραφή κίνησης;")) deleteMutation.mutate(t.id); }}
                             className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
@@ -611,7 +695,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
                   <td colSpan={5} className="px-3 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} κινήσεις)</td>
                   <td className="px-3 py-3 text-right font-semibold text-red-600 tabular-nums">{fmt(totalDebit)}</td>
                   <td className="px-3 py-3 text-right font-semibold text-green-600 tabular-nums">{fmt(totalCredit)}</td>
-                  <td colSpan={1}></td>
+                  <td></td>
                 </tr>
               </tfoot>
             </table>
@@ -622,21 +706,16 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
       {/* Add/Edit Form Dialog */}
       <Dialog open={showForm} onOpenChange={v => !v && closeForm()}>
         <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Επεξεργασία Κίνησης" : "Νέα Τραπεζική Κίνηση"}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? "Επεξεργασία Κίνησης" : "Νέα Τραπεζική Κίνηση"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
               {[{ value: "debit", label: "Χρέωση" }, { value: "credit", label: "Πίστωση" }].map(t => (
-                <button key={t.value} type="button"
-                  onClick={() => setForm(f => ({ ...f, transaction_type: t.value }))}
+                <button key={t.value} type="button" onClick={() => setForm(f => ({ ...f, transaction_type: t.value }))}
                   className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                     form.transaction_type === t.value
                       ? t.value === "debit" ? "bg-red-100 border-red-300 text-red-800" : "bg-green-100 border-green-300 text-green-800"
                       : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-                  }`}>
-                  {t.label}
-                </button>
+                  }`}>{t.label}</button>
               ))}
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -662,9 +741,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
                 <label className="text-xs font-medium text-gray-500 mb-1 block">Τράπεζα / Λογαριασμός</label>
                 <Input value={form.payment_source} onChange={e => setForm(f => ({ ...f, payment_source: e.target.value }))}
                   placeholder="π.χ. Alpha Bank..." list="bank-sources-list" />
-                <datalist id="bank-sources-list">
-                  {paymentSources.map(ps => <option key={ps.id} value={ps.name} />)}
-                </datalist>
+                <datalist id="bank-sources-list">{paymentSources.map(ps => <option key={ps.id} value={ps.name} />)}</datalist>
               </div>
             </div>
             <div>
@@ -708,7 +785,6 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              {/* Transaction summary */}
               <div className="bg-gray-50 rounded-lg p-3 text-sm">
                 <p className="font-medium text-gray-800">{reconcileDialog.description}</p>
                 <div className="flex gap-4 mt-1 text-xs text-gray-500">
@@ -718,23 +794,17 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
                   </span>
                 </div>
               </div>
-
-              {/* Auto-suggestions */}
               {(() => {
                 const suggestions = getMatchingSuggestions(reconcileDialog);
-                if (suggestions.length === 0) return null;
+                if (!suggestions.length) return null;
                 return (
                   <div>
-                    <p className="text-xs font-medium text-gray-500 mb-2">Πιθανές αντιστοιχίσεις (ίδιο ποσό ± 7 ημέρες):</p>
+                    <p className="text-xs font-medium text-gray-500 mb-2">Πιθανές αντιστοιχίσεις:</p>
                     <div className="space-y-1">
                       {suggestions.map((s, i) => (
                         <button key={i} type="button"
                           onClick={() => setReconcileForm(f => ({ ...f, reconciled_with: s.type, reconciled_note: s.label }))}
-                          className={`w-full text-left px-3 py-2 rounded-lg border text-xs transition-colors ${
-                            reconcileForm.reconciled_note === s.label
-                              ? "border-[#1e3a5f] bg-[#1e3a5f]/5 text-[#1e3a5f]"
-                              : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                          }`}>
+                          className={`w-full text-left px-3 py-2 rounded-lg border text-xs transition-colors ${reconcileForm.reconciled_note === s.label ? "border-[#1e3a5f] bg-[#1e3a5f]/5 text-[#1e3a5f]" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"}`}>
                           <span className="font-medium">{s.label}</span>
                           {s.date && <span className="text-gray-400 ml-2">{format(new Date(s.date), "dd/MM/yyyy")}</span>}
                           <span className="float-right font-semibold">{fmt(s.amount)}</span>
@@ -744,25 +814,20 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
                   </div>
                 );
               })()}
-
               <div>
                 <label className="text-xs font-medium text-gray-500 mb-1 block">Τύπος Εγγραφής *</label>
                 <Select value={reconcileForm.reconciled_with} onValueChange={v => setReconcileForm(f => ({ ...f, reconciled_with: v }))}>
                   <SelectTrigger><SelectValue placeholder="Επιλέξτε τύπο..." /></SelectTrigger>
-                  <SelectContent>
-                    {RECONCILE_TYPES.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                  </SelectContent>
+                  <SelectContent>{RECONCILE_TYPES.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-500 mb-1 block">Σημείωση αντιστοίχισης</label>
-                <Input value={reconcileForm.reconciled_note}
-                  onChange={e => setReconcileForm(f => ({ ...f, reconciled_note: e.target.value }))}
+                <Input value={reconcileForm.reconciled_note} onChange={e => setReconcileForm(f => ({ ...f, reconciled_note: e.target.value }))}
                   placeholder="π.χ. Μισθός Ιανουαρίου Παπαδόπουλος..." />
               </div>
               <div className="flex gap-2 pt-2">
-                <Button className="flex-1 bg-[#1e3a5f] hover:bg-[#152a45]" onClick={handleReconcile}
-                  disabled={!reconcileForm.reconciled_with}>
+                <Button className="flex-1 bg-[#1e3a5f] hover:bg-[#152a45]" onClick={handleReconcile} disabled={!reconcileForm.reconciled_with}>
                   <Link2 className="w-4 h-4 mr-1" /> Αντιστοίχιση
                 </Button>
                 <Button variant="outline" onClick={() => setReconcileDialog(null)}>Ακύρωση</Button>
