@@ -236,12 +236,13 @@ export default function CreateRecordFromTxDialog({ tx, onCreated, onClose }) {
 
           {/* Payment source */}
           <div>
-            <label className="text-xs font-medium text-gray-500 mb-1 block">Τράπεζα / Λογαριασμός</label>
-            <Input value={paymentSource} onChange={e => setPaymentSource(e.target.value)}
-              placeholder="π.χ. Alpha Bank..." list="create-ps-list" />
-            <datalist id="create-ps-list">
-              {paymentSources.map(ps => <option key={ps.id} value={ps.name} />)}
-            </datalist>
+            <label className="text-xs font-medium text-gray-500 mb-1 block">Πηγή Πληρωμής</label>
+            <Select value={paymentSource} onValueChange={setPaymentSource}>
+              <SelectTrigger><SelectValue placeholder="Επιλέξτε πηγή..." /></SelectTrigger>
+              <SelectContent>
+                {paymentSources.map(ps => <SelectItem key={ps.id} value={ps.name}>{ps.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           {recordType !== "payroll" && (
