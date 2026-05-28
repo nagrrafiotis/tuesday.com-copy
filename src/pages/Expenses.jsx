@@ -10,6 +10,7 @@ import IncomeTable from "@/components/income/IncomeTable";
 import IncomeSummary from "@/components/income/IncomeSummary";
 import ContactCard from "@/components/contacts/ContactCard.jsx";
 import ContactForm from "@/components/contacts/ContactForm.jsx";
+import ExpenseImporter from "@/components/expenses/ExpenseImporter";
 import ScanInvoiceDialog from "@/components/invoices/ScanInvoiceDialog";
 import EditInvoiceDialog from "@/components/invoices/EditInvoiceDialog";
 import TransferInvoiceDialog from "@/components/invoices/TransferInvoiceDialog";
@@ -583,6 +584,7 @@ export default function Expenses() {
           {[
             { key: "expenses", label: "Expenses" },
             { key: "income", label: "Income" },
+            { key: "importing", label: "📥 Expense Importing" },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
@@ -775,6 +777,13 @@ export default function Expenses() {
                   )}
                 </AnimatePresence>
               </div>
+          </div>
+        )}
+
+        {/* Importing Tab */}
+        {activeTab === "importing" && (
+          <div className="max-w-6xl mx-auto px-2">
+            <ExpenseImporter />
           </div>
         )}
 
