@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { motion } from "framer-motion";
 import StatsCard from "@/components/dashboard/StatsCard";
+import ProjectBudgetReport from "@/components/dashboard/ProjectBudgetReport";
 import ProjectCard from "@/components/projects/ProjectCard";
 import TaskCard from "@/components/tasks/TaskCard";
 import { 
@@ -104,6 +105,11 @@ export default function Dashboard() {
             icon={Clock}
             color="white"
           />
+        </div>
+
+        {/* Budget Report */}
+        <div className="mb-8">
+          <ProjectBudgetReport />
         </div>
 
         {/* All Projects */}
