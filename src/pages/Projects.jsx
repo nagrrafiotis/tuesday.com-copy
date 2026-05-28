@@ -32,6 +32,13 @@ export default function Projects() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["all-users-settings"],
+    queryFn: () => base44.entities.User.list(),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.create(data),
     onSuccess: () => {
@@ -236,6 +243,7 @@ export default function Projects() {
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onUpdate={(id, data) => updateMutation.mutate({ id, data })}
+                  clients={allUsers.filter(u => u.allowed_project_id === project.id)}
                 />
               ))}
             </AnimatePresence>

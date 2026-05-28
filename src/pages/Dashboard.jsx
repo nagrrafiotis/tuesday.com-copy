@@ -35,6 +35,13 @@ export default function Dashboard() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["all-users-settings"],
+    queryFn: () => base44.entities.User.list(),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+  });
+
   const stats = {
     totalProjects: projects.length,
     activeProjects: projects.filter((p) => p.status === "in_progress").length,
@@ -127,7 +134,12 @@ export default function Dashboard() {
           {recentProjects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {recentProjects.map((project, index) => (
-                <ProjectCard key={project.id} project={project} index={index} />
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  index={index}
+                  clients={allUsers.filter(u => u.allowed_project_id === project.id)}
+                />
               ))}
             </div>
           ) : (

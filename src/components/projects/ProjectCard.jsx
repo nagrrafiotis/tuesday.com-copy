@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import AssignClientDialog from "./AssignClientDialog";
 
-export default function ProjectCard({ project, onEdit, onDelete, onUpdate, index = 0 }) {
+export default function ProjectCard({ project, onEdit, onDelete, onUpdate, index = 0, clients = [] }) {
   const [editingBudget, setEditingBudget] = useState(false);
   const [budgetValue, setBudgetValue] = useState("");
   const [showAssignClient, setShowAssignClient] = useState(false);
@@ -111,6 +111,15 @@ export default function ProjectCard({ project, onEdit, onDelete, onUpdate, index
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-3">
             <MapPin className="w-4 h-4" />
             <span className="truncate">{project.address}</span>
+          </div>
+        )}
+
+        {clients.length > 0 && (
+          <div className="flex items-center gap-2 text-sm mb-3">
+            <UserCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span className="text-emerald-700 font-medium truncate">
+              {clients.map(c => c.full_name || c.email).join(", ")}
+            </span>
           </div>
         )}
 
