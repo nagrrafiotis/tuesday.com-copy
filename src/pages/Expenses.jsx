@@ -164,15 +164,20 @@ export default function Expenses() {
   });
 
   const exportIncomeToCSV = () => {
+    const BOM = "\uFEFF";
     const csvData = [
-      ["Date", "Project", "Category", "Source", "Description", "Amount (€)", "Payment Source"],
+      ["Ημερομηνία", "Έργο", "Κατηγορία", "Πηγή", "Περιγραφή", "Ποσό (€)", "Πηγή Πληρωμής"],
       ...filteredIncomes.map((i) => [
-        new Date(i.date).toLocaleDateString("de-DE"),
+        i.date ? new Date(i.date).toLocaleDateString("el-GR") : "",
         projects.find(p => p.id === i.project_id)?.name || "",
-        i.category || "", i.source || "", i.description || "", i.amount || 0, i.payment_source || "",
+        i.category || "",
+        i.source || "",
+        i.description || "",
+        (i.amount || 0).toFixed(2).replace(".", ","),
+        i.payment_source || "",
       ]),
     ];
-    const csvContent = csvData.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const csvContent = BOM + csvData.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.setAttribute("href", URL.createObjectURL(blob));
@@ -355,31 +360,32 @@ export default function Expenses() {
   });
 
   const exportToExcel = () => {
-    const getProjectName = (projectId) => {
-      return projects.find((p) => p.id === projectId)?.name || "Unknown";
+    const getProjectName = (id) => projects.find((p) => p.id === id)?.name || "";
+    const CATEGORY_LABELS_EL = {
+      labor: "Εργατικά", subcontractor: "Υπεργολάβοι", materials: "Υλικά",
+      equipment: "Εξοπλισμός", general_expenses: "Γενικά Έξοδα",
     };
-
     const csvData = [
-      ["Date", "Project", "Category", "Subcategory", "Payee", "Description", "Amount (€)", "Payment Source"],
+      ["Ημερομηνία", "Έργο", "Κατηγορία", "Υποκατηγορία", "Δικαιούχος", "Περιγραφή", "Ποσό (€)", "Πηγή Πληρωμής"],
       ...filteredExpenses.map((e) => [
-        e.date,
+        e.date ? new Date(e.date).toLocaleDateString("el-GR") : "",
         getProjectName(e.project_id),
-        e.category || "",
+        CATEGORY_LABELS_EL[e.category] || e.category || "",
         e.subcategory || "",
         e.payee || "",
         e.description || "",
-        e.amount || 0,
+        (e.amount || 0).toFixed(2).replace(".", ","),
         e.payment_source || "",
       ]),
     ];
 
-    const csvContent = csvData.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    // UTF-8 BOM for correct Greek display in Excel
+    const BOM = "\uFEFF";
+    const csvContent = BOM + csvData.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
+    link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute("download", `expenses_${new Date().toISOString().split("T")[0]}.csv`);
-    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
