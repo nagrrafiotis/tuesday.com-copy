@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { applyRules } from "@/lib/categoryRules";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -218,6 +219,12 @@ export default function ExpenseImporter() {
     queryFn: () => base44.entities.Subcategory.list("name"),
   });
 
+  const { data: categoryRules = [] } = useQuery({
+    queryKey: ["category-rules"],
+    queryFn: () => base44.entities.CategoryRule.list("-priority"),
+    staleTime: 60000,
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Expense.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["expenses"] }),
@@ -246,33 +253,25 @@ export default function ExpenseImporter() {
     setStepIndex(2);
 
     const result = await base44.integrations.Core.InvokeLLM({
-      model: "claude_sonnet_4_6",
-      prompt: `Είσαι ειδικός λογιστής. Αναλύσε το συνημμένο αρχείο (τιμολόγιο, κατάσταση δαπανών, λογιστικό φύλλο ή παρόμοιο) και εξήγαγε ΟΛΑ τα επιμέρους έξοδα/πληρωμές.
+      prompt: `Αναλύσε το αρχείο και εξήγαγε ΟΛΑ τα επιμέρους έξοδα/πληρωμές.
 
-ΕΡΓΑ ΣΤΟ ΣΥΣΤΗΜΑ:
-${projectList || "Δεν υπάρχουν έργα ακόμα"}
+ΕΡΓΑ: ${projectList || "—"}
+ΥΠΟΚΑΤΗΓΟΡΙΕΣ: ${subcatList || "—"}
+ΠΗΓΕΣ ΠΛΗΡΩΜΗΣ: ${paymentSourceList || "—"}
 
-ΔΙΑΘΕΣΙΜΕΣ ΥΠΟΚΑΤΗΓΟΡΙΕΣ: ${subcatList || "—"}
-ΔΙΑΘΕΣΙΜΕΣ ΠΗΓΕΣ ΠΛΗΡΩΜΗΣ: ${paymentSourceList || "—"}
+Για κάθε εγγραφή:
+- date: YYYY-MM-DD (αν δεν βρεις: ${today})
+- payee: όνομα προμηθευτή
+- description: σύντομη περιγραφή
+- amount: θετικός αριθμός (χωρίς ΦΠΑ αν αναφέρεται χωριστά)
+- category: labor | subcontractor | materials | equipment | general_expenses
+- subcategory: από τις διαθέσιμες αν ταιριάζει
+- payment_source: από τις διαθέσιμες αν ταιριάζει
+- suggested_project_id: id έργου αν μπορείς να συσχετίσεις
+- confidence: high | medium | low
 
-ΚΑΝΟΝΕΣ:
-1. date: ημερομηνία YYYY-MM-DD (αν δεν βρεις: ${today})
-2. payee: το όνομα του προμηθευτή/δικαιούχου όπως εμφανίζεται
-3. description: σύντομη περιγραφή της εργασίας/αγοράς
-4. amount: ΜΟΝΟ το καθαρό ποσό ως θετικός αριθμός (χωρίς ΦΠΑ αν αναφέρεται χωριστά, αλλιώς το συνολικό)
-5. category: ΑΥΣΤΗΡΑ μια από: labor, subcontractor, materials, equipment, general_expenses
-   - labor: εργατικά, ημερομίσθια, αμοιβές εργαζομένων
-   - subcontractor: υπεργολάβοι, εξωτερικοί συνεργάτες (ηλεκτρολόγοι, υδραυλικοί κλπ)
-   - materials: υλικά κατασκευής (τσιμέντο, σίδερα, τούβλα, ξυλεία κλπ)
-   - equipment: μηχανήματα, εξοπλισμός, ενοικίαση εξοπλισμού
-   - general_expenses: όλα τα υπόλοιπα (ασφάλειες, άδειες, γραφειακά κλπ)
-6. subcategory: αν ταιριάζει με κάποια από τις διαθέσιμες, χρησιμοποίησέ την. Αλλιώς κενό.
-7. payment_source: αν αναφέρεται τράπεζα/λογαριασμός/μέθοδος πληρωμής που ταιριάζει με τις διαθέσιμες, χρησιμοποίησέ την.
-8. suggested_project_id: αν μπορείς να συσχετίσεις με κάποιο έργο από τη λίστα, βάλε το id. Αλλιώς κενό.
-9. confidence: "high", "medium" ή "low" - πόσο σίγουρος είσαι για αυτή την εγγραφή
-
-ΣΗΜΑΝΤΙΚΟ: Αγνόησε επικεφαλίδες, σύνολα σειρών, υποσύνολα, ΦΠΑ γραμμές. Μόνο επιμέρους εγγραφές δαπανών.
-Στο πεδίο "notes" βάλε τυχόν παρατηρήσεις σου για το έγγραφο (γλώσσα, ποιότητα, τι βρήκες).`,
+Αγνόησε επικεφαλίδες, σύνολα, ΦΠΑ γραμμές. Μόνο επιμέρους εγγραφές.
+Στο "notes" βάλε παρατηρήσεις για το έγγραφο.`,
       file_urls: [file_url],
       response_json_schema: {
         type: "object",
@@ -307,13 +306,15 @@ ${projectList || "Δεν υπάρχουν έργα ακόμα"}
 
     const defaultProjectId = projects.length === 1 ? projects[0].id : "";
     const mapped = extracted.map((row) => {
-      // Try to match suggested project
       const suggestedProject = projects.find(p => p.id === row.suggested_project_id);
+      // Apply local category rules on top of AI suggestion
+      const ruleMatch = applyRules(`${row.description || ""} ${row.payee || ""}`, categoryRules);
       return {
         ...row,
         project_id: suggestedProject?.id || defaultProjectId,
         amount: Number(row.amount) || 0,
-        category: CATEGORY_OPTIONS.includes(row.category) ? row.category : "general_expenses",
+        category: ruleMatch?.category || (CATEGORY_OPTIONS.includes(row.category) ? row.category : "general_expenses"),
+        subcategory: ruleMatch?.subcategory || row.subcategory || "",
         confidence: row.confidence || "medium",
         imported: false,
         error: null,

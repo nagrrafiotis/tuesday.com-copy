@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScanLine, Upload, Loader2, ImageIcon } from "lucide-react";
+import { applyRules } from "@/lib/categoryRules";
 
 export default function ScanInvoiceDialog({ open, onClose, projects, onCreated }) {
   const [imageFile, setImageFile] = useState(null);
@@ -31,6 +32,12 @@ export default function ScanInvoiceDialog({ open, onClose, projects, onCreated }
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => base44.entities.Contact.list("name"),
+  });
+
+  const { data: categoryRules = [] } = useQuery({
+    queryKey: ["category-rules"],
+    queryFn: () => base44.entities.CategoryRule.list("-priority"),
+    staleTime: 60000,
   });
 
   const handleFile = (e) => {
@@ -111,10 +118,19 @@ Be precise with numbers. Use null for fields not found.`,
         c => c.name?.toLowerCase() === extracted.vendor_client?.toLowerCase() ||
              c.afm === extracted.vendor_afm
       );
+
+      // Apply local category rules
+      const ruleMatch = applyRules(
+        `${extracted.description || ""} ${extracted.vendor_client || ""}`,
+        categoryRules
+      );
+
       const enriched = {
         ...extracted,
         vendor_afm: extracted.vendor_afm || matchedContact?.afm || "",
         vendor_eponymia: extracted.vendor_eponymia || matchedContact?.eponymia || "",
+        category: ruleMatch?.category || extracted.category || "",
+        subcategory: ruleMatch?.subcategory || extracted.subcategory || "",
       };
 
       setResult({ ...enriched, image_url: file_url, status: "pending" });

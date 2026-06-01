@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Settings as SettingsIcon, Download, Upload, Database, Pencil, Check, X, Palette, RefreshCw, Clock, Settings as SettingsGear, CheckSquare, Square, AlertTriangle, Loader2, Users, Eye } from "lucide-react";
 import ClientAccessManager from "@/components/settings/ClientAccessManager";
+import CategoryRulesManager from "@/components/settings/CategoryRulesManager";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1431,6 +1432,11 @@ export default function Settings() {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Category Rules */}
+        <div className="mb-8">
+          <CategoryRulesManager />
         </div>
 
         {/* Client Access Management */}
