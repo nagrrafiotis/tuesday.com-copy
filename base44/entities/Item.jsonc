@@ -1,0 +1,71 @@
+{
+  "name": "Item",
+  "type": "object",
+  "properties": {
+    "board_id": {
+      "type": "string",
+      "description": "Reference to board"
+    },
+    "group_id": {
+      "type": "string",
+      "description": "Group this item belongs to"
+    },
+    "title": {
+      "type": "string",
+      "description": "Item title/name"
+    },
+    "order_index": {
+      "type": "number",
+      "description": "Order within group"
+    },
+    "data": {
+      "type": "object",
+      "description": "Dynamic column data",
+      "additionalProperties": true
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium"
+    },
+    "color": {
+      "type": "string",
+      "description": "Row color indicator"
+    }
+  },
+  "required": [
+    "board_id",
+    "title"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

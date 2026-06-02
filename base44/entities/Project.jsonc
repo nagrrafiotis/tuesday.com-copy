@@ -1,0 +1,119 @@
+{
+  "name": "Project",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Project name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Project description"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planning",
+        "in_progress",
+        "on_hold",
+        "completed"
+      ],
+      "default": "planning",
+      "description": "Current project status"
+    },
+    "property_type": {
+      "type": "string",
+      "enum": [
+        "residential",
+        "commercial",
+        "mixed_use",
+        "industrial",
+        "land"
+      ],
+      "description": "Type of property development"
+    },
+    "address": {
+      "type": "string",
+      "description": "Project location/address"
+    },
+    "land_size": {
+      "type": "number",
+      "description": "Size of land in square meters"
+    },
+    "building_coefficient": {
+      "type": "number",
+      "description": "Building coefficient (e.g., 0.8 for 80%)"
+    },
+    "built_area": {
+      "type": "number",
+      "description": "Actually built area in square meters"
+    },
+    "budget": {
+      "type": "number",
+      "description": "Total project budget (calculated from budget items)"
+    },
+    "budget_items": {
+      "type": "array",
+      "description": "Detailed budget breakdown",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unit_cost": {
+            "type": "number"
+          },
+          "total_cost": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Project start date"
+    },
+    "target_completion": {
+      "type": "string",
+      "format": "date",
+      "description": "Target completion date"
+    },
+    "progress": {
+      "type": "number",
+      "default": 0,
+      "description": "Overall progress percentage"
+    },
+    "cover_image": {
+      "type": "string",
+      "description": "Project cover image URL"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium"
+    }
+  },
+  "required": [
+    "name",
+    "property_type"
+  ]
+}

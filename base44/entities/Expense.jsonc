@@ -1,0 +1,53 @@
+{
+  "name": "Expense",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "Associated project ID"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "labor",
+        "subcontractor",
+        "materials",
+        "equipment",
+        "general_expenses"
+      ],
+      "description": "Expense category"
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "Expense subcategory"
+    },
+    "payee": {
+      "type": "string",
+      "description": "Name of the payee/vendor"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of the expense"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Expense date"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Expense amount"
+    },
+    "payment_source": {
+      "type": "string",
+      "description": "Source of payment (bank, cash, etc.)"
+    }
+  },
+  "required": [
+    "project_id",
+    "category",
+    "payee",
+    "amount",
+    "date"
+  ]
+}

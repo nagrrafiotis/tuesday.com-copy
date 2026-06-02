@@ -1,0 +1,124 @@
+{
+  "name": "ConstructionNote",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "Associated project ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Entry date"
+    },
+    "weather": {
+      "type": "object",
+      "description": "Weather conditions",
+      "properties": {
+        "temperature": {
+          "type": "string"
+        },
+        "condition": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "technicians": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of technicians on site"
+    },
+    "engineers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of engineers on site"
+    },
+    "subcontractors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of subcontractors on site"
+    },
+    "visitors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Site visitors log"
+    },
+    "equipment_used": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Equipment used on site today"
+    },
+    "materials_delivered": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "material": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "supplier": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Materials delivered today"
+    },
+    "safety_observations": {
+      "type": "string",
+      "description": "Safety incidents, hazards, or observations"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Photo URLs from site"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Daily notes and observations"
+    },
+    "work_performed": {
+      "type": "string",
+      "description": "Work performed today"
+    },
+    "issues": {
+      "type": "string",
+      "description": "Issues or problems encountered"
+    }
+  },
+  "required": [
+    "project_id",
+    "date"
+  ]
+}

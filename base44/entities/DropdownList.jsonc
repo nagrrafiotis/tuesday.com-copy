@@ -1,0 +1,28 @@
+{
+  "name": "DropdownList",
+  "type": "object",
+  "properties": {
+    "list_name": {
+      "type": "string",
+      "description": "Name of the list (units, expense_categories, etc.)"
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of options"
+    },
+    "colors": {
+      "type": "object",
+      "description": "Color mapping for each option",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "list_name",
+    "options"
+  ]
+}

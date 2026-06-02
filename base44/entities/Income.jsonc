@@ -1,0 +1,48 @@
+{
+  "name": "Income",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "Associated project ID"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source of income (client, investor, etc.)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of the income"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Income date"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Income amount"
+    },
+    "payment_source": {
+      "type": "string",
+      "description": "Payment source (bank account, cash, etc.)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "sales",
+        "investment",
+        "rental",
+        "other"
+      ],
+      "default": "sales",
+      "description": "Income category"
+    }
+  },
+  "required": [
+    "project_id",
+    "source",
+    "amount",
+    "date"
+  ]
+}

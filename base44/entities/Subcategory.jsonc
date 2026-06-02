@@ -1,0 +1,17 @@
+{
+  "name": "Subcategory",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Subcategory name"
+    },
+    "phase_id": {
+      "type": "string",
+      "description": "Associated project phase ID"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

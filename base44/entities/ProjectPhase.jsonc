@@ -1,0 +1,23 @@
+{
+  "name": "ProjectPhase",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Phase name (e.g., Foundation, Structure, Finishing)"
+    },
+    "order": {
+      "type": "number",
+      "description": "Display order of the phase"
+    },
+    "color": {
+      "type": "string",
+      "description": "Phase color for visualization",
+      "default": "bg-blue-100 text-blue-700"
+    }
+  },
+  "required": [
+    "name",
+    "order"
+  ]
+}

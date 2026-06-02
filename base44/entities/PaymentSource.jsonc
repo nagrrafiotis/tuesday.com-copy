@@ -1,0 +1,13 @@
+{
+  "name": "PaymentSource",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Payment source name (e.g., Bank 01, Cash, Bank 02)"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

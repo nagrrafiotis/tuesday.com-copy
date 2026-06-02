@@ -1,0 +1,173 @@
+{
+  "name": "Board",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Board title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Board description"
+    },
+    "color": {
+      "type": "string",
+      "default": "#0073EA",
+      "description": "Board accent color"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "private",
+        "shared"
+      ],
+      "default": "private",
+      "description": "Board visibility setting"
+    },
+    "view_type": {
+      "type": "string",
+      "enum": [
+        "table",
+        "kanban",
+        "calendar"
+      ],
+      "default": "table",
+      "description": "Current view type"
+    },
+    "columns": {
+      "type": "array",
+      "description": "Global board column definitions (can be overridden per group)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "status",
+              "date",
+              "people",
+              "number",
+              "budget",
+              "priority",
+              "checkbox",
+              "dropdown"
+            ]
+          },
+          "width": {
+            "type": "number",
+            "default": 150
+          },
+          "options": {
+            "type": "object",
+            "description": "Column-specific options"
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "description": "Board groups/sections",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "collapsed": {
+            "type": "boolean",
+            "default": false
+          },
+          "visible_columns": {
+            "type": "array",
+            "description": "Column IDs that are visible in this group",
+            "items": {
+              "type": "string"
+            }
+          },
+          "custom_columns": {
+            "type": "array",
+            "description": "Custom columns specific to this group",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "text",
+                    "status",
+                    "date",
+                    "people",
+                    "number",
+                    "budget",
+                    "priority",
+                    "checkbox",
+                    "dropdown"
+                  ]
+                },
+                "width": {
+                  "type": "number",
+                  "default": 150
+                },
+                "options": {
+                  "type": "object",
+                  "description": "Column-specific options"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "visibility": "shared"
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

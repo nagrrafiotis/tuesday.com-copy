@@ -360,6 +360,12 @@ export default function ExpenseImporter() {
     else setSelected(pendingIndices);
   };
 
+  const handleBulkCategoryChange = (category) => {
+    setItems((prev) => prev.map((item, i) =>
+      selected.includes(i) && !item.imported ? { ...item, category } : item
+    ));
+  };
+
   const handleImportSelected = async () => {
     const toProcess = selected.filter((i) => !items[i]?.imported);
     if (!toProcess.length) return;
@@ -443,7 +449,7 @@ export default function ExpenseImporter() {
               <p className="text-xs text-gray-400">{fileName}</p>
               <Progress value={STEPS[stepIndex]?.pct || 10} className="h-1.5" />
             </div>
-            <p className="text-xs text-gray-400 italic">Χρησιμοποιείται Claude AI για ακριβή ανάλυση</p>
+            <p className="text-xs text-gray-400 italic">Ανάλυση εγγράφου με AI...</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3">
@@ -534,6 +540,26 @@ export default function ExpenseImporter() {
               </Button>
             </div>
           </div>
+
+          {/* Bulk category change toolbar — visible when 2+ pending selected */}
+          {selectedPending.length >= 2 && (
+            <div className="bg-[#1e3a5f]/5 border border-[#1e3a5f]/20 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
+              <span className="text-sm font-medium text-[#1e3a5f]">
+                Μαζική αλλαγή κατηγορίας για {selectedPending.length} επιλεγμένες:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORY_OPTIONS.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => handleBulkCategoryChange(cat)}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-[#1e3a5f]/30 bg-white hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] transition-all font-medium"
+                  >
+                    {CATEGORY_LABELS[cat]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Confidence legend */}
           <div className="flex items-center gap-4 text-xs text-gray-400 px-1">
