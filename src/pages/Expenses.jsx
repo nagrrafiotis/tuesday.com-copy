@@ -833,6 +833,73 @@ export default function Expenses() {
                 onEdit={(income) => { setEditingIncome(income); setShowIncomeForm(true); }}
                 onUpdate={handleIncomeInlineUpdate} onDelete={handleIncomeDelete}
                 onViewContact={(contact) => setViewingContact(contact)} />
+
+              {/* Income Invoices Section */}
+              {(() => {
+                const incomeInvoices = invoices.filter(inv =>
+                  inv.type === "income" &&
+                  (incomeProjectFilter === "all" || inv.project_id === incomeProjectFilter)
+                );
+                if (incomeInvoices.length === 0) return null;
+                return (
+                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-emerald-600" />
+                        <span className="font-semibold text-gray-800">Τιμολόγια Εισοδήματος</span>
+                        <span className="text-xs bg-emerald-50 text-emerald-700 rounded-full px-2 py-0.5 font-medium">{incomeInvoices.length}</span>
+                      </div>
+                      <span className="text-sm text-gray-500">από Invoice Scanner</span>
+                    </div>
+                    <div className="overflow-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50/50">
+                          <tr>
+                            <th className="text-left px-4 py-3 text-gray-500 font-medium">Ημ/νία</th>
+                            <th className="text-left px-4 py-3 text-gray-500 font-medium">Αρ. Τιμολογίου</th>
+                            <th className="text-left px-4 py-3 text-gray-500 font-medium">Πελάτης</th>
+                            {incomeProjectFilter === "all" && <th className="text-left px-4 py-3 text-gray-500 font-medium">Έργο</th>}
+                            <th className="text-left px-4 py-3 text-gray-500 font-medium">Κατηγορία</th>
+                            <th className="text-left px-4 py-3 text-gray-500 font-medium">Κατάσταση</th>
+                            <th className="text-right px-4 py-3 text-gray-500 font-medium">Ποσό</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {incomeInvoices.map((inv, idx) => (
+                            <tr key={inv.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors">
+                              <td className="px-4 py-3 text-gray-600">{inv.date ? safeFormatDate(inv.date, "dd/MM/yy") : "—"}</td>
+                              <td className="px-4 py-3 text-gray-700 font-medium">{inv.invoice_number || "—"}</td>
+                              <td className="px-4 py-3 text-gray-900">{inv.vendor_client || "—"}</td>
+                              {incomeProjectFilter === "all" && (
+                                <td className="px-4 py-3 text-gray-600">{projects.find(p => p.id === inv.project_id)?.name || "—"}</td>
+                              )}
+                              <td className="px-4 py-3">
+                                {inv.category ? (
+                                  <span className="text-xs bg-blue-50 text-blue-700 rounded-full px-2 py-0.5">{inv.category}</span>
+                                ) : "—"}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`text-xs rounded-full px-2 py-0.5 ${inv.status === "transferred" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                                  {inv.status === "transferred" ? "Μεταφέρθηκε" : "Αναμονή"}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-right font-semibold text-emerald-600">{formatCurrency(inv.total_amount)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t-2 border-gray-200 bg-gray-50">
+                            <td colSpan={incomeProjectFilter === "all" ? 6 : 5} className="px-4 py-3 text-right font-bold text-gray-700">Σύνολο</td>
+                            <td className="px-4 py-3 text-right font-bold text-emerald-600 text-base">
+                              {formatCurrency(incomeInvoices.reduce((s, inv) => s + (inv.total_amount || 0), 0))}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
           </div>
         )}
       </div>
