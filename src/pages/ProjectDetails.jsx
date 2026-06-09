@@ -21,6 +21,7 @@ import {
   ArrowLeft, MapPin, Calendar, DollarSign, Pencil, Plus,
   Building2, ClipboardList, BarChart3,
 } from "lucide-react";
+import ProjectPDFReport from "@/components/project/ProjectPDFReport";
 import { format } from "date-fns";
 import SaveIndicator from "@/components/ui/SaveIndicator";
 
@@ -80,6 +81,12 @@ export default function ProjectDetails() {
   const { data: projectInvoices = [] } = useQuery({
     queryKey: ["invoices", projectId],
     queryFn: () => base44.entities.Invoice.filter({ project_id: projectId }),
+    enabled: !!projectId,
+  });
+
+  const { data: projectIncomes = [] } = useQuery({
+    queryKey: ["incomes", projectId],
+    queryFn: () => base44.entities.Income.filter({ project_id: projectId }),
     enabled: !!projectId,
   });
 
@@ -381,7 +388,14 @@ export default function ProjectDetails() {
                 </TabsList>
               </div>
 
-              <div className="shrink-0">
+              <div className="shrink-0 flex gap-2">
+                <ProjectPDFReport
+                  project={project}
+                  expenses={expenses}
+                  invoices={projectInvoices}
+                  incomes={projectIncomes}
+                  budgetItems={budgetItems}
+                />
                 {activeTab === "board" && (
                   <Button onClick={() => { setEditingTask(null); setShowTaskForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45] w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" /> Add Task

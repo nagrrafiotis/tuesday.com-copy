@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
+import * as XLSX from "xlsx";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { applyRules } from "@/lib/categoryRules";
@@ -37,6 +38,60 @@ const CATEGORY_LABELS = {
 };
 
 const ACCEPTED_TYPES = ".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg";
+
+// Parse CSV/Excel locally without AI
+function parseSpreadsheet(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array", cellDates: true });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      resolve(rows);
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+const SPREADSHEET_EXTS = ["xls", "xlsx", "csv"];
+
+// Map common column header variations to our fields
+function normalizeRow(row) {
+  const keys = Object.keys(row);
+  const find = (candidates) => {
+    const k = keys.find(k => candidates.some(c => k.toLowerCase().includes(c)));
+    return k ? row[k] : "";
+  };
+  const rawDate = find(["ημερομ", "date", "ημ/"]);
+  let date = "";
+  if (rawDate instanceof Date) {
+    date = rawDate.toISOString().split("T")[0];
+  } else if (rawDate) {
+    // Try to parse dd/mm/yyyy or similar
+    const s = String(rawDate).trim();
+    const parts = s.split(/[/\-\.]/);
+    if (parts.length === 3) {
+      const [a, b, c] = parts;
+      if (c.length === 4) date = `${c}-${b.padStart(2,"0")}-${a.padStart(2,"0")}`;
+      else if (a.length === 4) date = `${a}-${b.padStart(2,"0")}-${c.padStart(2,"0")}`;
+      else date = s;
+    } else date = s;
+  }
+  const amountRaw = find(["ποσό", "amount", "αξία", "χρεω", "debit", "credit", "κόστ"]);
+  const amountStr = String(amountRaw).replace(/[€$\s]/g, "").replace(",", ".");
+  const amount = parseFloat(amountStr) || 0;
+  return {
+    date,
+    payee: String(find(["δικαιούχ", "payee", "vendor", "αντισυμβ", "προμηθ", "επωνυμ", "counterpart"])).trim(),
+    description: String(find(["περιγ", "descr", "αιτ", "σχόλ", "comment", "note", "details"])).trim(),
+    amount: Math.abs(amount),
+    category: String(find(["κατηγορ", "category", "τύπος", "type"])).trim().toLowerCase(),
+    subcategory: String(find(["υποκατ", "subcateg", "φάση", "phase"])).trim(),
+    payment_source: String(find(["πηγή", "τράπ", "bank", "payment_source", "λογαρ", "account"])).trim(),
+  };
+}
 
 function FileTypeIcon({ name }) {
   const ext = name?.split(".").pop()?.toLowerCase();
@@ -231,27 +286,55 @@ export default function ExpenseImporter() {
   });
 
   const processFile = async (file) => {
+    const ext = file.name.split(".").pop()?.toLowerCase();
     setFileName(file.name);
     setExtracting(true);
     setItems([]);
     setSelected([]);
     setAiNotes("");
 
-    // Step 1: upload
+    const defaultProjectId = projects.length === 1 ? projects[0].id : "";
+    const today = new Date().toISOString().split("T")[0];
+
+    // ── CSV / Excel: parse locally, no AI needed ──
+    if (SPREADSHEET_EXTS.includes(ext)) {
+      setStepIndex(0);
+      const rows = await parseSpreadsheet(file);
+      setStepIndex(3);
+      const mapped = rows
+        .map(normalizeRow)
+        .filter(r => r.amount > 0) // skip empty/header rows
+        .map((row) => {
+          const ruleMatch = applyRules(`${row.description} ${row.payee}`, categoryRules);
+          return {
+            ...row,
+            date: row.date || today,
+            project_id: defaultProjectId,
+            category: ruleMatch?.category || (CATEGORY_OPTIONS.includes(row.category) ? row.category : "general_expenses"),
+            subcategory: ruleMatch?.subcategory || row.subcategory || "",
+            confidence: "high",
+            imported: false,
+            error: null,
+          };
+        });
+      setItems(mapped);
+      setSelected(mapped.map((_, i) => i));
+      setAiNotes(`Εντοπίστηκαν ${mapped.length} εγγραφές από ${file.name} (τοπική ανάλυση, χωρίς AI).`);
+      setExtracting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    // ── PDF / Image / Word: AI extraction ──
     setStepIndex(0);
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-    // Step 2: analyze
     setStepIndex(1);
-
     const projectList = projects.map(p => `- ${p.name} (id: ${p.id})`).join("\n");
     const subcatList = subcategories.map(s => s.name).join(", ");
     const paymentSourceList = paymentSources.map(ps => ps.name).join(", ");
-    const today = new Date().toISOString().split("T")[0];
 
-    // Step 3: extract with high-quality model
     setStepIndex(2);
-
     const result = await base44.integrations.Core.InvokeLLM({
       prompt: `Αναλύσε το αρχείο και εξήγαγε ΟΛΑ τα επιμέρους έξοδα/πληρωμές.
 
@@ -263,7 +346,7 @@ export default function ExpenseImporter() {
 - date: YYYY-MM-DD (αν δεν βρεις: ${today})
 - payee: όνομα προμηθευτή
 - description: σύντομη περιγραφή
-- amount: θετικός αριθμός (χωρίς ΦΠΑ αν αναφέρεται χωριστά)
+- amount: θετικός αριθμός
 - category: labor | subcontractor | materials | equipment | general_expenses
 - subcategory: από τις διαθέσιμες αν ταιριάζει
 - payment_source: από τις διαθέσιμες αν ταιριάζει
@@ -298,16 +381,12 @@ export default function ExpenseImporter() {
       },
     });
 
-    // Step 4: process
     setStepIndex(3);
-
     const extracted = result?.expenses || [];
     if (result?.notes) setAiNotes(result.notes);
 
-    const defaultProjectId = projects.length === 1 ? projects[0].id : "";
     const mapped = extracted.map((row) => {
       const suggestedProject = projects.find(p => p.id === row.suggested_project_id);
-      // Apply local category rules on top of AI suggestion
       const ruleMatch = applyRules(`${row.description || ""} ${row.payee || ""}`, categoryRules);
       return {
         ...row,
@@ -322,7 +401,6 @@ export default function ExpenseImporter() {
     });
 
     setItems(mapped);
-    // Auto-select high/medium confidence only
     setSelected(mapped.map((_, i) => i).filter(i => mapped[i].confidence !== "low"));
     setExtracting(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
