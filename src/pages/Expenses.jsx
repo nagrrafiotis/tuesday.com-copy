@@ -11,6 +11,8 @@ import IncomeSummary from "@/components/income/IncomeSummary";
 import ContactCard from "@/components/contacts/ContactCard.jsx";
 import ContactForm from "@/components/contacts/ContactForm.jsx";
 import ExpenseImporter from "@/components/expenses/ExpenseImporter";
+import CsvImportWizard from "@/components/expenses/CsvImportWizard";
+import CategoryRulesManager from "@/components/settings/CategoryRulesManager";
 import ScanInvoiceDialog from "@/components/invoices/ScanInvoiceDialog";
 import EditInvoiceDialog from "@/components/invoices/EditInvoiceDialog";
 import TransferInvoiceDialog from "@/components/invoices/TransferInvoiceDialog";
@@ -590,7 +592,8 @@ export default function Expenses() {
           {[
             { key: "expenses", label: "Expenses" },
             { key: "income", label: "Income" },
-            { key: "importing", label: "📥 Expense Importing" },
+            { key: "csv_import", label: "📥 Εισαγωγή CSV/Excel" },
+            { key: "rules", label: "⚡ Κανόνες Κατηγοριοποίησης" },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
@@ -786,10 +789,23 @@ export default function Expenses() {
           </div>
         )}
 
-        {/* Importing Tab */}
-        {activeTab === "importing" && (
-          <div className="max-w-6xl mx-auto px-2">
-            <ExpenseImporter />
+        {/* CSV Import Wizard Tab */}
+        {activeTab === "csv_import" && (
+          <div className="max-w-4xl mx-auto px-2">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-[#1e3a5f]">Εισαγωγή από CSV / Excel</h2>
+                <p className="text-sm text-gray-500 mt-1">Ανέβασε το αρχείο σου, αντιστοίχισε τις στήλες και εισήγαγε τα έξοδα απευθείας — χωρίς AI.</p>
+              </div>
+              <CsvImportWizard onDone={() => setActiveTab("expenses")} />
+            </div>
+          </div>
+        )}
+
+        {/* Rules Tab */}
+        {activeTab === "rules" && (
+          <div className="max-w-3xl mx-auto px-2">
+            <CategoryRulesManager />
           </div>
         )}
 
