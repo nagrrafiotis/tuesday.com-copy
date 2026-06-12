@@ -457,17 +457,21 @@ export default function ExpenseImporter() {
       if (!item.payee?.trim()) { newItems[idx] = { ...item, error: "Απαιτείται δικαιούχος" }; continue; }
       if (!item.amount || item.amount <= 0) { newItems[idx] = { ...item, error: "Απαιτείται έγκυρο ποσό" }; continue; }
 
-      await createMutation.mutateAsync({
-        project_id: item.project_id,
-        category: item.category || "general_expenses",
-        subcategory: item.subcategory || "",
-        payee: item.payee,
-        description: item.description || "",
-        date: item.date || today,
-        amount: item.amount,
-        payment_source: item.payment_source || "",
-      });
-      newItems[idx] = { ...item, imported: true };
+      try {
+        await createMutation.mutateAsync({
+          project_id: item.project_id,
+          category: item.category || "general_expenses",
+          subcategory: item.subcategory || "",
+          payee: item.payee,
+          description: item.description || "",
+          date: item.date || today,
+          amount: item.amount,
+          payment_source: item.payment_source || "",
+        });
+        newItems[idx] = { ...item, imported: true, error: null };
+      } catch (err) {
+        newItems[idx] = { ...item, error: err?.message || "Σφάλμα κατά την αποθήκευση" };
+      }
     }
 
     setItems(newItems);
@@ -480,12 +484,12 @@ export default function ExpenseImporter() {
     setSelected((prev) => prev.filter((i) => i !== index).map((i) => (i > index ? i - 1 : i)));
   };
 
+  const today = new Date().toISOString().split("T")[0];
   const importedCount = items.filter((i) => i.imported).length;
   const pendingCount = items.filter((i) => !i.imported).length;
   const selectedPending = selected.filter((i) => !items[i]?.imported);
   const errorCount = items.filter(i => i.error).length;
   const lowConfidenceCount = items.filter(i => i.confidence === "low" && !i.imported).length;
-  const today = new Date().toISOString().split("T")[0];
 
   return (
     <div className="space-y-6">
