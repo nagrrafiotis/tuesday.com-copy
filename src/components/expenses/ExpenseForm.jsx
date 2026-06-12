@@ -23,6 +23,7 @@ import { format } from "date-fns";
 import { CalendarIcon, Users, Wrench, Package, Truck, Receipt, Plus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { applyRules } from "@/lib/categoryRules";
 
 const categoryIcons = {
   labor: Users,
@@ -96,6 +97,13 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
     enabled: open,
   });
 
+  const { data: categoryRules = [] } = useQuery({
+    queryKey: ["category-rules"],
+    queryFn: () => base44.entities.CategoryRule.list("-priority"),
+    enabled: open,
+    staleTime: 60000,
+  });
+
   const expenseCategoriesList = lists.find(l => l.list_name === "expense_categories");
   const categories = (expenseCategoriesList?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"]).map(cat => ({
     value: cat,
@@ -134,6 +142,19 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
   });
   
   const filteredSubcategories = subcategories;
+
+  // Auto-categorize when payee or description changes
+  const handlePayeeOrDescriptionChange = (field, value) => {
+    const updated = { ...formData, [field]: value };
+    // Only auto-categorize if user hasn't manually set a non-default category
+    const text = `${field === "payee" ? value : updated.payee} ${field === "description" ? value : updated.description}`;
+    const match = applyRules(text, categoryRules);
+    if (match) {
+      updated.category = match.category;
+      if (match.subcategory) updated.subcategory = match.subcategory;
+    }
+    setFormData(updated);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -272,7 +293,7 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
               <div className="flex gap-2 mt-1.5">
                 <SearchableSelect
                   value={formData.payee}
-                  onValueChange={(v) => setFormData({ ...formData, payee: v })}
+                  onValueChange={(v) => handlePayeeOrDescriptionChange("payee", v)}
                   items={contacts.map(c => ({ 
                     value: c.name, 
                     label: c.name,
@@ -331,7 +352,7 @@ export default function ExpenseForm({ expense, projectId, projects = [], open, o
             <Label>Description</Label>
             <Textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) => handlePayeeOrDescriptionChange("description", e.target.value)}
               placeholder="Brief description of the expense..."
               className="mt-1.5"
             />

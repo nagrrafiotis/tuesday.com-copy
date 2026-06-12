@@ -6,6 +6,7 @@ import { createPageUrl } from "@/utils";
 import { motion } from "framer-motion";
 import StatsCard from "@/components/dashboard/StatsCard";
 import ProjectBudgetReport from "@/components/dashboard/ProjectBudgetReport";
+import IncomeVsExpensesChart from "@/components/dashboard/IncomeVsExpensesChart";
 import ProjectCard from "@/components/projects/ProjectCard";
 import TaskCard from "@/components/tasks/TaskCard";
 import { 
@@ -117,6 +118,11 @@ export default function Dashboard() {
         {/* Budget Report */}
         <div className="mb-8">
           <ProjectBudgetReport />
+        </div>
+
+        {/* Income vs Expenses Chart */}
+        <div className="mb-8">
+          <IncomeVsExpensesChart />
         </div>
 
         {/* All Projects */}
