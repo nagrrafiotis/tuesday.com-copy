@@ -453,9 +453,9 @@ export default function ExpenseImporter() {
 
     for (const idx of toProcess) {
       const item = newItems[idx];
-      if (!item.project_id) { newItems[idx] = { ...item, error: "Επιλέξτε έργο" }; continue; }
-      if (!item.payee?.trim()) { newItems[idx] = { ...item, error: "Απαιτείται δικαιούχος" }; continue; }
-      if (!item.amount || item.amount <= 0) { newItems[idx] = { ...item, error: "Απαιτείται έγκυρο ποσό" }; continue; }
+      if (!item.project_id) { newItems[idx] = { ...item, error: "Επιλέξτε έργο" }; setItems([...newItems]); continue; }
+      if (!item.payee?.trim()) { newItems[idx] = { ...item, error: "Απαιτείται δικαιούχος" }; setItems([...newItems]); continue; }
+      if (!item.amount || item.amount <= 0) { newItems[idx] = { ...item, error: "Απαιτείται έγκυρο ποσό" }; setItems([...newItems]); continue; }
 
       try {
         await createMutation.mutateAsync({
@@ -474,9 +474,17 @@ export default function ExpenseImporter() {
       }
     }
 
-    setItems(newItems);
+    setItems([...newItems]);
     setSelected([]);
     setImportingSelected(false);
+
+    const successCount = newItems.filter(i => i.imported).length;
+    const failCount = newItems.filter(i => i.error).length;
+    console.log(`Import done: ${successCount} success, ${failCount} failed`);
+    if (failCount > 0) {
+      const sample = newItems.filter(i => i.error).slice(0, 3);
+      console.log("Sample errors:", sample.map(i => ({ payee: i.payee, project_id: i.project_id, amount: i.amount, error: i.error })));
+    }
   };
 
   const handleRemoveItem = (index) => {
@@ -570,6 +578,26 @@ export default function ExpenseImporter() {
       {/* Results */}
       {items.length > 0 && (
         <div className="space-y-4">
+          {/* Global project assignment */}
+          {items.some(i => !i.project_id && !i.imported) && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span className="text-sm text-amber-800 font-medium">
+                {items.filter(i => !i.project_id && !i.imported).length} εγγραφές χωρίς έργο — εφάρμοσε σε όλες:
+              </span>
+              <Select onValueChange={(v) => setItems(prev => prev.map(i => (!i.project_id && !i.imported) ? { ...i, project_id: v } : i))}>
+                <SelectTrigger className="w-56 h-8 text-sm border-amber-300">
+                  <SelectValue placeholder="Επιλογή έργου..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Summary bar */}
           <div className="bg-white rounded-xl border border-gray-200 px-5 py-3 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-4 flex-wrap">
