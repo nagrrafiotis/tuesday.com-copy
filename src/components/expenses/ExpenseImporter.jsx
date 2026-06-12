@@ -627,6 +627,22 @@ export default function ExpenseImporter() {
             </div>
 
             <div className="flex gap-2">
+              {items.some(i => i.error) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                  onClick={() => {
+                    const errorIndices = items.map((item, i) => item.error ? i : -1).filter(i => i >= 0);
+                    // Clear errors so they can be retried
+                    setItems(prev => prev.map(item => item.error ? { ...item, error: null } : item));
+                    setSelected(errorIndices);
+                  }}
+                >
+                  <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                  Επιλογή αποτυχημένων ({items.filter(i => i.error).length})
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
