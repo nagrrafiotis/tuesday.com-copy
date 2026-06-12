@@ -58,7 +58,7 @@ export default function ProjectBudgetReport() {
       (inv) => inv.project_id === project.id && inv.type === "expense"
     );
     const projectInvoiceIncomes = invoices.filter(
-      (inv) => inv.project_id === project.id && inv.type === "income"
+      (inv) => inv.project_id === project.id && inv.type === "income" && inv.status === "transferred"
     );
 
     const totalExpenses =
