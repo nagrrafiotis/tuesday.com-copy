@@ -451,40 +451,55 @@ export default function ExpenseImporter() {
     setImportingSelected(true);
     const newItems = [...items];
 
+    // Validate first pass
     for (const idx of toProcess) {
       const item = newItems[idx];
-      if (!item.project_id) { newItems[idx] = { ...item, error: "Επιλέξτε έργο" }; setItems([...newItems]); continue; }
-      if (!item.payee?.trim()) { newItems[idx] = { ...item, error: "Απαιτείται δικαιούχος" }; setItems([...newItems]); continue; }
-      if (!item.amount || item.amount <= 0) { newItems[idx] = { ...item, error: "Απαιτείται έγκυρο ποσό" }; setItems([...newItems]); continue; }
+      if (!item.project_id) { newItems[idx] = { ...item, error: "Επιλέξτε έργο" }; continue; }
+      if (!item.payee?.trim()) { newItems[idx] = { ...item, error: "Απαιτείται δικαιούχος" }; continue; }
+      if (!item.amount || item.amount <= 0) { newItems[idx] = { ...item, error: "Απαιτείται έγκυρο ποσό" }; continue; }
+    }
 
-      try {
-        await createMutation.mutateAsync({
-          project_id: item.project_id,
-          category: item.category || "general_expenses",
-          subcategory: item.subcategory || "",
-          payee: item.payee,
-          description: item.description || "",
-          date: item.date || today,
-          amount: item.amount,
-          payment_source: item.payment_source || "",
-        });
-        newItems[idx] = { ...item, imported: true, error: null };
-      } catch (err) {
-        newItems[idx] = { ...item, error: err?.message || "Σφάλμα κατά την αποθήκευση" };
+    const validIndices = toProcess.filter(idx => !newItems[idx].error);
+
+    // Process in batches of 5 with a small delay to avoid rate limits
+    const BATCH_SIZE = 5;
+    const BATCH_DELAY_MS = 300;
+
+    for (let b = 0; b < validIndices.length; b += BATCH_SIZE) {
+      const batch = validIndices.slice(b, b + BATCH_SIZE);
+
+      await Promise.all(batch.map(async (idx) => {
+        const item = newItems[idx];
+        try {
+          await base44.entities.Expense.create({
+            project_id: item.project_id,
+            category: item.category || "general_expenses",
+            subcategory: item.subcategory || "",
+            payee: item.payee,
+            description: item.description || "",
+            date: item.date || today,
+            amount: item.amount,
+            payment_source: item.payment_source || "",
+          });
+          newItems[idx] = { ...item, imported: true, error: null };
+        } catch (err) {
+          newItems[idx] = { ...item, error: err?.message || "Σφάλμα κατά την αποθήκευση" };
+        }
+      }));
+
+      // Update UI after each batch
+      setItems([...newItems]);
+
+      // Pause between batches (skip delay after the last one)
+      if (b + BATCH_SIZE < validIndices.length) {
+        await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
       }
     }
 
+    queryClient.invalidateQueries({ queryKey: ["expenses"] });
     setItems([...newItems]);
     setSelected([]);
     setImportingSelected(false);
-
-    const successCount = newItems.filter(i => i.imported).length;
-    const failCount = newItems.filter(i => i.error).length;
-    console.log(`Import done: ${successCount} success, ${failCount} failed`);
-    if (failCount > 0) {
-      const sample = newItems.filter(i => i.error).slice(0, 3);
-      console.log("Sample errors:", sample.map(i => ({ payee: i.payee, project_id: i.project_id, amount: i.amount, error: i.error })));
-    }
   };
 
   const handleRemoveItem = (index) => {
