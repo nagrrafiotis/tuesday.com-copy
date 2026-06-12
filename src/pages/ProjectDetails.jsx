@@ -425,6 +425,73 @@ export default function ProjectDetails() {
 
             <TabsContent value="expenses">
               <ExpenseSummaryBySubcategory expenses={expenses} invoices={projectInvoices} budgetItems={[]} />
+
+              {/* Income Summary */}
+              {(() => {
+                const incomeInvoices = projectInvoices.filter(inv => inv.type === "income");
+                const totalInvoiceIncome = incomeInvoices.reduce((s, inv) => s + (inv.total_amount || 0), 0);
+                const totalDirectIncome = projectIncomes.reduce((s, i) => s + (i.amount || 0), 0);
+                const totalIncome = totalInvoiceIncome + totalDirectIncome;
+                const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0)
+                  + projectInvoices.filter(inv => inv.type === "expense").reduce((s, inv) => s + (inv.total_amount || 0), 0);
+
+                if (totalIncome === 0 && projectIncomes.length === 0) return null;
+
+                const formatC = (v) => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(v || 0);
+
+                return (
+                  <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="bg-emerald-50 px-5 py-3 border-b border-emerald-100 flex items-center justify-between">
+                      <h3 className="font-semibold text-emerald-800">Έσοδα Έργου</h3>
+                      <span className="text-sm font-bold text-emerald-700">{formatC(totalIncome)}</span>
+                    </div>
+                    <div className="divide-y divide-gray-50">
+                      {incomeInvoices.map(inv => (
+                        <div key={inv.id} className="flex items-center justify-between px-5 py-2.5 text-sm hover:bg-gray-50">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs bg-blue-50 text-blue-700 rounded px-1.5 py-0.5">Τιμολόγιο</span>
+                            <span className="text-gray-800 font-medium">{inv.vendor_client || "—"}</span>
+                            {inv.invoice_number && <span className="text-gray-400 text-xs">#{inv.invoice_number}</span>}
+                            {inv.date && <span className="text-gray-400 text-xs">{inv.date?.slice(0, 10)}</span>}
+                            {inv.status === "transferred" && (
+                              <span className="text-xs bg-emerald-50 text-emerald-700 rounded px-1.5 py-0.5">Πληρωμένο</span>
+                            )}
+                          </div>
+                          <span className="font-semibold text-emerald-700 whitespace-nowrap">{formatC(inv.total_amount)}</span>
+                        </div>
+                      ))}
+                      {projectIncomes.map(inc => (
+                        <div key={inc.id} className="flex items-center justify-between px-5 py-2.5 text-sm hover:bg-gray-50">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs bg-gray-100 text-gray-600 rounded px-1.5 py-0.5">Έσοδο</span>
+                            <span className="text-gray-800 font-medium">{inc.source || inc.description || "—"}</span>
+                            {inc.date && <span className="text-gray-400 text-xs">{inc.date?.slice(0, 10)}</span>}
+                            {inc.category && <span className="text-gray-400 text-xs">{inc.category}</span>}
+                          </div>
+                          <span className="font-semibold text-emerald-700 whitespace-nowrap">{formatC(inc.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Balance summary */}
+                    <div className="bg-gray-50 border-t border-gray-200 px-5 py-3 flex flex-wrap gap-6 justify-end text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500">Σύνολο Εξόδων:</span>
+                        <span className="font-bold text-red-600">{formatC(totalExpenses)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500">Σύνολο Εσόδων:</span>
+                        <span className="font-bold text-emerald-600">{formatC(totalIncome)}</span>
+                      </div>
+                      <div className={`flex items-center gap-2 px-3 py-1 rounded-lg ${(totalIncome - totalExpenses) >= 0 ? "bg-emerald-100" : "bg-red-50"}`}>
+                        <span className="text-gray-700 font-medium">Καθαρό:</span>
+                        <span className={`font-bold text-base ${(totalIncome - totalExpenses) >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                          {formatC(totalIncome - totalExpenses)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </TabsContent>
 
             <TabsContent value="budget">
