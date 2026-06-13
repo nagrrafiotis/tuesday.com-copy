@@ -505,15 +505,24 @@ export default function ExpenseImporter() {
     setImportingSelected(false);
     if (!newItems.some(i => i.error)) setShowOnlyErrors(false);
 
-    // Collect failed items into the dedicated panel
+    // Collect failed items into the dedicated panel + persist to localStorage
     const failed = newItems.filter(i => i.error && !i.imported);
     if (failed.length > 0) {
       setFailedItems(prev => {
-        // Avoid duplicates by merging on payee+amount+date key
         const key = (i) => `${i.payee}|${i.amount}|${i.date}`;
         const existingKeys = new Set(prev.map(key));
         const newFailed = failed.filter(i => !existingKeys.has(key(i)));
-        return [...prev, ...newFailed];
+        const merged = [...prev, ...newFailed];
+        // Persist to localStorage for the FailedImports page
+        try {
+          const stored = JSON.parse(localStorage.getItem("failedImports_v1") || "[]");
+          const storedKeys = new Set(stored.map(key));
+          const toAdd = newFailed.filter(i => !storedKeys.has(key(i))).map(i => ({
+            ...i, _id: Math.random().toString(36).slice(2), expanded: true, done: false
+          }));
+          localStorage.setItem("failedImports_v1", JSON.stringify([...stored, ...toAdd]));
+        } catch {}
+        return merged;
       });
     }
   };

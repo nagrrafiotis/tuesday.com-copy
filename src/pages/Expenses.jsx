@@ -33,8 +33,10 @@ import {
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   Plus, Search, Download, Receipt, Upload, Trash2, RefreshCw, FileSpreadsheet, RotateCcw,
-  ScanLine, ChevronDown, ChevronUp, FileText, Loader2, X, ExternalLink, Users
+  ScanLine, ChevronDown, ChevronUp, FileText, Loader2, X, ExternalLink, Users, AlertCircle
 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 const formatCurrency = (v) =>
   new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(v || 0);
@@ -635,6 +637,13 @@ export default function Expenses() {
               {tab.label}
             </button>
           ))}
+          <Link
+            to={createPageUrl("FailedImports")}
+            className="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-red-500 hover:text-red-700 whitespace-nowrap flex items-center gap-1.5"
+          >
+            <AlertCircle className="w-3.5 h-3.5" />
+            Αποτυχημένες
+          </Link>
         </div>
 
         {/* Expenses Tab */}
