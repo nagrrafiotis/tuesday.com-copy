@@ -645,21 +645,38 @@ export default function ExpenseImporter() {
 
             <div className="flex gap-2">
               {items.some(i => i.error) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={showOnlyErrors
-                    ? "bg-red-50 text-red-600 border-red-400"
-                    : "text-red-600 border-red-300 hover:bg-red-50"}
-                  onClick={() => {
-                    const errorIndices = items.map((item, i) => item.error ? i : -1).filter(i => i >= 0);
-                    setSelected(errorIndices);
-                    setShowOnlyErrors(v => !v);
-                  }}
-                >
-                  <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
-                  {showOnlyErrors ? "Εμφάνιση όλων" : `Αποτυχημένες (${items.filter(i => i.error).length})`}
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={showOnlyErrors
+                      ? "bg-red-50 text-red-600 border-red-400"
+                      : "text-red-600 border-red-300 hover:bg-red-50"}
+                    onClick={() => {
+                      const errorIndices = items.map((item, i) => item.error ? i : -1).filter(i => i >= 0);
+                      setSelected(errorIndices);
+                      setShowOnlyErrors(v => !v);
+                    }}
+                  >
+                    <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                    {showOnlyErrors ? "Εμφάνιση όλων" : `Αποτυχημένες (${items.filter(i => i.error).length})`}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                    onClick={() => {
+                      const errorIndices = items.map((item, i) => item.error ? i : -1).filter(i => i >= 0);
+                      // Clear errors so they can be retried, and select them
+                      setItems(prev => prev.map((item, i) => item.error ? { ...item, error: null } : item));
+                      setSelected(errorIndices);
+                      setShowOnlyErrors(true);
+                    }}
+                  >
+                    <XCircle className="w-3.5 h-3.5 mr-1.5" />
+                    Retry αποτυχημένων
+                  </Button>
+                </>
               )}
               <Button
                 variant="outline"
