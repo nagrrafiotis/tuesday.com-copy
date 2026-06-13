@@ -33,7 +33,7 @@ import {
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   Plus, Search, Download, Receipt, Upload, Trash2, RefreshCw, FileSpreadsheet, RotateCcw,
-  ScanLine, ChevronDown, ChevronUp, FileText, Loader2, X
+  ScanLine, ChevronDown, ChevronUp, FileText, Loader2, X, ExternalLink, Users
 } from "lucide-react";
 
 const formatCurrency = (v) =>
@@ -76,6 +76,8 @@ export default function Expenses() {
   const [undoItem, setUndoItem] = useState(null);
   const undoTimerRef = useRef(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncingTeam, setSyncingTeam] = useState(false);
+  const [teamSheetUrl, setTeamSheetUrl] = useState(null);
   const [showSheetImport, setShowSheetImport] = useState(false);
   const [sheetUrl, setSheetUrl] = useState("");
   const [importing, setImporting] = useState(false);
@@ -458,6 +460,23 @@ export default function Expenses() {
     }
   };
 
+  const syncProjectsTeam = async () => {
+    setSyncingTeam(true);
+    try {
+      const result = await base44.functions.invoke('syncProjectsWithTeam', {});
+      if (result.data.success) {
+        setTeamSheetUrl(result.data.url);
+        const s = result.data.synced;
+        alert(`✅ Συγχρονισμός ολοκληρώθηκε!\n\nΈργα: ${s.projects}\nTasks: ${s.tasks}\nΈξοδα: ${s.expenses}\nΜισθοδοσία: ${s.payroll}\nΕπαφές: ${s.contacts}`);
+      } else {
+        alert('Σφάλμα κατά τον συγχρονισμό.');
+      }
+    } catch (error) {
+      alert(error.response?.data?.error || 'Σφάλμα συγχρονισμού.');
+    }
+    setSyncingTeam(false);
+  };
+
   const syncFromGoogleSheets = async () => {
     setSyncing(true);
     try {
@@ -554,6 +573,18 @@ export default function Expenses() {
                 <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
                 {syncing ? 'Syncing...' : 'Sync Backup'}
               </Button>
+              <div className="flex items-center gap-1">
+                <Button onClick={syncProjectsTeam} variant="outline" disabled={syncingTeam} className="border-emerald-600 text-emerald-700 hover:bg-emerald-600 hover:text-white">
+                  {syncingTeam ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Users className="w-4 h-4 mr-2" />}
+                  {syncingTeam ? 'Συγχρονισμός...' : 'Sync Έργα & Team'}
+                </Button>
+                {teamSheetUrl && (
+                  <a href={teamSheetUrl} target="_blank" rel="noopener noreferrer"
+                    className="p-2 rounded-md border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors" title="Άνοιγμα Google Sheet">
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                )}
+              </div>
               <Button onClick={() => setShowSheetImport(true)} variant="outline" className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
                 Import from Google Sheets
