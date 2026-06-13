@@ -163,7 +163,7 @@ export default function CategoryRulesManager() {
             <p className="text-xs mt-1">Προσθέστε κανόνες ή φορτώστε τις προεπιλογές.</p>
           </div>
         ) : (
-          <div className="space-y-1.5 max-h-80 overflow-y-auto">
+          <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
             {filteredRules.map(rule => {
               const catStyle = getCategoryStyle(rule.category);
               return (
@@ -173,7 +173,7 @@ export default function CategoryRulesManager() {
                   <span className="text-gray-300">→</span>
                   <Badge className={`${catStyle.color} border-0 text-xs shrink-0`}>{catStyle.label}</Badge>
                   {rule.subcategory && (
-                    <span className="text-xs text-gray-400 shrink-0 hidden sm:block">{rule.subcategory}</span>
+                    <span className="text-xs text-gray-400 shrink-0 max-w-[180px] truncate">{rule.subcategory}</span>
                   )}
                   <Button
                     variant="ghost"
