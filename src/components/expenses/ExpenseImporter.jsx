@@ -260,6 +260,7 @@ export default function ExpenseImporter() {
   const [dragOver, setDragOver] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [aiNotes, setAiNotes] = useState("");
+  const [showOnlyErrors, setShowOnlyErrors] = useState(false);
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
@@ -500,6 +501,7 @@ export default function ExpenseImporter() {
     setItems([...newItems]);
     setSelected([]);
     setImportingSelected(false);
+    if (!newItems.some(i => i.error)) setShowOnlyErrors(false);
   };
 
   const handleRemoveItem = (index) => {
@@ -646,16 +648,17 @@ export default function ExpenseImporter() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                  className={showOnlyErrors
+                    ? "bg-red-50 text-red-600 border-red-400"
+                    : "text-red-600 border-red-300 hover:bg-red-50"}
                   onClick={() => {
                     const errorIndices = items.map((item, i) => item.error ? i : -1).filter(i => i >= 0);
-                    // Clear errors so they can be retried
-                    setItems(prev => prev.map(item => item.error ? { ...item, error: null } : item));
                     setSelected(errorIndices);
+                    setShowOnlyErrors(v => !v);
                   }}
                 >
                   <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
-                  Επιλογή αποτυχημένων ({items.filter(i => i.error).length})
+                  {showOnlyErrors ? "Εμφάνιση όλων" : `Αποτυχημένες (${items.filter(i => i.error).length})`}
                 </Button>
               )}
               <Button
@@ -711,36 +714,43 @@ export default function ExpenseImporter() {
 
           {/* Items list */}
           <div className="space-y-3">
-            {items.map((item, index) => (
-              <div key={index} className="relative group">
-                {/* Confidence indicator */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${
-                  item.imported ? "bg-emerald-400" :
-                  item.confidence === "high" ? "bg-emerald-400" :
-                  item.confidence === "low" ? "bg-red-400" : "bg-amber-400"
-                }`} />
-                <div className="pl-2">
-                  <ExpenseRow
-                    item={item}
-                    index={index}
-                    projects={projects}
-                    paymentSources={paymentSources}
-                    subcategories={subcategories}
-                    onUpdate={handleUpdate}
-                    onToggle={handleToggle}
-                    selected={selected.includes(index)}
-                  />
+            {items.filter((item, index) => !showOnlyErrors || item.error).length === 0 && showOnlyErrors && (
+              <div className="text-center py-8 text-gray-400 text-sm">Δεν υπάρχουν αποτυχημένες εγγραφές.</div>
+            )}
+            {items.map((item, index) => {
+              if (showOnlyErrors && !item.error) return null;
+              return (
+                <div key={index} className="relative group">
+                  {/* Confidence indicator */}
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${
+                    item.imported ? "bg-emerald-400" :
+                    item.error ? "bg-red-500" :
+                    item.confidence === "high" ? "bg-emerald-400" :
+                    item.confidence === "low" ? "bg-red-400" : "bg-amber-400"
+                  }`} />
+                  <div className="pl-2">
+                    <ExpenseRow
+                      item={item}
+                      index={index}
+                      projects={projects}
+                      paymentSources={paymentSources}
+                      subcategories={subcategories}
+                      onUpdate={handleUpdate}
+                      onToggle={handleToggle}
+                      selected={selected.includes(index)}
+                    />
+                  </div>
+                  {!item.imported && (
+                    <button
+                      onClick={() => handleRemoveItem(index)}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all"
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
-                {!item.imported && (
-                  <button
-                    onClick={() => handleRemoveItem(index)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all"
-                  >
-                    <XCircle className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Total */}
