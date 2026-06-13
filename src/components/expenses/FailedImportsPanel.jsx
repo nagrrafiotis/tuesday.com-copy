@@ -65,8 +65,8 @@ export default function FailedImportsPanel({ failedItems, onUpdateItems, project
     setImporting(true);
     const validIndices = toProcess.filter(idx => !newItems[idx].error);
 
-    for (let b = 0; b < validIndices.length; b += 2) {
-      const batch = validIndices.slice(b, b + 2);
+    for (let b = 0; b < validIndices.length; b += 5) {
+      const batch = validIndices.slice(b, b + 5);
       await Promise.all(batch.map(async (idx) => {
         const item = newItems[idx];
         try {
@@ -86,7 +86,7 @@ export default function FailedImportsPanel({ failedItems, onUpdateItems, project
         }
       }));
       setItems([...newItems]);
-      if (b + 2 < validIndices.length) await new Promise(r => setTimeout(r, 800));
+      if (b + 5 < validIndices.length) await new Promise(r => setTimeout(r, 300));
     }
 
     queryClient.invalidateQueries({ queryKey: ["expenses"] });
