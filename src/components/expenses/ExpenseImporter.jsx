@@ -21,6 +21,7 @@ import {
   Sparkles, FileText, FileSpreadsheet, ChevronDown, ChevronUp,
   AlertCircle, Info,
 } from "lucide-react";
+import FailedImportsPanel from "./FailedImportsPanel";
 
 const formatCurrency = (v) =>
   new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(v || 0);
@@ -261,6 +262,7 @@ export default function ExpenseImporter() {
   const [stepIndex, setStepIndex] = useState(0);
   const [aiNotes, setAiNotes] = useState("");
   const [showOnlyErrors, setShowOnlyErrors] = useState(false);
+  const [failedItems, setFailedItems] = useState([]);
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
@@ -502,6 +504,18 @@ export default function ExpenseImporter() {
     setSelected([]);
     setImportingSelected(false);
     if (!newItems.some(i => i.error)) setShowOnlyErrors(false);
+
+    // Collect failed items into the dedicated panel
+    const failed = newItems.filter(i => i.error && !i.imported);
+    if (failed.length > 0) {
+      setFailedItems(prev => {
+        // Avoid duplicates by merging on payee+amount+date key
+        const key = (i) => `${i.payee}|${i.amount}|${i.date}`;
+        const existingKeys = new Set(prev.map(key));
+        const newFailed = failed.filter(i => !existingKeys.has(key(i)));
+        return [...prev, ...newFailed];
+      });
+    }
   };
 
   const handleRemoveItem = (index) => {
@@ -590,6 +604,20 @@ export default function ExpenseImporter() {
           <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
           <p className="text-sm text-amber-800">{aiNotes}</p>
         </div>
+      )}
+
+      {/* Failed Items Panel */}
+      {failedItems.length > 0 && (
+        <FailedImportsPanel
+          failedItems={failedItems}
+          onUpdateItems={(updated) => {
+            // Remove successfully imported items from the failed panel
+            setFailedItems(updated.filter(i => !i.done));
+          }}
+          projects={projects}
+          paymentSources={paymentSources}
+          subcategories={subcategories}
+        />
       )}
 
       {/* Results */}
@@ -682,7 +710,7 @@ export default function ExpenseImporter() {
                 variant="outline"
                 size="sm"
                 className="text-red-500 border-red-200 hover:bg-red-50"
-                onClick={() => { setItems([]); setSelected([]); setAiNotes(""); }}
+                onClick={() => { setItems([]); setSelected([]); setAiNotes(""); setFailedItems([]); }}
               >
                 <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                 Καθαρισμός
