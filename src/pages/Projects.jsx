@@ -98,6 +98,10 @@ export default function Projects() {
         case "updated": return new Date(b.updated_date || 0) - new Date(a.updated_date || 0);
         case "start_date": return new Date(b.start_date || 0) - new Date(a.start_date || 0);
         case "progress": return (b.progress || 0) - (a.progress || 0);
+        case "by_status": {
+          const statusOrder = { in_progress: 0, planning: 1, on_hold: 2, completed: 3 };
+          return (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+        }
         default: return 0;
       }
     });
@@ -236,6 +240,7 @@ export default function Projects() {
                   <SelectItem value="alpha_desc">Αλφαβητικά Ω→Α</SelectItem>
                   <SelectItem value="start_date">Ημ. έναρξης</SelectItem>
                   <SelectItem value="progress">Πρόοδος ↓</SelectItem>
+                  <SelectItem value="by_status">Ανά φάση (In Progress → Completed)</SelectItem>
                 </SelectContent>
               </Select>
 
