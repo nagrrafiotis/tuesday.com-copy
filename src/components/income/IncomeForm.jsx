@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus } from "lucide-react";
+import { CalendarIcon, Plus, Receipt } from "lucide-react";
 import { format } from "date-fns";
 
 export default function IncomeForm({ income, projects, open, onClose, onSubmit }) {
@@ -67,6 +67,24 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
 
   const incomeCategories = dropdownLists.find(l => l.list_name === "income_categories")?.options || ["sales", "investment", "rental", "other"];
 
+  const { data: invoices = [] } = useQuery({
+    queryKey: ["invoices"],
+    queryFn: () => base44.entities.Invoice.list("-created_date"),
+    enabled: open,
+  });
+
+  const projectInvoiceTotal = formData.project_id
+    ? invoices
+        .filter(inv => inv.project_id === formData.project_id && inv.type === "income")
+        .reduce((s, inv) => s + (inv.total_amount || 0), 0)
+    : 0;
+
+  const projectInvoiceCount = formData.project_id
+    ? invoices.filter(inv => inv.project_id === formData.project_id && inv.type === "income").length
+    : 0;
+
+  const fmt = (v) => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", maximumFractionDigits: 2 }).format(v || 0);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
@@ -90,7 +108,12 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
               <Label>Project *</Label>
               <Select
                 value={formData.project_id}
-                onValueChange={(value) => setFormData({ ...formData, project_id: value })}
+                onValueChange={(value) => {
+                  const invTotal = invoices
+                    .filter(inv => inv.project_id === value && inv.type === "income")
+                    .reduce((s, inv) => s + (inv.total_amount || 0), 0);
+                  setFormData({ ...formData, project_id: value, amount: invTotal > 0 ? invTotal : formData.amount });
+                }}
                 required
               >
                 <SelectTrigger className="mt-1.5">
@@ -105,6 +128,17 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
                 </SelectContent>
               </Select>
             </div>
+
+            {formData.project_id && projectInvoiceCount > 0 && (
+              <div className="col-span-2 flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                <Receipt className="w-4 h-4 text-blue-500 shrink-0" />
+                <div className="flex-1 text-sm">
+                  <span className="text-blue-700 font-medium">Project Installments (τιμολόγια εισοδήματος): </span>
+                  <span className="text-blue-900 font-bold">{fmt(projectInvoiceTotal)}</span>
+                  <span className="text-blue-500 ml-1">({projectInvoiceCount} τιμολόγια)</span>
+                </div>
+              </div>
+            )}
 
             <div>
               <Label>Category *</Label>
