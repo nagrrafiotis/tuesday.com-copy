@@ -54,20 +54,21 @@ export default function ProjectBudgetReport() {
   const projectSummaries = projects.map((project) => {
     const projectExpenses = expenses.filter((e) => e.project_id === project.id);
     const projectIncomes = incomes.filter((i) => i.project_id === project.id);
-    const projectInvoiceExpenses = invoices.filter(
-      (inv) => inv.project_id === project.id && inv.type === "expense"
+    // Only count pending (not yet transferred) invoices — transferred ones already exist as Expense/Income records
+    const projectPendingInvExpenses = invoices.filter(
+      (inv) => inv.project_id === project.id && inv.type === "expense" && inv.status !== "transferred"
     );
-    const projectInvoiceIncomes = invoices.filter(
-      (inv) => inv.project_id === project.id && inv.type === "income" && inv.status === "transferred"
+    const projectPendingInvIncomes = invoices.filter(
+      (inv) => inv.project_id === project.id && inv.type === "income" && inv.status !== "transferred"
     );
 
     const totalExpenses =
       projectExpenses.reduce((s, e) => s + (e.amount || 0), 0) +
-      projectInvoiceExpenses.reduce((s, i) => s + (i.total_amount || 0), 0);
+      projectPendingInvExpenses.reduce((s, i) => s + (i.total_amount || 0), 0);
 
     const totalIncomes =
       projectIncomes.reduce((s, i) => s + (i.amount || 0), 0) +
-      projectInvoiceIncomes.reduce((s, i) => s + (i.total_amount || 0), 0);
+      projectPendingInvIncomes.reduce((s, i) => s + (i.total_amount || 0), 0);
 
     const balance = totalIncomes - totalExpenses;
     const budget = project.budget || 0;

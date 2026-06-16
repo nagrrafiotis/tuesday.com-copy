@@ -60,11 +60,12 @@ export default function IncomeVsExpensesChart() {
     .map((project) => {
       const projExpenses = expenses.filter(e => e.project_id === project.id)
         .reduce((s, e) => s + (e.amount || 0), 0);
-      const projInvExpenses = invoices.filter(inv => inv.project_id === project.id && inv.type === "expense")
+      // Only count pending (not yet transferred) invoices — transferred ones already exist as Expense/Income records
+      const projInvExpenses = invoices.filter(inv => inv.project_id === project.id && inv.type === "expense" && inv.status !== "transferred")
         .reduce((s, inv) => s + (inv.total_amount || 0), 0);
       const projIncomes = incomes.filter(i => i.project_id === project.id)
         .reduce((s, i) => s + (i.amount || 0), 0);
-      const projInvIncomes = invoices.filter(inv => inv.project_id === project.id && inv.type === "income" && inv.status === "transferred")
+      const projInvIncomes = invoices.filter(inv => inv.project_id === project.id && inv.type === "income" && inv.status !== "transferred")
         .reduce((s, inv) => s + (inv.total_amount || 0), 0);
 
       const totalExpenses = projExpenses + projInvExpenses;
