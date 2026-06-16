@@ -84,6 +84,8 @@ export default function Expenses() {
   const [sheetUrl, setSheetUrl] = useState("");
   const [importing, setImporting] = useState(false);
 
+  const [generatingInstallments, setGeneratingInstallments] = useState(false);
+
   // --- Income state ---
   const [showIncomeForm, setShowIncomeForm] = useState(false);
   const [editingIncome, setEditingIncome] = useState(null);
@@ -153,6 +155,31 @@ export default function Expenses() {
       await Promise.all(selectedIncomes.map(id => deleteIncomeMutation.mutateAsync(id)));
       setSelectedIncomes([]);
     }
+  };
+
+  const handleGenerateProjectInstallments = async () => {
+    if (!window.confirm("Θα δημιουργηθούν αυτόματα εγγραφές εσόδου 'Project Installments Bank' για κάθε έργο, βάσει των τιμολογίων εξόδων. Συνέχεια;")) return;
+    setGeneratingInstallments(true);
+    // Sum expense invoices per project
+    const byProject = {};
+    for (const inv of invoices) {
+      if (inv.type !== "expense" || !inv.project_id) continue;
+      if (!byProject[inv.project_id]) byProject[inv.project_id] = 0;
+      byProject[inv.project_id] += inv.total_amount || 0;
+    }
+    const today = new Date().toISOString().split("T")[0];
+    const toCreate = Object.entries(byProject).filter(([, total]) => total > 0).map(([project_id, total]) => ({
+      project_id,
+      source: "Project Installments Bank",
+      description: "Project Installments Bank",
+      date: today,
+      amount: total,
+      category: "sales",
+    }));
+    await Promise.all(toCreate.map(d => base44.entities.Income.create(d)));
+    queryClient.invalidateQueries({ queryKey: ["incomes"] });
+    setGeneratingInstallments(false);
+    alert(`✅ Δημιουργήθηκαν ${toCreate.length} εγγραφές εσόδου Project Installments Bank.`);
   };
 
   const handleIncomeInlineUpdate = async (id, field, value) => {
@@ -611,6 +638,10 @@ export default function Expenses() {
             <div className="flex flex-wrap gap-2">
               <Button onClick={exportIncomeToCSV} variant="outline" disabled={filteredIncomes.length === 0} className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
                 <Download className="w-4 h-4 mr-2" />Export
+              </Button>
+              <Button onClick={handleGenerateProjectInstallments} variant="outline" disabled={generatingInstallments || invoices.length === 0} className="border-[#c9a962] text-[#c9a962] hover:bg-[#c9a962] hover:text-white">
+                {generatingInstallments ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Receipt className="w-4 h-4 mr-2" />}
+                Auto Project Installments
               </Button>
               <Button onClick={() => { setEditingIncome(null); setShowIncomeForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45]" disabled={projects.length === 0}>
                 <Plus className="w-4 h-4 mr-2" />Add Income
