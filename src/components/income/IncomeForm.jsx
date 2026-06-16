@@ -75,12 +75,12 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
 
   const projectInvoiceTotal = formData.project_id
     ? invoices
-        .filter(inv => inv.project_id === formData.project_id && inv.type === "income")
+        .filter(inv => inv.project_id === formData.project_id && inv.type === "expense")
         .reduce((s, inv) => s + (inv.total_amount || 0), 0)
     : 0;
 
   const projectInvoiceCount = formData.project_id
-    ? invoices.filter(inv => inv.project_id === formData.project_id && inv.type === "income").length
+    ? invoices.filter(inv => inv.project_id === formData.project_id && inv.type === "expense").length
     : 0;
 
   const fmt = (v) => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", maximumFractionDigits: 2 }).format(v || 0);
@@ -110,9 +110,14 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
                 value={formData.project_id}
                 onValueChange={(value) => {
                   const invTotal = invoices
-                    .filter(inv => inv.project_id === value && inv.type === "income")
+                    .filter(inv => inv.project_id === value && inv.type === "expense")
                     .reduce((s, inv) => s + (inv.total_amount || 0), 0);
-                  setFormData({ ...formData, project_id: value, amount: invTotal > 0 ? invTotal : formData.amount });
+                  setFormData({
+                    ...formData,
+                    project_id: value,
+                    amount: invTotal > 0 ? invTotal : formData.amount,
+                    source: invTotal > 0 ? "Project installments Bank" : formData.source,
+                  });
                 }}
                 required
               >
@@ -133,7 +138,7 @@ export default function IncomeForm({ income, projects, open, onClose, onSubmit }
               <div className="col-span-2 flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
                 <Receipt className="w-4 h-4 text-blue-500 shrink-0" />
                 <div className="flex-1 text-sm">
-                  <span className="text-blue-700 font-medium">Project Installments (τιμολόγια εισοδήματος): </span>
+                  <span className="text-blue-700 font-medium">Project Installments (τιμολόγια εξόδων): </span>
                   <span className="text-blue-900 font-bold">{fmt(projectInvoiceTotal)}</span>
                   <span className="text-blue-500 ml-1">({projectInvoiceCount} τιμολόγια)</span>
                 </div>
