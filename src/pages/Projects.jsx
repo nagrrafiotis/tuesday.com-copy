@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Filter, LayoutGrid, List, Building2, Download } from "lucide-react";
+import { Plus, Search, Filter, LayoutGrid, List, Building2, Download, ArrowUpDown } from "lucide-react";
 
 export default function Projects() {
   const [showForm, setShowForm] = useState(false);
@@ -22,6 +22,7 @@ export default function Projects() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [viewMode, setViewMode] = useState("grid");
+  const [sortOrder, setSortOrder] = useState("newest");
 
   const queryClient = useQueryClient();
 
@@ -80,13 +81,26 @@ export default function Projects() {
     }
   };
 
-  const filteredProjects = projects.filter((p) => {
-    const matchesSearch = p.name?.toLowerCase().includes(search.toLowerCase()) ||
-      p.address?.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-    const matchesType = typeFilter === "all" || p.property_type === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
-  });
+  const filteredProjects = projects
+    .filter((p) => {
+      const matchesSearch = p.name?.toLowerCase().includes(search.toLowerCase()) ||
+        p.address?.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === "all" || p.status === statusFilter;
+      const matchesType = typeFilter === "all" || p.property_type === typeFilter;
+      return matchesSearch && matchesStatus && matchesType;
+    })
+    .sort((a, b) => {
+      switch (sortOrder) {
+        case "alpha_asc": return (a.name || "").localeCompare(b.name || "", "el");
+        case "alpha_desc": return (b.name || "").localeCompare(a.name || "", "el");
+        case "newest": return new Date(b.created_date || 0) - new Date(a.created_date || 0);
+        case "oldest": return new Date(a.created_date || 0) - new Date(b.created_date || 0);
+        case "updated": return new Date(b.updated_date || 0) - new Date(a.updated_date || 0);
+        case "start_date": return new Date(b.start_date || 0) - new Date(a.start_date || 0);
+        case "progress": return (b.progress || 0) - (a.progress || 0);
+        default: return 0;
+      }
+    });
 
   const exportToExcel = () => {
     const csvData = [
@@ -206,6 +220,22 @@ export default function Projects() {
                   <SelectItem value="mixed_use">Mixed Use</SelectItem>
                   <SelectItem value="industrial">Industrial</SelectItem>
                   <SelectItem value="land">Land</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={sortOrder} onValueChange={setSortOrder}>
+                <SelectTrigger className="w-48">
+                  <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+                  <SelectValue placeholder="Ταξινόμηση" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Νεότερα πρώτα</SelectItem>
+                  <SelectItem value="oldest">Παλαιότερα πρώτα</SelectItem>
+                  <SelectItem value="updated">Τελευταία επεξεργασία</SelectItem>
+                  <SelectItem value="alpha_asc">Αλφαβητικά Α→Ω</SelectItem>
+                  <SelectItem value="alpha_desc">Αλφαβητικά Ω→Α</SelectItem>
+                  <SelectItem value="start_date">Ημ. έναρξης</SelectItem>
+                  <SelectItem value="progress">Πρόοδος ↓</SelectItem>
                 </SelectContent>
               </Select>
 
