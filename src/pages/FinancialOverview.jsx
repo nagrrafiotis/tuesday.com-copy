@@ -54,7 +54,7 @@ export default function FinancialOverview() {
 
   const totalIncome = incomes.reduce((sum, i) => sum + (i.amount || 0), 0);
   const totalDirectExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-  const totalInvoiceExpenses = invoices.filter(i => i.type === "expense" && i.status !== "transferred").reduce((sum, i) => sum + (i.total_amount || 0), 0);
+  const totalInvoiceExpenses = invoices.filter(i => i.type === "expense").reduce((sum, i) => sum + (i.total_amount || 0), 0);
   const totalExpenses = totalDirectExpenses + totalInvoiceExpenses;
   const netProfit = totalIncome - totalExpenses;
   const totalBudget = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
@@ -62,7 +62,7 @@ export default function FinancialOverview() {
   // Per project stats
   const projectStats = projects.map((p) => {
     const pExpenses = expenses.filter(e => e.project_id === p.id).reduce((s, e) => s + (e.amount || 0), 0);
-    const pInvoiceExpenses = invoices.filter(i => i.project_id === p.id && i.type === "expense" && i.status !== "transferred").reduce((s, i) => s + (i.total_amount || 0), 0);
+    const pInvoiceExpenses = invoices.filter(i => i.project_id === p.id && i.type === "expense").reduce((s, i) => s + (i.total_amount || 0), 0);
     const totalExpenses = pExpenses + pInvoiceExpenses;
     const pIncome = incomes.filter(i => i.project_id === p.id).reduce((s, i) => s + (i.amount || 0), 0);
     const budget = p.budget || 0;
