@@ -42,31 +42,42 @@ export default function FinancialOverview() {
     queryFn: () => base44.entities.PaymentSource.list("name"),
     staleTime: 60000,
   });
+  const { data: invoices = [] } = useQuery({
+    queryKey: ["invoices"],
+    queryFn: () => base44.entities.Invoice.list("-date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+  });
 
   const fmt = (amount) =>
     new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(amount || 0);
 
   const totalIncome = incomes.reduce((sum, i) => sum + (i.amount || 0), 0);
-  const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const totalDirectExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const totalInvoiceExpenses = invoices.filter(i => i.type === "expense" && i.status !== "transferred").reduce((sum, i) => sum + (i.total_amount || 0), 0);
+  const totalExpenses = totalDirectExpenses + totalInvoiceExpenses;
   const netProfit = totalIncome - totalExpenses;
   const totalBudget = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
 
   // Per project stats
   const projectStats = projects.map((p) => {
     const pExpenses = expenses.filter(e => e.project_id === p.id).reduce((s, e) => s + (e.amount || 0), 0);
+    const pInvoiceExpenses = invoices.filter(i => i.project_id === p.id && i.type === "expense" && i.status !== "transferred").reduce((s, i) => s + (i.total_amount || 0), 0);
+    const totalExpenses = pExpenses + pInvoiceExpenses;
     const pIncome = incomes.filter(i => i.project_id === p.id).reduce((s, i) => s + (i.amount || 0), 0);
     const budget = p.budget || 0;
-    const budgetUsed = budget > 0 ? (pExpenses / budget) * 100 : 0;
+    const budgetUsed = budget > 0 ? (totalExpenses / budget) * 100 : 0;
     return {
       id: p.id,
       name: p.name,
       status: p.status,
       budget,
-      expenses: pExpenses,
+      expenses: totalExpenses,
+      expensesBreakdown: { direct: pExpenses, invoices: pInvoiceExpenses },
       income: pIncome,
-      net: pIncome - pExpenses,
+      net: pIncome - totalExpenses,
       budgetUsed,
-      budgetRemaining: budget - pExpenses,
+      budgetRemaining: budget - totalExpenses,
     };
   });
 
@@ -258,6 +269,12 @@ export default function FinancialOverview() {
                   <div className="bg-red-50 rounded-xl p-3">
                     <p className="text-xs text-red-600 font-medium">Expenses</p>
                     <p className="text-lg font-bold text-red-900">{fmt(p.expenses)}</p>
+                    {p.expensesBreakdown.invoices > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        <p className="text-[10px] text-red-400">Direct: {fmt(p.expensesBreakdown.direct)}</p>
+                        <p className="text-[10px] text-red-400">Invoices: {fmt(p.expensesBreakdown.invoices)}</p>
+                      </div>
+                    )}
                   </div>
                   <div className="bg-emerald-50 rounded-xl p-3">
                     <p className="text-xs text-emerald-600 font-medium">Income</p>
