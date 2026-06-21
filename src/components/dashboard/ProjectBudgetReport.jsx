@@ -50,6 +50,13 @@ export default function ProjectBudgetReport() {
     staleTime: 30000,
   });
 
+  const { data: budgetItems = [] } = useQuery({
+    queryKey: ["budgetItems"],
+    queryFn: () => base44.entities.BudgetItem.list(),
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
   // Per-project calculations
   const projectSummaries = projects.map((project) => {
     const projectExpenses = expenses.filter((e) => e.project_id === project.id);
@@ -71,7 +78,11 @@ export default function ProjectBudgetReport() {
       projectPendingInvIncomes.reduce((s, i) => s + (i.total_amount || 0), 0);
 
     const balance = totalIncomes - totalExpenses;
-    const budget = project.budget || 0;
+    // Budget from BudgetItems (authoritative), fallback to project.budget field
+    const projectBudgetItems = budgetItems.filter((b) => b.project_id === project.id);
+    const budget = projectBudgetItems.length > 0
+      ? projectBudgetItems.reduce((s, b) => s + (b.total_cost || 0), 0)
+      : (project.budget || 0);
     const budgetRemaining = budget - totalExpenses;
     const budgetUsedPct = budget > 0 ? Math.min(100, (totalExpenses / budget) * 100) : null;
 

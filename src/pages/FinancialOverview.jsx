@@ -37,6 +37,12 @@ export default function FinancialOverview() {
     queryFn: () => base44.entities.Project.list("-created_date"),
     staleTime: 60000,
   });
+  const { data: budgetItems = [] } = useQuery({
+    queryKey: ["budgetItems"],
+    queryFn: () => base44.entities.BudgetItem.list(),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+  });
   const { data: paymentSources = [] } = useQuery({
     queryKey: ["paymentSources"],
     queryFn: () => base44.entities.PaymentSource.list("name"),
@@ -57,7 +63,13 @@ export default function FinancialOverview() {
   const totalInvoiceExpenses = invoices.filter(i => i.type === "expense").reduce((sum, i) => sum + (i.total_amount || 0), 0);
   const totalExpenses = totalDirectExpenses + totalInvoiceExpenses;
   const netProfit = totalIncome - totalExpenses;
-  const totalBudget = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
+  const totalBudget = projects.reduce((sum, p) => {
+    const pBudgetItems = budgetItems.filter(b => b.project_id === p.id);
+    const budget = pBudgetItems.length > 0
+      ? pBudgetItems.reduce((s, b) => s + (b.total_cost || 0), 0)
+      : (p.budget || 0);
+    return sum + budget;
+  }, 0);
 
   // Per project stats
   const projectStats = projects.map((p) => {
@@ -65,7 +77,10 @@ export default function FinancialOverview() {
     const pInvoiceExpenses = invoices.filter(i => i.project_id === p.id && i.type === "expense").reduce((s, i) => s + (i.total_amount || 0), 0);
     const totalExpenses = pExpenses + pInvoiceExpenses;
     const pIncome = incomes.filter(i => i.project_id === p.id).reduce((s, i) => s + (i.amount || 0), 0);
-    const budget = p.budget || 0;
+    const pBudgetItems = budgetItems.filter(b => b.project_id === p.id);
+    const budget = pBudgetItems.length > 0
+      ? pBudgetItems.reduce((s, b) => s + (b.total_cost || 0), 0)
+      : (p.budget || 0);
     const budgetUsed = budget > 0 ? (totalExpenses / budget) * 100 : 0;
     return {
       id: p.id,
