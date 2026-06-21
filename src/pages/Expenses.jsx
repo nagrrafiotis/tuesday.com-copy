@@ -106,11 +106,15 @@ export default function Expenses() {
   const { data: incomes = [] } = useQuery({
     queryKey: ["incomes"],
     queryFn: () => base44.entities.Income.list("-date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: dropdownListsIncome = [] } = useQuery({
     queryKey: ["dropdown-lists"],
     queryFn: () => base44.entities.DropdownList.list(),
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
   });
 
   const incomeCategories = dropdownListsIncome.find(l => l.list_name === "income_categories")?.options || ["sales", "investment", "rental", "other"];
@@ -222,16 +226,22 @@ export default function Expenses() {
   const { data: expenses = [], isLoading: expensesLoading } = useQuery({
     queryKey: ["expenses"],
     queryFn: () => base44.entities.Expense.list("-date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: () => base44.entities.Project.list("-created_date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => base44.entities.Contact.list("name"),
+    staleTime: 120000,
+    refetchOnWindowFocus: false,
   });
 
   const updateContactMutation = useMutation({
@@ -245,17 +255,23 @@ export default function Expenses() {
   const { data: paymentSources = [] } = useQuery({
     queryKey: ["paymentSources"],
     queryFn: () => base44.entities.PaymentSource.list("name"),
+    staleTime: 120000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: dropdownLists = [] } = useQuery({
     queryKey: ["dropdown-lists"],
     queryFn: () => base44.entities.DropdownList.list(),
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
   });
 
   // --- Invoice queries ---
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ["invoices"],
     queryFn: () => base44.entities.Invoice.list("-created_date"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   const deleteInvoiceMutation = useMutation({
