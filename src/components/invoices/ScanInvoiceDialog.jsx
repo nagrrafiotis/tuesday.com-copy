@@ -145,6 +145,21 @@ Be precise with numbers. Use null for fields not found.`,
     setSaving(true);
     await base44.entities.Invoice.create({ ...result });
 
+    // Upload a copy to the project's Google Drive folder
+    const project = projects.find(p => p.id === result.project_id);
+    if (project && result.image_url) {
+      try {
+        const fileName = `${result.date || "invoice"}_${result.vendor_client || "invoice"}${imageFile?.name ? imageFile.name.slice(imageFile.name.lastIndexOf(".")) : ""}`;
+        await base44.functions.invoke("uploadInvoiceToDrive", {
+          projectName: project.name,
+          fileUrl: result.image_url,
+          fileName,
+        });
+      } catch (err) {
+        // Non-blocking: invoice is already saved even if Drive upload fails
+      }
+    }
+
     // Save/update AFM on matching contact
     if (result.vendor_client && result.vendor_afm) {
       const existing = contacts.find(
