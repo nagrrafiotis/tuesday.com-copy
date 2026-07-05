@@ -41,6 +41,8 @@ export function SearchableSelect({
               className="pl-8 h-8"
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
             />
           </div>
         </div>
