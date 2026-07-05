@@ -307,7 +307,12 @@ export default function ProjectDetails() {
               <div>
                 <p className="text-sm text-gray-500">Budget</p>
                 <p className="text-xl font-bold text-[#1e3a5f]">
-                  {project.budget ? `€${(project.budget / 1000).toFixed(0)}k` : "—"}
+                  {(() => {
+                    const totalBudget = budgetItems.length > 0
+                      ? budgetItems.reduce((s, b) => s + (b.total_cost || 0), 0)
+                      : (project.budget || 0);
+                    return totalBudget ? `€${(totalBudget / 1000).toFixed(0)}k` : "—";
+                  })()}
                 </p>
               </div>
             </div>
