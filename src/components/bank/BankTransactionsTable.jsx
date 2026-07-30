@@ -365,7 +365,12 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   };
 
   const parseGreekDate = (raw) => {
-    if (!raw) return "";
+    if (raw === null || raw === undefined || raw === "") return "";
+    // Numeric cell (Excel serial date) — convert directly, don't stringify first
+    if (typeof raw === "number") {
+      const d = new Date(Math.round((raw - 25569) * 86400 * 1000));
+      return isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+    }
     const s = String(raw).trim();
     const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
     if (m) {
@@ -381,7 +386,9 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   };
 
   const parseAmount = (raw) => {
-    if (!raw && raw !== 0) return 0;
+    if (raw === null || raw === undefined || raw === "") return 0;
+    // Numeric cell — use directly, don't run Greek-format string parsing on it
+    if (typeof raw === "number") return raw;
     return parseFloat(String(raw).replace(/\./g, "").replace(",", ".").replace(/[^\d\-\.]/g, "")) || 0;
   };
 
