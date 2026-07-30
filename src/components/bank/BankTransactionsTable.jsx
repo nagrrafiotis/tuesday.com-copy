@@ -400,7 +400,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     let headerIdx = -1, cols = {};
     for (let i = 0; i < Math.min(rows.length, 25); i++) {
       const row = rows[i].map(c => String(c).toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
-      const di = row.findIndex(c => c.includes("ημερομ") || c === "date" || c === "ημ/νια" || c === "ημ/νία");
+      const di = row.findIndex(c => c.includes("ημερομ") || c === "date" || c.includes("ημ/νια"));
       const dbi = row.findIndex(c => c.includes("χρεωσ") || c === "debit");
       const cri = row.findIndex(c => c.includes("πιστωσ") || c === "credit");
       const ami = row.findIndex(c => c.includes("ποσο") || c === "amount");
