@@ -32,8 +32,9 @@ function isBankPayment(r) {
   // Include if: has a payment_source (any bank name), OR payment_method is bank_transfer
   // Exclude only if payment_method explicitly says cash
   if (method === "cash") return false;
+  if (src.includes("cash") || src.includes("μετρητ") || src.includes("ταμεί") || src.includes("ταμει")) return false;
   if (method === "bank_transfer" || method === "debit_card" || method === "credit_card") return true;
-  if (src) return true; // has any payment_source = assume bank
+  if (src) return true; // has any non-cash payment_source = assume bank
   return false; // no info, exclude
 }
 
