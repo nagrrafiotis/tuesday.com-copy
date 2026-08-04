@@ -5,10 +5,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Search, Trash2, Pencil, FileText, Upload, Loader2, ScanLine } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, FileText, Upload, Loader2, ScanLine, Copy } from "lucide-react";
 import { format } from "date-fns";
 import ScanExpenseIncomeDialog from "./ScanExpenseIncomeDialog";
 import SortableHeader, { applySort } from "@/components/ui/sort-select";
+import DuplicateWarningDialog from "@/components/shared/DuplicateWarningDialog";
+import DuplicateScanPanel from "@/components/shared/DuplicateScanPanel";
+import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector";
 
 const EXPENSE_TYPES = [
   { value: "operational", label: "Λειτουργικό Έξοδο" },
@@ -31,6 +34,8 @@ export default function GeneralExpensesTable() {
   const [form, setForm] = useState(emptyForm);
   const [uploading, setUploading] = useState(false);
   const [showScan, setShowScan] = useState(false);
+  const [dupWarning, setDupWarning] = useState(null);
+  const [showDupScan, setShowDupScan] = useState(false);
   const [sortField, setSortField] = useState("date");
   const [sortDirection, setSortDirection] = useState("desc");
   const handleSort = (field, direction) => { setSortField(field); setSortDirection(direction); };
@@ -83,8 +88,14 @@ export default function GeneralExpensesTable() {
 
   const handleSubmit = async () => {
     const data = { ...form, amount: parseFloat(form.amount) || 0 };
-    if (editing) await updateMutation.mutateAsync({ id: editing.id, data });
-    else await createMutation.mutateAsync(data);
+    const action = async () => {
+      if (editing) await updateMutation.mutateAsync({ id: editing.id, data });
+      else await createMutation.mutateAsync(data);
+      setDupWarning(null);
+    };
+    const matches = findDuplicateMatches({ ...data, id: editing?.id }, expenses, duplicateConfigs.GeneralExpense);
+    if (matches.length > 0) { setDupWarning({ matches, action }); return; }
+    await action();
   };
 
   const handleDelete = async r => {
@@ -115,6 +126,9 @@ export default function GeneralExpensesTable() {
           <Input placeholder="Αναζήτηση..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-2 items-center">
+          <Button variant="outline" onClick={() => setShowDupScan(true)} title="Έλεγχος διπλοτύπων">
+            <Copy className="w-4 h-4 mr-2" />Διπλότυπα
+          </Button>
           <Button variant="outline" onClick={() => setShowScan(true)} className="border-blue-200 text-blue-700 hover:bg-blue-50">
             <ScanLine className="w-4 h-4 mr-2" />Σάρωση Τιμολογίου
           </Button>
@@ -313,6 +327,21 @@ export default function GeneralExpensesTable() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <DuplicateWarningDialog
+        open={!!dupWarning}
+        matches={dupWarning?.matches || []}
+        config={duplicateConfigs.GeneralExpense}
+        onConfirm={async () => { if (dupWarning?.action) await dupWarning.action(); setDupWarning(null); }}
+        onCancel={() => setDupWarning(null)}
+      />
+      <DuplicateScanPanel
+        open={showDupScan}
+        onClose={() => setShowDupScan(false)}
+        records={expenses}
+        config={duplicateConfigs.GeneralExpense}
+        onDelete={async id => { await deleteMutation.mutateAsync(id); }}
+      />
     </div>
   );
 }

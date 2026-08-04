@@ -15,8 +15,11 @@ import GeneralIncomeTable from "@/components/company-expenses/GeneralIncomeTable
 import BankTransactionsTable from "@/components/bank/BankTransactionsTable";
 import ReconciliationPanel from "@/components/bank/ReconciliationPanel";
 import SortableHeader, { applySort } from "@/components/ui/sort-select";
+import DuplicateWarningDialog from "@/components/shared/DuplicateWarningDialog";
+import DuplicateScanPanel from "@/components/shared/DuplicateScanPanel";
+import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector";
 import {
-  Plus, Search, Trash2, Pencil, FileText, ScanLine,
+  Plus, Search, Trash2, Pencil, FileText, ScanLine, Copy,
   Users, DollarSign, TrendingDown, Building2, ExternalLink
 } from "lucide-react";
 import { format } from "date-fns";
@@ -46,6 +49,8 @@ export default function Payroll() {
   const [filterEmployee, setFilterEmployee] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [prefillData, setPrefillData] = useState(null);
+  const [dupWarning, setDupWarning] = useState(null);
+  const [showDupScan, setShowDupScan] = useState(false);
   const [sortField, setSortField] = useState("payment_date");
   const [sortDirection, setSortDirection] = useState("desc");
   const handleSort = (field, direction) => { setSortField(field); setSortDirection(direction); };
@@ -78,8 +83,14 @@ export default function Payroll() {
   });
 
   const handleSubmit = async data => {
-    if (editing) await updateMutation.mutateAsync({ id: editing.id, data });
-    else await createMutation.mutateAsync(data);
+    const action = async () => {
+      if (editing) await updateMutation.mutateAsync({ id: editing.id, data });
+      else await createMutation.mutateAsync(data);
+      setDupWarning(null);
+    };
+    const matches = findDuplicateMatches({ ...data, id: editing?.id }, records, duplicateConfigs.Payroll);
+    if (matches.length > 0) { setDupWarning({ matches, action }); return; }
+    await action();
   };
 
   const handleScanExtracted = data => {
@@ -186,6 +197,9 @@ export default function Payroll() {
                 </Button>
                 <Button variant="outline" onClick={() => setShowAPDScan(true)} className="border-blue-200 text-blue-700 hover:bg-blue-50">
                   <ScanLine className="w-4 h-4 mr-2" />Σάρωση ΑΠΔ
+                </Button>
+                <Button variant="outline" onClick={() => setShowDupScan(true)} title="Έλεγχος διπλοτύπων">
+                  <Copy className="w-4 h-4 mr-2" />Διπλότυπα
                 </Button>
                 <Button className="bg-[#1e3a5f] hover:bg-[#152a45]"
                   onClick={() => { setEditing(null); setPrefillData(null); setShowForm(true); }}>
@@ -331,6 +345,21 @@ export default function Payroll() {
         open={showAPDScan}
         onClose={() => setShowAPDScan(false)}
         onCreated={() => queryClient.invalidateQueries({ queryKey: ["payroll"] })}
+      />
+
+      <DuplicateWarningDialog
+        open={!!dupWarning}
+        matches={dupWarning?.matches || []}
+        config={duplicateConfigs.Payroll}
+        onConfirm={async () => { if (dupWarning?.action) await dupWarning.action(); setDupWarning(null); }}
+        onCancel={() => setDupWarning(null)}
+      />
+      <DuplicateScanPanel
+        open={showDupScan}
+        onClose={() => setShowDupScan(false)}
+        records={records}
+        config={duplicateConfigs.Payroll}
+        onDelete={async id => { await deleteMutation.mutateAsync(id); }}
       />
     </div>
   );

@@ -5,10 +5,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Search, Trash2, Pencil, FileText, Upload, Loader2, ScanLine } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, FileText, Upload, Loader2, ScanLine, Copy } from "lucide-react";
 import { format } from "date-fns";
 import ScanExpenseIncomeDialog from "./ScanExpenseIncomeDialog";
 import SortableHeader, { applySort } from "@/components/ui/sort-select";
+import DuplicateWarningDialog from "@/components/shared/DuplicateWarningDialog";
+import DuplicateScanPanel from "@/components/shared/DuplicateScanPanel";
+import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector";
 
 const CATEGORIES = [
   "Πωλήσεις", "Υπηρεσίες", "Ενοίκια", "Επενδύσεις", "Επιστροφές", "Λοιπά"
@@ -25,6 +28,8 @@ export default function GeneralIncomeTable() {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showScan, setShowScan] = useState(false);
+  const [dupWarning, setDupWarning] = useState(null);
+  const [showDupScan, setShowDupScan] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [uploading, setUploading] = useState(false);
@@ -79,14 +84,20 @@ export default function GeneralIncomeTable() {
   };
 
   const handleSubmit = async () => {
-    const data = { 
-      ...form, 
+    const data = {
+      ...form,
       net_amount: parseFloat(form.net_amount) || 0,
       vat_amount: parseFloat(form.vat_amount) || 0,
       total_amount: parseFloat(form.total_amount) || 0
     };
-    if (editing) await updateMutation.mutateAsync({ id: editing.id, data });
-    else await createMutation.mutateAsync(data);
+    const action = async () => {
+      if (editing) await updateMutation.mutateAsync({ id: editing.id, data });
+      else await createMutation.mutateAsync(data);
+      setDupWarning(null);
+    };
+    const matches = findDuplicateMatches({ ...data, id: editing?.id }, incomes, duplicateConfigs.GeneralIncome);
+    if (matches.length > 0) { setDupWarning({ matches, action }); return; }
+    await action();
   };
 
   const handleDelete = async r => {
@@ -119,6 +130,9 @@ export default function GeneralIncomeTable() {
           <Input placeholder="Αναζήτηση..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-2 items-center">
+          <Button variant="outline" onClick={() => setShowDupScan(true)} title="Έλεγχος διπλοτύπων">
+            <Copy className="w-4 h-4 mr-2" />Διπλότυπα
+          </Button>
           <Button variant="outline" onClick={() => setShowScan(true)} className="border-blue-200 text-blue-700 hover:bg-blue-50">
             <ScanLine className="w-4 h-4 mr-2" />Σάρωση Τιμολογίου
           </Button>
@@ -335,6 +349,21 @@ export default function GeneralIncomeTable() {
         onClose={() => setShowScan(false)}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["general-income"] })}
         mode="income"
+      />
+
+      <DuplicateWarningDialog
+        open={!!dupWarning}
+        matches={dupWarning?.matches || []}
+        config={duplicateConfigs.GeneralIncome}
+        onConfirm={async () => { if (dupWarning?.action) await dupWarning.action(); setDupWarning(null); }}
+        onCancel={() => setDupWarning(null)}
+      />
+      <DuplicateScanPanel
+        open={showDupScan}
+        onClose={() => setShowDupScan(false)}
+        records={incomes}
+        config={duplicateConfigs.GeneralIncome}
+        onDelete={async id => { await deleteMutation.mutateAsync(id); }}
       />
     </div>
   );

@@ -10,13 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus, Search, Trash2, Pencil, Upload, Loader2, Link2,
-  TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Download, FileSpreadsheet, X, Save, Zap, FileText
+  TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Download, FileSpreadsheet, X, Save, Zap, FileText, Copy
 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import CategoryRulesManager, { loadRules, matchCategory, CATEGORY_OPTIONS } from "./CategoryRulesManager";
 import SortableHeader, { applySort } from "@/components/ui/sort-select";
+import DuplicateWarningDialog from "@/components/shared/DuplicateWarningDialog";
+import DuplicateScanPanel from "@/components/shared/DuplicateScanPanel";
+import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector";
 
 const RECONCILE_TYPES = [
   { value: "payroll", label: "Μισθοδοσία" },
@@ -182,6 +185,8 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
   const tableRef = useRef(null);
   const [showRulesManager, setShowRulesManager] = useState(false);
+  const [dupWarning, setDupWarning] = useState(null);
+  const [showDupScan, setShowDupScan] = useState(false);
   const [sortField, setSortField] = useState("date");
   const [sortDirection, setSortDirection] = useState("desc");
   const handleSort = (field, direction) => { setSortField(field); setSortDirection(direction); };
@@ -500,8 +505,14 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const handleSubmit = async () => {
     const amt = parseFloat(form.amount) || 0;
     const data = { ...form, amount: form.transaction_type === "debit" ? -Math.abs(amt) : Math.abs(amt) };
-    if (editing) await updateMutation.mutateAsync({ id: editing.id, data });
-    else await createMutation.mutateAsync(data);
+    const action = async () => {
+      if (editing) await updateMutation.mutateAsync({ id: editing.id, data });
+      else await createMutation.mutateAsync(data);
+      setDupWarning(null);
+    };
+    const matches = findDuplicateMatches({ ...data, id: editing?.id }, transactions, duplicateConfigs.BankTransaction);
+    if (matches.length > 0) { setDupWarning({ matches, action }); return; }
+    await action();
   };
 
   const handleReconcile = async () => {
@@ -624,6 +635,9 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
             Εισαγωγή
           </Button>
           <input ref={importRef} type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg" className="hidden" onChange={handleImport} />
+          <Button variant="outline" onClick={() => setShowDupScan(true)} title="Έλεγχος διπλοτύπων">
+            <Copy className="w-4 h-4 mr-1" />Διπλότυπα
+          </Button>
           <Button className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={openNew}>
             <Plus className="w-4 h-4 mr-2" />Νέα Κίνηση
           </Button>
@@ -964,6 +978,21 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
           </DialogContent>
         </Dialog>
       )}
+
+      <DuplicateWarningDialog
+        open={!!dupWarning}
+        matches={dupWarning?.matches || []}
+        config={duplicateConfigs.BankTransaction}
+        onConfirm={async () => { if (dupWarning?.action) await dupWarning.action(); setDupWarning(null); }}
+        onCancel={() => setDupWarning(null)}
+      />
+      <DuplicateScanPanel
+        open={showDupScan}
+        onClose={() => setShowDupScan(false)}
+        records={transactions}
+        config={duplicateConfigs.BankTransaction}
+        onDelete={async id => { await deleteMutation.mutateAsync(id); }}
+      />
     </div>
   );
 }
