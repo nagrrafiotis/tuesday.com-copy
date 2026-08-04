@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import CategoryRulesManager, { loadRules, matchCategory, CATEGORY_OPTIONS } from "./CategoryRulesManager";
+import SortSelect, { applySort } from "@/components/ui/sort-select";
 
 const RECONCILE_TYPES = [
   { value: "payroll", label: "Μισθοδοσία" },
@@ -181,6 +182,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
   const tableRef = useRef(null);
   const [showRulesManager, setShowRulesManager] = useState(false);
+  const [sortKey, setSortKey] = useState("newest");
 
   const queryClient = useQueryClient();
   const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(Math.abs(n || 0));
@@ -211,18 +213,17 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   });
 
   // Computed early so it can be used by handleCellSave and other callbacks
-  const filtered = useMemo(() => transactions
-    .filter(t => {
+  const filtered = useMemo(() => {
+    const result = transactions.filter(t => {
       const q = search.toLowerCase();
       const matchSearch = !q || t.description?.toLowerCase().includes(q) || t.counterparty?.toLowerCase().includes(q) || t.reference?.toLowerCase().includes(q);
       const matchSource = filterSource === "all" || t.payment_source === filterSource;
       const matchReconciled = filterReconciled === "all" || (filterReconciled === "yes" ? t.reconciled : !t.reconciled);
       const matchType = filterType === "all" || t.transaction_type === filterType;
       return matchSearch && matchSource && matchReconciled && matchType;
-    })
-    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)),
-    [transactions, search, filterSource, filterReconciled, filterType]
-  );
+    });
+    return applySort(result, sortKey, r => r.description || r.counterparty || "");
+  }, [transactions, search, filterSource, filterReconciled, filterType, sortKey]);
 
   const allSources = useMemo(() => [...new Set(transactions.map(t => t.payment_source).filter(Boolean))], [transactions]);
   const allCounterparties = useMemo(() => [...new Set(transactions.map(t => t.counterparty).filter(Boolean))], [transactions]);
@@ -605,6 +606,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
               <SelectItem value="yes">Συνδεδεμένες</SelectItem>
             </SelectContent>
           </Select>
+          <SortSelect value={sortKey} onChange={setSortKey} className="w-40" />
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={handleExport} title="Εξαγωγή Excel">

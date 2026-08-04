@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Search, Trash2, Pencil, FileText, Upload, Loader2, ScanLine } from "lucide-react";
 import { format } from "date-fns";
 import ScanExpenseIncomeDialog from "./ScanExpenseIncomeDialog";
+import SortSelect, { applySort } from "@/components/ui/sort-select";
 
 const CATEGORIES = [
   "Πωλήσεις", "Υπηρεσίες", "Ενοίκια", "Επενδύσεις", "Επιστροφές", "Λοιπά"
@@ -27,6 +28,7 @@ export default function GeneralIncomeTable() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [uploading, setUploading] = useState(false);
+  const [sortKey, setSortKey] = useState("newest");
 
   const queryClient = useQueryClient();
   const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(n || 0);
@@ -91,16 +93,16 @@ export default function GeneralIncomeTable() {
     }
   };
 
-  const filtered = incomes.filter(r =>
-    !search ||
-    r.description?.toLowerCase().includes(search.toLowerCase()) ||
-    r.payer?.toLowerCase().includes(search.toLowerCase()) ||
-    r.category?.toLowerCase().includes(search.toLowerCase())
-  ).sort((a, b) => {
-    if (!a.date) return 1;
-    if (!b.date) return -1;
-    return new Date(b.date) - new Date(a.date);
-  });
+  const filtered = applySort(
+    incomes.filter(r =>
+      !search ||
+      r.description?.toLowerCase().includes(search.toLowerCase()) ||
+      r.payer?.toLowerCase().includes(search.toLowerCase()) ||
+      r.category?.toLowerCase().includes(search.toLowerCase())
+    ),
+    sortKey,
+    r => r.description || r.payer || ""
+  );
 
   const totalNet = filtered.reduce((s, r) => s + (r.net_amount || 0), 0);
   const totalVat = filtered.reduce((s, r) => s + (r.vat_amount || 0), 0);
@@ -114,7 +116,8 @@ export default function GeneralIncomeTable() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input placeholder="Αναζήτηση..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <SortSelect value={sortKey} onChange={setSortKey} className="w-40" />
           <Button variant="outline" onClick={() => setShowScan(true)} className="border-blue-200 text-blue-700 hover:bg-blue-50">
             <ScanLine className="w-4 h-4 mr-2" />Σάρωση Τιμολογίου
           </Button>
