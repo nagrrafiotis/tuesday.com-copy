@@ -483,10 +483,20 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
       }));
     }
     if (!toCreate?.length) { alert("Δεν εντοπίστηκαν έγκυρες κινήσεις."); setImporting(false); return; }
-    await base44.entities.BankTransaction.bulkCreate(toCreate);
+    // Skip duplicates already in DB (same date + amount + description + type)
+    const dupKey = r => `${r.date}|${Number(Math.abs(r.amount || 0).toFixed(2))}|${(r.description || "").trim().toLowerCase()}|${r.transaction_type}`;
+    const existing = new Set(transactions.map(dupKey));
+    const fresh = toCreate.filter(r => !existing.has(dupKey(r)));
+    const skipped = toCreate.length - fresh.length;
+    if (!fresh.length) {
+      alert(`Όλες οι ${skipped} κινήσεις υπάρχουν ήδη — δεν εισήχθησαν διπλότυπες.`);
+      setImporting(false);
+      return;
+    }
+    await base44.entities.BankTransaction.bulkCreate(fresh);
     queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
     setImporting(false);
-    alert(`Εισήχθησαν ${toCreate.length} κινήσεις επιτυχώς.`);
+    alert(`Εισήχθησαν ${fresh.length} κινήσεις.${skipped > 0 ? ` Παραλείφθηκαν ${skipped} διπλότυπες.` : ""}`);
   };
 
   const openNew = () => { setEditing(null); setForm(emptyForm); setShowForm(true); };
