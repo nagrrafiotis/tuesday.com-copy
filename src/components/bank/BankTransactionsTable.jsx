@@ -16,7 +16,7 @@ import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import CategoryRulesManager, { loadRules, matchCategory, CATEGORY_OPTIONS } from "./CategoryRulesManager";
-import SortSelect, { applySort } from "@/components/ui/sort-select";
+import SortableHeader, { applySort } from "@/components/ui/sort-select";
 
 const RECONCILE_TYPES = [
   { value: "payroll", label: "Μισθοδοσία" },
@@ -182,7 +182,9 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
   const tableRef = useRef(null);
   const [showRulesManager, setShowRulesManager] = useState(false);
-  const [sortKey, setSortKey] = useState("newest");
+  const [sortField, setSortField] = useState("date");
+  const [sortDirection, setSortDirection] = useState("desc");
+  const handleSort = (field, direction) => { setSortField(field); setSortDirection(direction); };
 
   const queryClient = useQueryClient();
   const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(Math.abs(n || 0));
@@ -222,8 +224,8 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
       const matchType = filterType === "all" || t.transaction_type === filterType;
       return matchSearch && matchSource && matchReconciled && matchType;
     });
-    return applySort(result, sortKey, r => r.description || r.counterparty || "");
-  }, [transactions, search, filterSource, filterReconciled, filterType, sortKey]);
+    return applySort(result, sortField, sortDirection);
+  }, [transactions, search, filterSource, filterReconciled, filterType, sortField, sortDirection]);
 
   const allSources = useMemo(() => [...new Set(transactions.map(t => t.payment_source).filter(Boolean))], [transactions]);
   const allCounterparties = useMemo(() => [...new Set(transactions.map(t => t.counterparty).filter(Boolean))], [transactions]);
@@ -606,7 +608,6 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
               <SelectItem value="yes">Συνδεδεμένες</SelectItem>
             </SelectContent>
           </Select>
-          <SortSelect value={sortKey} onChange={setSortKey} className="w-40" />
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={handleExport} title="Εξαγωγή Excel">
@@ -693,12 +694,12 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
                   <th className="px-3 py-3 w-8">
                     <Checkbox checked={filtered.length > 0 && selectedIds.size === filtered.length} onCheckedChange={toggleSelectAll} />
                   </th>
-                  <ResizableHeader width={colWidths.date} onResize={w => setColWidths(p => ({ ...p, date: w }))} onAutoFit={() => autoFitCol("date")} className="text-left">Ημ/νία</ResizableHeader>
-                  <ResizableHeader width={colWidths.description} onResize={w => setColWidths(p => ({ ...p, description: w }))} onAutoFit={() => autoFitCol("description")} className="text-left">Περιγραφή</ResizableHeader>
-                  <ResizableHeader width={colWidths.counterparty} onResize={w => setColWidths(p => ({ ...p, counterparty: w }))} onAutoFit={() => autoFitCol("counterparty")} className="text-left">Αντισυμβαλλόμενος</ResizableHeader>
-                  <ResizableHeader width={colWidths.payment_source} onResize={w => setColWidths(p => ({ ...p, payment_source: w }))} onAutoFit={() => autoFitCol("payment_source")} className="text-left">Τράπεζα</ResizableHeader>
-                  <ResizableHeader width={colWidths.debit} onResize={w => setColWidths(p => ({ ...p, debit: w }))} onAutoFit={() => autoFitCol("debit")} className="text-right">Χρέωση</ResizableHeader>
-                  <ResizableHeader width={colWidths.credit} onResize={w => setColWidths(p => ({ ...p, credit: w }))} onAutoFit={() => autoFitCol("credit")} className="text-right">Πίστωση</ResizableHeader>
+                  <ResizableHeader width={colWidths.date} onResize={w => setColWidths(p => ({ ...p, date: w }))} onAutoFit={() => autoFitCol("date")} className="text-left"><SortableHeader label="Ημ/νία" field="date" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
+                  <ResizableHeader width={colWidths.description} onResize={w => setColWidths(p => ({ ...p, description: w }))} onAutoFit={() => autoFitCol("description")} className="text-left"><SortableHeader label="Περιγραφή" field="description" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
+                  <ResizableHeader width={colWidths.counterparty} onResize={w => setColWidths(p => ({ ...p, counterparty: w }))} onAutoFit={() => autoFitCol("counterparty")} className="text-left"><SortableHeader label="Αντισυμβαλλόμενος" field="counterparty" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
+                  <ResizableHeader width={colWidths.payment_source} onResize={w => setColWidths(p => ({ ...p, payment_source: w }))} onAutoFit={() => autoFitCol("payment_source")} className="text-left"><SortableHeader label="Τράπεζα" field="payment_source" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
+                  <ResizableHeader width={colWidths.debit} onResize={w => setColWidths(p => ({ ...p, debit: w }))} onAutoFit={() => autoFitCol("debit")} className="text-right"><SortableHeader label="Χρέωση" field="amount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></ResizableHeader>
+                  <ResizableHeader width={colWidths.credit} onResize={w => setColWidths(p => ({ ...p, credit: w }))} onAutoFit={() => autoFitCol("credit")} className="text-right"><SortableHeader label="Πίστωση" field="amount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></ResizableHeader>
                   <th className="px-3 py-3 w-20"></th>
                 </tr>
               </thead>

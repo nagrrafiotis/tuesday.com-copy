@@ -20,7 +20,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import ContactForm from "../components/contacts/ContactForm";
-import SortSelect, { applySort } from "@/components/ui/sort-select";
 
 const categoryIcons = {
   client: Users,
@@ -46,7 +45,6 @@ export default function Contacts() {
   const [uploading, setUploading] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [selectedContacts, setSelectedContacts] = useState([]);
-  const [sortKey, setSortKey] = useState("alpha_asc");
 
   const queryClient = useQueryClient();
 
@@ -186,18 +184,14 @@ export default function Contacts() {
     e.target.value = "";
   };
 
-  const filteredContacts = applySort(
-    contacts.filter((contact) => {
-      const matchesSearch =
-        contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contact.emails?.some(e => e.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        contact.company?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === "all" || contact.category === categoryFilter;
-      return matchesSearch && matchesCategory;
-    }),
-    sortKey,
-    "name"
-  );
+  const filteredContacts = contacts.filter((contact) => {
+    const matchesSearch =
+      contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.emails?.some(e => e.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      contact.company?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === "all" || contact.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const toggleSelectAll = () => {
     if (selectedContacts.length === filteredContacts.length) {

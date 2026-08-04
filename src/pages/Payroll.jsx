@@ -14,6 +14,7 @@ import GeneralExpensesTable from "@/components/company-expenses/GeneralExpensesT
 import GeneralIncomeTable from "@/components/company-expenses/GeneralIncomeTable";
 import BankTransactionsTable from "@/components/bank/BankTransactionsTable";
 import ReconciliationPanel from "@/components/bank/ReconciliationPanel";
+import SortableHeader, { applySort } from "@/components/ui/sort-select";
 import {
   Plus, Search, Trash2, Pencil, FileText, ScanLine,
   Users, DollarSign, TrendingDown, Building2, ExternalLink
@@ -45,6 +46,9 @@ export default function Payroll() {
   const [filterEmployee, setFilterEmployee] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [prefillData, setPrefillData] = useState(null);
+  const [sortField, setSortField] = useState("payment_date");
+  const [sortDirection, setSortDirection] = useState("desc");
+  const handleSort = (field, direction) => { setSortField(field); setSortDirection(direction); };
 
   const queryClient = useQueryClient();
 
@@ -106,11 +110,7 @@ export default function Payroll() {
 
   const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(n || 0);
 
-  const sortedFiltered = [...filtered].sort((a, b) => {
-    if (!a.payment_date) return 1;
-    if (!b.payment_date) return -1;
-    return new Date(b.payment_date) - new Date(a.payment_date);
-  });
+  const sortedFiltered = applySort(filtered, sortField, sortDirection);
 
   return (
     <div className="min-h-screen bg-[#fafafa] p-6">
@@ -211,15 +211,15 @@ export default function Payroll() {
                   <table className="w-full text-sm table-fixed">
                     <thead className="bg-gray-50 border-b border-gray-100">
                       <tr>
-                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[16%]">Εργαζόμενος</th>
-                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Περίοδος</th>
-                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[12%]">Τύπος</th>
-                        <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Σύν. Αποδ.</th>
-                        <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Κρατ. Εργ/νου</th>
-                        <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Εισφ. Εργοδ.</th>
-                        <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Καθαρές</th>
-                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Πηγή</th>
-                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[8%]">Ημ/νία</th>
+                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[16%]"><SortableHeader label="Εργαζόμενος" field="employee_name" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
+                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]"><SortableHeader label="Περίοδος" field="period" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
+                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[12%]"><SortableHeader label="Τύπος" field="period_type" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
+                        <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]"><SortableHeader label="Σύν. Αποδ." field="gross_salary" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></th>
+                        <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]"><SortableHeader label="Κρατ. Εργ/νου" field="total_insurance_deductions" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></th>
+                        <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]"><SortableHeader label="Εισφ. Εργοδ." field="employer_insurance_amount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></th>
+                        <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]"><SortableHeader label="Καθαρές" field="net_salary" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></th>
+                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]"><SortableHeader label="Πηγή" field="payment_source" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
+                        <th className="text-left px-3 py-3 font-medium text-gray-500 w-[8%]"><SortableHeader label="Ημ/νία" field="payment_date" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
                         <th className="text-center px-3 py-3 font-medium text-gray-500 w-[6%]">Αρχεία</th>
                         <th className="px-3 py-3 w-[8%]"></th>
                       </tr>

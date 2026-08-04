@@ -1,58 +1,80 @@
 import React from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowUpDown } from "lucide-react";
-
-const DEFAULT_OPTIONS = [
-  { value: "newest", label: "Νεότερα πρώτα" },
-  { value: "oldest", label: "Παλαιότερα πρώτα" },
-  { value: "alpha_asc", label: "Αλφαβητικά Α→Ω" },
-  { value: "alpha_desc", label: "Αλφαβητικά Ω→Α" },
-];
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 /**
- * Reusable sort dropdown.
- * options: [{ value, label }, ...] — defaults to date + alphabetical (Greek labels)
- * value: current sort key
- * onChange: (value) => void
+ * SortableHeader — renders the column label with two small up/down arrows
+ * that the user clicks to sort by that column.
+ *
+ * Props:
+ *  - label: text shown for the column header
+ *  - field: stable field key used by applySort
+ *  - sortField: currently active field key (or null)
+ *  - sortDirection: "asc" | "desc" (current active direction for `field`)
+ *  - onSort: (field, direction) => void
+ *  - align: "left" | "right" (default "left")
+ *  - disabled: hide arrows when true (e.g. for actions / file columns)
  */
-export default function SortSelect({ value, onChange, options = DEFAULT_OPTIONS, className = "w-44" }) {
+export default function SortableHeader({ label, field, sortField, sortDirection, onSort, align = "left", disabled = false }) {
+  if (disabled) return <span>{label}</span>;
+  const isActiveAsc = sortField === field && sortDirection === "asc";
+  const isActiveDesc = sortField === field && sortDirection === "desc";
+  const sort = (dir) => {
+    if (sortField === field && sortDirection === dir) return;
+    onSort(field, dir);
+  };
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={className}>
-        <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
-        <SelectValue placeholder="Ταξινόμηση" />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map(o => (
-          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end ml-auto" : ""}`}>
+      <span>{label}</span>
+      <span className="inline-flex flex-col leading-none -space-y-1">
+        <ChevronUp
+          className={`w-3 h-3 cursor-pointer transition-colors ${isActiveAsc ? "text-[#1e3a5f]" : "text-gray-300 hover:text-gray-600"}`}
+          onClick={(e) => { e.stopPropagation(); sort("asc"); }}
+        />
+        <ChevronDown
+          className={`w-3 h-3 cursor-pointer transition-colors ${isActiveDesc ? "text-[#1e3a5f]" : "text-gray-300 hover:text-gray-600"}`}
+          onClick={(e) => { e.stopPropagation(); sort("desc"); }}
+        />
+      </span>
+    </div>
   );
 }
 
-/** Applies a sort key to an array of records and returns a new sorted array.
- *  Supports: newest, oldest, alpha_asc, alpha_desc (uses `name` or `description` or `payee` or `title`).
- *  Pass a custom labelKey if needed.
+/**
+ * Apply sort by field + direction to an array.
+ *
+ *  - Date columns:  "date" or any field ending in "_date"
+ *  - Numeric columns: fields matching /amount|price|cost|salary|payment|total|net\b/i
+ *  - All other fields are sorted alphabetically with the Greek locale
+ *
+ * Consumers pass sortField + sortDirection (from SortableHeader).
  */
-export function applySort(items, sortKey, labelKey) {
-  const pick = (r) => labelKey
-    ? (typeof labelKey === "function" ? labelKey(r) : r[labelKey])
-    : (r.name || r.description || r.payee || r.employee_name || r.title || "");
+export function applySort(items, sortField, sortDirection) {
+  if (!sortField) return items;
+  const dir = sortDirection === "asc" ? 1 : -1;
 
-  switch (sortKey) {
-    case "alpha_asc":
-      return [...items].sort((a, b) => String(pick(a) || "").localeCompare(String(pick(b) || ""), "el"));
-    case "alpha_desc":
-      return [...items].sort((a, b) => String(pick(b) || "").localeCompare(String(pick(a) || ""), "el"));
-    case "oldest": {
-      const d = (r) => new Date(r.date || r.payment_date || r.created_date || 0);
-      return [...items].sort((a, b) => d(a) - d(b));
-    }
-    case "newest":
-    default: {
-      const d = (r) => new Date(r.date || r.payment_date || r.created_date || 0);
-      return [...items].sort((a, b) => d(b) - d(a));
-    }
+  // Date column (or column names ending with _date)
+  const isDateField = sortField === "date" || /_date$/.test(sortField);
+  // Numeric columns: amounts, prices, costs, salaries
+  const isNumericField = /amount|price|cost|salary|payment|total|net\b/i.test(sortField);
+
+  if (isDateField) {
+    const d = (r) => new Date(r[sortField] || r.date || r.payment_date || r.created_date || 0);
+    return [...items].sort((a, b) => {
+      const da = d(a), db = d(b);
+      if (isNaN(da) && isNaN(db)) return 0;
+      if (isNaN(da)) return 1;
+      if (isNaN(db)) return -1;
+      return (da - db) * dir;
+    });
   }
+  if (isNumericField) {
+    const v = (r) => Number(r[sortField] ?? 0) || 0;
+    return [...items].sort((a, b) => (v(a) - v(b)) * dir);
+  }
+  // Default: text sort by the named field with Greek locale
+  return [...items].sort((a, b) => {
+    const va = String(a[sortField] ?? "");
+    const vb = String(b[sortField] ?? "");
+    return va.localeCompare(vb, "el") * dir;
+  });
 }

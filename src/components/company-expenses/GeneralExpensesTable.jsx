@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Search, Trash2, Pencil, FileText, Upload, Loader2, ScanLine } from "lucide-react";
 import { format } from "date-fns";
 import ScanExpenseIncomeDialog from "./ScanExpenseIncomeDialog";
-import SortSelect, { applySort } from "@/components/ui/sort-select";
+import SortableHeader, { applySort } from "@/components/ui/sort-select";
 
 const EXPENSE_TYPES = [
   { value: "operational", label: "Λειτουργικό Έξοδο" },
@@ -31,7 +31,9 @@ export default function GeneralExpensesTable() {
   const [form, setForm] = useState(emptyForm);
   const [uploading, setUploading] = useState(false);
   const [showScan, setShowScan] = useState(false);
-  const [sortKey, setSortKey] = useState("newest");
+  const [sortField, setSortField] = useState("date");
+  const [sortDirection, setSortDirection] = useState("desc");
+  const handleSort = (field, direction) => { setSortField(field); setSortDirection(direction); };
 
   const queryClient = useQueryClient();
   const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(n || 0);
@@ -98,8 +100,8 @@ export default function GeneralExpensesTable() {
       r.payee?.toLowerCase().includes(search.toLowerCase()) ||
       r.category?.toLowerCase().includes(search.toLowerCase())
     ),
-    sortKey,
-    r => r.description || r.payee || ""
+    sortField,
+    sortDirection
   );
 
   const total = filtered.reduce((s, r) => s + (r.amount || 0), 0);
@@ -113,7 +115,6 @@ export default function GeneralExpensesTable() {
           <Input placeholder="Αναζήτηση..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-2 items-center">
-          <SortSelect value={sortKey} onChange={setSortKey} className="w-40" />
           <Button variant="outline" onClick={() => setShowScan(true)} className="border-blue-200 text-blue-700 hover:bg-blue-50">
             <ScanLine className="w-4 h-4 mr-2" />Σάρωση Τιμολογίου
           </Button>
@@ -139,13 +140,13 @@ export default function GeneralExpensesTable() {
             <table className="w-full text-sm table-fixed">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[20%]">Περιγραφή</th>
+                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[20%]"><SortableHeader label="Περιγραφή" field="description" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
                   <th className="text-left px-3 py-3 font-medium text-gray-500 w-[13%]">Τύπος / Έργο</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[11%]">Κατηγορία</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[12%]">Δικαιούχος</th>
-                  <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]">Ποσό</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]">Πηγή</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[8%]">Ημ/νία</th>
+                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[11%]"><SortableHeader label="Κατηγορία" field="category" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
+                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[12%]"><SortableHeader label="Δικαιούχος" field="payee" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
+                  <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]"><SortableHeader label="Ποσό" field="amount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></th>
+                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]"><SortableHeader label="Πηγή" field="payment_source" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
+                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[8%]"><SortableHeader label="Ημ/νία" field="date" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
                   <th className="text-center px-3 py-3 font-medium text-gray-500 w-[5%]">Αρχείο</th>
                   <th className="px-3 py-3 w-[8%]"></th>
                 </tr>
