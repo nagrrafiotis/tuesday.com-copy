@@ -19,6 +19,7 @@ import CategoryRulesManager, { loadRules, matchCategory, CATEGORY_OPTIONS } from
 import SortableHeader, { applySort } from "@/components/ui/sort-select";
 import DuplicateWarningDialog from "@/components/shared/DuplicateWarningDialog";
 import DuplicateScanPanel from "@/components/shared/DuplicateScanPanel";
+import BankImportPreviewDialog from "./BankImportPreviewDialog";
 import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector";
 
 const RECONCILE_TYPES = [
@@ -179,6 +180,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const [reconcileForm, setReconcileForm] = useState({ reconciled_with: "", reconciled_note: "" });
   const [importing, setImporting] = useState(false);
   const importRef = useRef(null);
+  const [importPreview, setImportPreview] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkEditForm, setBulkEditForm] = useState({ payment_source: "", transaction_type: "" });
   const [showBulkEdit, setShowBulkEdit] = useState(false);
@@ -487,17 +489,30 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     const norm = s => (s || "").toString().toLowerCase().replace(/\s+/g, " ").trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const dupKey = r => `${r.date}|${Number(Math.abs(r.amount || 0).toFixed(2))}|${norm(r.description)}|${r.transaction_type}`;
     const existing = new Set(transactions.map(dupKey));
-    const fresh = toCreate.filter(r => !existing.has(dupKey(r)));
-    const skipped = toCreate.length - fresh.length;
-    if (!fresh.length) {
-      alert(`Όλες οι ${skipped} κινήσεις υπάρχουν ήδη — δεν εισήχθησαν διπλότυπες.`);
+    const rows = toCreate.map(r => ({ ...r, _isDuplicate: existing.has(dupKey(r)) }));
+    const freshCount = rows.filter(r => !r._isDuplicate).length;
+    if (freshCount === 0) {
+      alert(`Όλες οι ${rows.length} κινήσεις υπάρχουν ήδη — δεν υπάρχουν νέες προς εισαγωγή.`);
       setImporting(false);
       return;
     }
-    await base44.entities.BankTransaction.bulkCreate(fresh);
-    queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
     setImporting(false);
-    alert(`Εισήχθησαν ${fresh.length} κινήσεις.${skipped > 0 ? ` Παραλείφθηκαν ${skipped} διπλότυπες.` : ""}`);
+    setImportPreview({ rows, fileName: file?.name || "αιτήμα εισαγωγής" });
+  };
+
+  const handleConfirmImport = async (selectedRows) => {
+    if (!selectedRows?.length) return;
+    setImporting(true);
+    try {
+      const clean = selectedRows.map(({ _isDuplicate, ...rest }) => rest);
+      await base44.entities.BankTransaction.bulkCreate(clean);
+      queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
+      await new Promise(r => setTimeout(r, 100));
+      alert(`Εισήχθησαν ${clean.length} κινήσεις.`);
+      setImportPreview(null);
+    } finally {
+      setImporting(false);
+    }
   };
 
   const openNew = () => { setEditing(null); setForm(emptyForm); setShowForm(true); };
@@ -1003,6 +1018,15 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
         records={transactions}
         config={duplicateConfigs.BankTransaction}
         onDelete={async id => { await deleteMutation.mutateAsync(id); }}
+      />
+      <BankImportPreviewDialog
+        open={!!importPreview}
+        preview={importPreview}
+        onClose={() => setImportPreview(null)}
+        paymentSources={paymentSources}
+        existingSources={allSources}
+        onConfirm={handleConfirmImport}
+        importing={importing}
       />
     </div>
   );
