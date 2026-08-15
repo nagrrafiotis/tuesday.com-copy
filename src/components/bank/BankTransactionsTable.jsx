@@ -20,6 +20,8 @@ import SortableHeader, { applySort } from "@/components/ui/sort-select";
 import DuplicateWarningDialog from "@/components/shared/DuplicateWarningDialog";
 import DuplicateScanPanel from "@/components/shared/DuplicateScanPanel";
 import BankImportPreviewDialog from "./BankImportPreviewDialog";
+import ColumnMappingWizard from "./ColumnMappingWizard";
+import { parseWorkbook } from "@/lib/excelBankImport";
 import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector";
 
 const RECONCILE_TYPES = [
@@ -181,6 +183,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const [importing, setImporting] = useState(false);
   const importRef = useRef(null);
   const [importPreview, setImportPreview] = useState(null);
+  const [mappingWizard, setMappingWizard] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkEditForm, setBulkEditForm] = useState({ payment_source: "", transaction_type: "" });
   const [showBulkEdit, setShowBulkEdit] = useState(false);
@@ -451,9 +454,19 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     if (!file) return;
     setImporting(true);
     e.target.value = "";
+    if (file.name.match(/\.xlsx?$/i)) {
+      try {
+        const parsed = await parseWorkbook(file);
+        setImporting(false);
+        setMappingWizard({ parsed, fileName: file.name });
+      } catch (err) {
+        setImporting(false);
+        alert("Σφάλμα ανάγνωσης Excel: " + (err?.message || "άγνωστο σφάλμα"));
+      }
+      return;
+    }
     let toCreate = null;
-    if (file.name.match(/\.xlsx?$/i)) toCreate = await parseXlsxDirect(file);
-    if (!toCreate) {
+    {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       const result = await base44.integrations.Core.InvokeLLM({
         prompt: `Αυτό είναι αρχείο κινήσεων από ελληνική τράπεζα. Εξάγαγε ΟΛΕΣ τις κινήσεις.
@@ -484,8 +497,11 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
         reference: r.reference || "", reconciled: false,
       }));
     }
+    finalizeImport(toCreate, file?.name || "AI εισαγωγή");
+  };
+
+  const finalizeImport = (toCreate, fileName) => {
     if (!toCreate?.length) { alert("Δεν εντοπίστηκαν έγκυρες κινήσεις."); setImporting(false); return; }
-    // Skip duplicates already in DB (same date + amount + normalized description + type)
     const norm = s => (s || "").toString().toLowerCase().replace(/\s+/g, " ").trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const dupKey = r => `${r.date}|${Number(Math.abs(r.amount || 0).toFixed(2))}|${norm(r.description)}|${r.transaction_type}`;
     const existing = new Set(transactions.map(dupKey));
@@ -497,7 +513,13 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
       return;
     }
     setImporting(false);
-    setImportPreview({ rows, fileName: file?.name || "αιτήμα εισαγωγής" });
+    setImportPreview({ rows, fileName: fileName || "αιτήμα εισαγωγής" });
+  };
+
+  const handleMappingConfirm = (rows) => {
+    const fileName = mappingWizard?.fileName || "Excel εισαγωγή";
+    setMappingWizard(null);
+    finalizeImport(rows, fileName);
   };
 
   const handleConfirmImport = async (selectedRows) => {
@@ -1018,6 +1040,13 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
         records={transactions}
         config={duplicateConfigs.BankTransaction}
         onDelete={async id => { await deleteMutation.mutateAsync(id); }}
+      />
+      <ColumnMappingWizard
+        open={!!mappingWizard}
+        parsed={mappingWizard?.parsed}
+        fileName={mappingWizard?.fileName}
+        onClose={() => setMappingWizard(null)}
+        onConfirm={handleMappingConfirm}
       />
       <BankImportPreviewDialog
         open={!!importPreview}
