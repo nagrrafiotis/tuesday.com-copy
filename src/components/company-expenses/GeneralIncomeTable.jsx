@@ -12,6 +12,7 @@ import SortableHeader, { applySort } from "@/components/ui/sort-select";
 import DuplicateWarningDialog from "@/components/shared/DuplicateWarningDialog";
 import DuplicateScanPanel from "@/components/shared/DuplicateScanPanel";
 import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector";
+import { MobileCard } from "@/components/shared/MobileCard";
 
 const CATEGORIES = [
   "Πωλήσεις", "Υπηρεσίες", "Ενοίκια", "Επενδύσεις", "Επιστροφές", "Λοιπά"
@@ -124,19 +125,19 @@ export default function GeneralIncomeTable() {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="relative flex-1 min-w-48">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        <div className="relative w-full sm:flex-1 sm:min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input placeholder="Αναζήτηση..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => setShowDupScan(true)} title="Έλεγχος διπλοτύπων">
             <Copy className="w-4 h-4 mr-2" />Διπλότυπα
           </Button>
           <Button variant="outline" onClick={() => setShowScan(true)} className="border-blue-200 text-blue-700 hover:bg-blue-50">
-            <ScanLine className="w-4 h-4 mr-2" />Σάρωση Τιμολογίου
+            <ScanLine className="w-4 h-4 mr-2" />Σάρωση
           </Button>
-          <Button className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={openNew}>
+          <Button className="bg-[#1e3a5f] hover:bg-[#152a45] flex-1 sm:flex-none" onClick={openNew}>
             <Plus className="w-4 h-4 mr-2" />Νέο Έσοδο
           </Button>
         </div>
@@ -154,7 +155,7 @@ export default function GeneralIncomeTable() {
             </Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm table-fixed">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
@@ -234,6 +235,42 @@ export default function GeneralIncomeTable() {
           </div>
         )}
       </div>
+
+      {/* Mobile cards */}
+      {!isLoading && filtered.length > 0 && (
+        <div className="md:hidden grid grid-cols-1 gap-3">
+          {filtered.map(r => (
+            <MobileCard
+              key={r.id}
+              title={r.description}
+              titleRight={<span className="font-semibold text-emerald-700 tabular-nums">{fmt(r.total_amount)}</span>}
+              badge={r.income_type === "project"
+                ? <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-medium">Έργο: {r.project_name || "—"}</span>
+                : <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-medium">Λειτουργικό</span>}
+              rows={[
+                { label: "Κατηγορία", value: r.category || "—" },
+                { label: "Πελάτης", value: r.payer || "—" },
+                { label: "Αρ. Τιμ.", value: r.invoice_number || "—" },
+                { label: "Πηγή", value: r.payment_source || "—" },
+                { label: "Καθαρό", value: fmt(r.net_amount), align: "right" },
+                { label: "ΦΠΑ", value: fmt(r.vat_amount), align: "right", className: "text-amber-700" },
+                { label: "Ημ/νία", value: r.date ? format(new Date(r.date), "dd/MM/yyyy") : "—", fullWidth: true },
+              ]}
+              actions={(
+                <>
+                  {r.file_url && (
+                    <a href={r.file_url} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="icon" className="w-7 h-7 text-blue-600"><FileText className="w-3.5 h-3.5" /></Button>
+                    </a>
+                  )}
+                  <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => openEdit(r)}><Pencil className="w-3.5 h-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="w-7 h-7 text-red-500 hover:text-red-700" onClick={() => handleDelete(r)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                </>
+              )}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Form Dialog */}
       <Dialog open={showForm} onOpenChange={v => !v && closeForm()}>

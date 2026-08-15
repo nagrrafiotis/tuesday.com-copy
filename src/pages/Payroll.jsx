@@ -18,6 +18,7 @@ import SortableHeader, { applySort } from "@/components/ui/sort-select";
 import DuplicateWarningDialog from "@/components/shared/DuplicateWarningDialog";
 import DuplicateScanPanel from "@/components/shared/DuplicateScanPanel";
 import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector";
+import { MobileCard } from "@/components/shared/MobileCard";
 import {
   Plus, Search, Trash2, Pencil, FileText, ScanLine, Copy,
   Users, DollarSign, TrendingDown, Building2, ExternalLink
@@ -221,7 +222,7 @@ export default function Payroll() {
                   </Button>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-sm table-fixed">
                     <thead className="bg-gray-50 border-b border-gray-100">
                       <tr>
@@ -304,6 +305,42 @@ export default function Payroll() {
                 </div>
               )}
             </div>
+            {/* Mobile payroll cards */}
+            {!isLoading && filtered.length > 0 && (
+              <div className="md:hidden grid grid-cols-1 gap-3">
+                {sortedFiltered.map(r => (
+                  <MobileCard
+                    key={r.id}
+                    title={r.employee_name}
+                    titleRight={<span className="font-semibold text-emerald-700 tabular-nums">{fmt(r.net_salary)}</span>}
+                    badge={<Badge className={`${periodTypeColors[r.period_type] || "bg-gray-100 text-gray-700"} border-0 text-xs whitespace-nowrap`}>{periodTypeLabels[r.period_type] || r.period_type}</Badge>}
+                    meta={`${r.period || "—"} · ${r.payment_date ? format(new Date(r.payment_date), "dd/MM/yyyy") : "—"}`}
+                    rows={[
+                      { label: "Σύν. Αποδ.", value: fmt(r.gross_salary), align: "right" },
+                      { label: "Κρατ. Εργ/νου", value: fmt(r.total_insurance_deductions), align: "right", className: "text-amber-700" },
+                      { label: "Εισφ. Εργοδ.", value: fmt(r.employer_insurance_amount), align: "right", className: "text-purple-700" },
+                      { label: "Πηγή", value: r.payment_source || "—" },
+                    ]}
+                    actions={(
+                      <>
+                        {r.apd_file_url && (
+                          <a href={r.apd_file_url} target="_blank" rel="noopener noreferrer" title="ΑΠΔ">
+                            <Button variant="ghost" size="icon" className="w-7 h-7 text-blue-600"><FileText className="w-3.5 h-3.5" /></Button>
+                          </a>
+                        )}
+                        {r.payslip_file_url && (
+                          <a href={r.payslip_file_url} target="_blank" rel="noopener noreferrer" title="Απόδειξη">
+                            <Button variant="ghost" size="icon" className="w-7 h-7 text-[#1e3a5f]"><ExternalLink className="w-3.5 h-3.5" /></Button>
+                          </a>
+                        )}
+                        <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => { setEditing(r); setShowForm(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="w-7 h-7 text-red-500 hover:text-red-700" onClick={() => handleDelete(r)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </>
+                    )}
+                  />
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* ── GENERAL EXPENSES TAB ── */}
