@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus, Search, Trash2, Pencil, Upload, Loader2, Link2,
-  TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Download, FileSpreadsheet, X, Save, Zap, FileText, Copy
+  TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Download, FileSpreadsheet, X, Save, Zap, FileText, Copy, Wallet
 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
@@ -615,6 +615,21 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const totalDebit = filtered.filter(t => t.transaction_type === "debit").reduce((s, t) => s + Math.abs(t.amount || 0), 0);
   const unreconciledCount = filtered.filter(t => !t.reconciled).length;
 
+  // Cash balance per bank/payment source (based on ALL transactions, not filtered)
+  const balanceBySource = useMemo(() => {
+    const map = {};
+    transactions.forEach(t => {
+      const src = (t.payment_source || "").trim() || "—";
+      if (!map[src]) map[src] = { debit: 0, credit: 0 };
+      if (t.transaction_type === "debit") map[src].debit += Math.abs(t.amount || 0);
+      else map[src].credit += Math.abs(t.amount || 0);
+    });
+    return Object.entries(map).map(([source, v]) => ({
+      source, debit: v.debit, credit: v.credit, balance: v.credit - v.debit,
+    })).sort((a, b) => a.source.localeCompare(b.source, "el"));
+  }, [transactions]);
+  const totalBalance = balanceBySource.reduce((s, b) => s + b.balance, 0);
+
   return (
     <div className="space-y-4">
       {/* Summary cards */}
@@ -888,6 +903,32 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
             </table>
           </div>
         )}
+      </div>
+
+      {/* Cash balance summary */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50">
+          <Wallet className="w-4 h-4 text-[#1e3a5f]" />
+          <h3 className="font-semibold text-[#1e3a5f] text-sm">Ταμειακό Απόθεμα Τράπεζας</h3>
+        </div>
+        <div className="divide-y divide-gray-50">
+          {balanceBySource.length === 0 ? (
+            <div className="px-4 py-6 text-center text-gray-400 text-sm">Δεν υπάρχουν κινήσεις</div>
+          ) : balanceBySource.map(b => (
+            <div key={b.source} className="flex items-center justify-between px-4 py-2.5 text-sm gap-2">
+              <span className="text-gray-600 truncate flex-1 min-w-0">{b.source}</span>
+              <span className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-red-500 tabular-nums hidden sm:inline">−{fmt(b.debit)}</span>
+                <span className="text-xs text-green-600 tabular-nums hidden sm:inline">+{fmt(b.credit)}</span>
+                <span className={`font-semibold tabular-nums text-right ${b.balance >= 0 ? "text-[#1e3a5f]" : "text-red-600"}`}>{fmt(b.balance)}</span>
+              </span>
+            </div>
+          ))}
+          <div className="flex items-center justify-between px-4 py-3 bg-gray-50 font-semibold">
+            <span className="text-[#1e3a5f]">Συνολικό Απόθεμα</span>
+            <span className={`tabular-nums ${totalBalance >= 0 ? "text-[#1e3a5f]" : "text-red-600"}`}>{fmt(totalBalance)}</span>
+          </div>
+        </div>
       </div>
 
       {/* Add/Edit Form Dialog */}
