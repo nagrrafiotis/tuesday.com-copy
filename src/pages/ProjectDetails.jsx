@@ -19,13 +19,15 @@ import WorkDaysPanel from "@/components/project/WorkDaysPanel";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   ArrowLeft, MapPin, Calendar, DollarSign, Pencil, Plus,
-  Building2, ClipboardList, BarChart3,
+  Building2, ClipboardList, BarChart3, Cloud, Loader2,
 } from "lucide-react";
 import ProjectPDFReport from "@/components/project/ProjectPDFReport";
 import { format } from "date-fns";
 import SaveIndicator from "@/components/ui/SaveIndicator";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function ProjectDetails() {
+  const { toast } = useToast();
   const [user, setUser] = useState(null);
   const [authChecking, setAuthChecking] = useState(true);
 
@@ -47,8 +49,22 @@ export default function ProjectDetails() {
   const [isDragging, setIsDragging] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
+  const [exportingDrive, setExportingDrive] = useState(false);
 
   const queryClient = useQueryClient();
+
+  const handleExportToDrive = async () => {
+    setExportingDrive(true);
+    try {
+      const res = await base44.functions.invoke("exportProjectExcelToDrive", { projectId });
+      const result = res.data;
+      toast({ title: "Ανέβηκε στο Drive", description: "Το Excel του έργου αποθηκεύτηκε στον φάκελο του έργου." });
+    } catch (err) {
+      toast({ title: "Σφάλμα", description: err?.response?.data?.error || "Αποτυχία εξαγωγής στο Drive", variant: "destructive" });
+    } finally {
+      setExportingDrive(false);
+    }
+  };
 
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -401,6 +417,16 @@ export default function ProjectDetails() {
                   incomes={projectIncomes}
                   budgetItems={budgetItems}
                 />
+                <Button
+                  onClick={handleExportToDrive}
+                  disabled={exportingDrive}
+                  variant="outline"
+                  className="bg-white border-gray-200 text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white"
+                  title="Εξαγωγή όλων των στοιχείων του έργου σε Excel στον φάκελο του Drive"
+                >
+                  {exportingDrive ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Cloud className="w-4 h-4 mr-2" />}
+                  <span className="hidden sm:inline">Export to Drive</span>
+                </Button>
                 {activeTab === "board" && (
                   <Button onClick={() => { setEditingTask(null); setShowTaskForm(true); }} className="bg-[#1e3a5f] hover:bg-[#152a45] w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" /> Add Task
