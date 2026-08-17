@@ -17,12 +17,12 @@ export function MobileCard({ title, badge, titleRight, meta, rows, actions }) {
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-2">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-[#1e3a5f] truncate">{title}</p>
+          <p className="font-medium text-[#1e3a5f] break-words leading-snug">{title}</p>
           {badge && <div className="mt-1 flex flex-wrap gap-1">{badge}</div>}
         </div>
         {titleRight && <div className="shrink-0 text-right">{titleRight}</div>}
       </div>
-      {meta && <div className="text-xs text-gray-500 truncate">{meta}</div>}
+      {meta && <div className="text-xs text-gray-500 break-words">{meta}</div>}
       {rows?.length > 0 && (
         <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 pt-1">
           {rows.map((r, i) => (
