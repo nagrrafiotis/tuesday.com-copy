@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
+import { exportTableToPdf } from "@/lib/exportPdf";
 import CategoryRulesManager, { loadRules, matchCategory, CATEGORY_OPTIONS } from "./CategoryRulesManager";
 import SortableHeader, { applySort } from "@/components/ui/sort-select";
 import DuplicateWarningDialog from "@/components/shared/DuplicateWarningDialog";
@@ -267,89 +267,49 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   }, []);
 
   // PDF Export of selected (or all filtered) transactions
-  const handlePdfExport = () => {
+  const handlePdfExport = async () => {
     const toExport = selectedIds.size > 0
       ? filtered.filter(t => selectedIds.has(t.id))
       : filtered;
 
     const fmtNum = n => new Intl.NumberFormat("el-GR", { minimumFractionDigits: 2 }).format(Math.abs(n || 0));
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    const pageW = doc.internal.pageSize.getWidth();
-
-    // Header
-    doc.setFillColor(30, 58, 95);
-    doc.rect(0, 0, pageW, 20, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
-    doc.text("Κινήσεις Τράπεζας", 14, 13);
-    doc.setFontSize(9);
-    doc.text(`${format(new Date(), "dd/MM/yyyy HH:mm")} | ${toExport.length} κινήσεις`, pageW - 14, 13, { align: "right" });
-
-    // Column definitions [label, x, width, align]
-    const cols = [
-      ["Ημερομηνία", 14, 28, "left"],
-      ["Περιγραφή", 44, 70, "left"],
-      ["Αντισυμβαλλόμενος", 116, 50, "left"],
-      ["Τράπεζα", 168, 35, "left"],
-      ["Χρέωση (€)", 205, 30, "right"],
-      ["Πίστωση (€)", 237, 30, "right"],
-      ["Κατάσταση", 269, 20, "left"],
+    const columns = [
+      { label: "Ημερομηνία", align: "left" },
+      { label: "Περιγραφή", align: "left" },
+      { label: "Αντισυμβαλλόμενος", align: "left" },
+      { label: "Τράπεζα", align: "left" },
+      { label: "Χρέωση (€)", align: "right" },
+      { label: "Πίστωση (€)", align: "right" },
+      { label: "Κατάσταση", align: "left" },
     ];
-
-    // Table header row
-    let y = 28;
-    doc.setFillColor(243, 244, 246);
-    doc.rect(14, y - 4, pageW - 28, 7, "F");
-    doc.setTextColor(80, 80, 80);
-    doc.setFontSize(7);
-    cols.forEach(([label, x, w, align]) => {
-      doc.text(label, align === "right" ? x + w : x, y, { align });
-    });
-    y += 5;
-
-    doc.setFontSize(7.5);
-    toExport.forEach((t, i) => {
-      if (y > 190) {
-        doc.addPage();
-        y = 15;
-      }
-      if (i % 2 === 0) {
-        doc.setFillColor(249, 250, 251);
-        doc.rect(14, y - 3.5, pageW - 28, 6, "F");
-      }
-      const row = [
-        t.date ? format(new Date(t.date), "dd/MM/yy") : "",
-        (t.description || "").slice(0, 40),
-        (t.counterparty || "").slice(0, 28),
-        (t.payment_source || "").slice(0, 18),
-        t.transaction_type === "debit" ? fmtNum(t.amount) : "",
-        t.transaction_type === "credit" ? fmtNum(t.amount) : "",
-        t.reconciled ? "Συνδεδεμένη" : "Εκκρεμεί",
-      ];
-      cols.forEach(([, x, w, align], ci) => {
-        if (ci === 4) doc.setTextColor(220, 38, 38);
-        else if (ci === 5) doc.setTextColor(22, 163, 74);
-        else doc.setTextColor(50, 50, 50);
-        doc.text(row[ci], align === "right" ? x + w : x, y, { align });
-      });
-      y += 6;
-    });
-
-    // Footer totals
+    const rows = toExport.map(t => [
+      t.date ? format(new Date(t.date), "dd/MM/yy") : "",
+      (t.description || "").slice(0, 40),
+      (t.counterparty || "").slice(0, 28),
+      (t.payment_source || "").slice(0, 18),
+      t.transaction_type === "debit" ? { text: fmtNum(t.amount), color: "#dc2626" } : "",
+      t.transaction_type === "credit" ? { text: fmtNum(t.amount), color: "#16a34a" } : "",
+      t.reconciled ? "Συνδεδεμένη" : "Εκκρεμεί",
+    ]);
     const totalDb = toExport.filter(t => t.transaction_type === "debit").reduce((s, t) => s + Math.abs(t.amount || 0), 0);
     const totalCr = toExport.filter(t => t.transaction_type === "credit").reduce((s, t) => s + Math.abs(t.amount || 0), 0);
-    y += 2;
-    doc.setFillColor(30, 58, 95);
-    doc.rect(14, y - 3.5, pageW - 28, 7, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.text(`Σύνολο (${toExport.length} κινήσεις)`, 14, y + 0.5);
-    doc.setTextColor(255, 150, 150);
-    doc.text(fmtNum(totalDb), cols[4][1] + cols[4][2], y + 0.5, { align: "right" });
-    doc.setTextColor(150, 255, 180);
-    doc.text(fmtNum(totalCr), cols[5][1] + cols[5][2], y + 0.5, { align: "right" });
+    const totals = [
+      { text: `Σύνολο (${toExport.length} κινήσεις)`, align: "left" },
+      "", "", "",
+      { text: fmtNum(totalDb), align: "right", color: "#ffb0b0" },
+      { text: fmtNum(totalCr), align: "right", color: "#b0ffb0" },
+      "",
+    ];
 
-    doc.save(`κινήσεις_τράπεζας_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+    await exportTableToPdf({
+      title: "Κινήσεις Τράπεζας",
+      subtitle: `${format(new Date(), "dd/MM/yyyy HH:mm")} | ${toExport.length} κινήσεις`,
+      columns,
+      rows,
+      totals,
+      filename: `κινήσεις_τράπεζας_${format(new Date(), "yyyy-MM-dd")}.pdf`,
+      orientation: "landscape",
+    });
   };
 
   // Auto-suggest category from rules when reconciling
