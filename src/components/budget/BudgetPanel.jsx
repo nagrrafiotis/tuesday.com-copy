@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2, Pencil, BookOpen, Receipt, Download } from "lucide-react";
 import BudgetItemForm from "./BudgetItemForm";
 import BudgetTemplatesDialog from "./BudgetTemplatesDialog";
+import OffersPanel from "./OffersPanel";
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(amount || 0);
@@ -24,6 +25,7 @@ export default function BudgetPanel({ projectId }) {
   const [editingItem, setEditingItem] = useState(null);
   const [showTemplates, setShowTemplates] = useState(false);
   const [templateDefaults, setTemplateDefaults] = useState(null);
+  const [view, setView] = useState("budget");
   const queryClient = useQueryClient();
 
   const { data: items = [], isLoading } = useQuery({
@@ -119,6 +121,14 @@ export default function BudgetPanel({ projectId }) {
 
   return (
     <div>
+      {/* View toggle */}
+      <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5 mb-4">
+        <button onClick={() => setView("budget")} className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${view === "budget" ? "bg-[#1e3a5f] text-white" : "text-gray-600 hover:bg-gray-50"}`}>Προϋπολογισμός</button>
+        <button onClick={() => setView("offers")} className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${view === "offers" ? "bg-[#1e3a5f] text-white" : "text-gray-600 hover:bg-gray-50"}`}>Προσφορές</button>
+      </div>
+
+      {view === "budget" && (
+      <>
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
@@ -221,6 +231,12 @@ export default function BudgetPanel({ projectId }) {
             </TableBody>
           </Table>
         </div>
+      )}
+      </>
+      )}
+
+      {view === "offers" && (
+        <OffersPanel projectId={projectId} />
       )}
 
       <BudgetItemForm
