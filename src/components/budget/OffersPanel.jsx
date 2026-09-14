@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, ArrowRightToLine, FileText, Eye, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowRightToLine, FileText, Eye, Loader2, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import OfferFormDialog from "./OfferFormDialog";
@@ -38,8 +38,11 @@ export default function OffersPanel({ projectId }) {
   });
   const transferMutation = useMutation({
     mutationFn: async (offer) => {
+      // Re-transfer: delete previous budget items created from this offer
+      await base44.entities.BudgetItem.deleteMany({ project_id: projectId, source_offer_id: offer.id });
       const budgetItems = (offer.items || []).map((it) => ({
         project_id: projectId,
+        source_offer_id: offer.id,
         category: it.category || "materials",
         subcategory: it.subcategory || "",
         description: it.description || "",
@@ -52,10 +55,16 @@ export default function OffersPanel({ projectId }) {
       if (budgetItems.length) await base44.entities.BudgetItem.bulkCreate(budgetItems);
       await base44.entities.Offer.update(offer.id, { status: "transferred", transferred_date: new Date().toISOString().slice(0, 10) });
     },
-    onSuccess: () => {
+    onSuccess: (_data, offer) => {
       queryClient.invalidateQueries({ queryKey: ["offers", projectId] });
       queryClient.invalidateQueries({ queryKey: ["budget-items", projectId] });
-      toast({ title: "Μεταφέρθηκε στο Budget", description: "Τα στοιχεία της προσφοράς μπήκαν επίσημα στον προϋπολογισμό." });
+      const refresh = offer?.status === "transferred";
+      toast({
+        title: refresh ? "Ανανεώθηκε στο Budget" : "Μεταφέρθηκε στο Budget",
+        description: refresh
+          ? "Τα παλιά budget items διαγράφηκαν και δημιουργήθηκαν νέα από τα τρέχοντα στοιχεία."
+          : "Τα στοιχεία της προσφοράς μπήκαν επίσημα στον προϋπολογισμό.",
+      });
     },
     onError: (err) => toast({ title: "Σφάλμα", description: err?.message || "Αποτυχία μεταφοράς", variant: "destructive" }),
   });
@@ -122,7 +131,9 @@ export default function OffersPanel({ projectId }) {
                         {transferMutation.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <ArrowRightToLine className="w-3.5 h-3.5 mr-1" />} Στο Budget
                       </Button>
                     ) : (
-                      <span className="text-xs text-emerald-600 font-medium">Ενσωματωμένη</span>
+                      <Button size="sm" disabled={transferMutation.isPending} onClick={() => { if (window.confirm("Ανανέωση στο Budget; Θα διαγραφούν τα προηγούμενα budget items αυτής της προσφοράς και θα δημιουργηθούν νέα από τα τρέχοντα στοιχεία.")) transferMutation.mutate(o); }} className="bg-emerald-600 hover:bg-emerald-700">
+                        {transferMutation.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />} Ανανέωση
+                      </Button>
                     )}
                   </div>
                 </div>
