@@ -100,7 +100,7 @@ export default function OffersPanel({ projectId }) {
                         {transferred ? "Μεταφέρθηκε" : "Πρόχειρο"}
                       </Badge>
                     </div>
-                    <p className="text-sm text-gray-500 truncate">{o.vendor || "—"}</p>
+                    <p className="text-sm text-gray-500 truncate">{o.vendor || "—"}{o.offer_type ? ` · ${o.offer_type}` : ""}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-bold text-[#1e3a5f] whitespace-nowrap">{fmt(o.total_amount)}</p>

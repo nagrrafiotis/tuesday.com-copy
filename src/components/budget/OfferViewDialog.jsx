@@ -21,6 +21,7 @@ export default function OfferViewDialog({ offer, open, onClose }) {
             {transferred ? "Μεταφέρθηκε στο Budget" : "Πρόχειρο"}
           </Badge>
           {offer.vendor && <span className="text-gray-600">{offer.vendor}</span>}
+          {offer.offer_type && <span className="text-gray-500">· {offer.offer_type}</span>}
           {offer.date && <span className="text-gray-400">{format(new Date(offer.date), "dd/MM/yyyy")}</span>}
           {offer.file_url && <a href={offer.file_url} target="_blank" rel="noreferrer" className="text-[#1e3a5f] underline">Προβολή αρχείου</a>}
         </div>

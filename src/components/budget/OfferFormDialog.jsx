@@ -8,6 +8,7 @@ import { Plus, Trash2, Upload, Loader2, FileText, AlertCircle } from "lucide-rea
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { extractOfferFromFile } from "@/lib/offerExtract";
+import { categorizeOffer } from "@/lib/offerCategorize";
 
 const fmt = (n) => new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(n || 0);
 const emptyItem = () => ({ description: "", quantity: 1, unit: "", unit_cost: 0, total: 0, category: "materials", subcategory: "" });
@@ -15,12 +16,13 @@ const emptyItem = () => ({ description: "", quantity: 1, unit: "", unit_cost: 0,
 const catLabel = (c) => c.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
 export default function OfferFormDialog({ offer, projectId, open, onClose, onSubmit, saving }) {
-  const [form, setForm] = useState({ title: "", vendor: "", date: "", notes: "" });
+  const [form, setForm] = useState({ title: "", vendor: "", date: "", notes: "", offer_type: "" });
   const [items, setItems] = useState([emptyItem()]);
   const [fileUrl, setFileUrl] = useState("");
   const [fileName, setFileName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [extracting, setExtracting] = useState(false);
+  const [categorizing, setCategorizing] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
 
@@ -32,16 +34,22 @@ export default function OfferFormDialog({ offer, projectId, open, onClose, onSub
   const categories = dropdownLists.find((l) => l.list_name === "expense_categories")?.options || ["labor", "subcontractor", "materials", "equipment", "general_expenses"];
   const units = dropdownLists.find((l) => l.list_name === "units")?.options || ["m²", "m³", "m", "kg", "ton", "pcs", "hr", "day", "ls"];
 
+  const { data: subcategories = [] } = useQuery({
+    queryKey: ["subcategories"],
+    queryFn: () => base44.entities.Subcategory.list("name"),
+    enabled: open,
+  });
+
   useEffect(() => {
     if (!open) return;
     setError("");
     if (offer) {
-      setForm({ title: offer.title || "", vendor: offer.vendor || "", date: offer.date?.slice(0, 10) || "", notes: offer.notes || "" });
+      setForm({ title: offer.title || "", vendor: offer.vendor || "", date: offer.date?.slice(0, 10) || "", notes: offer.notes || "", offer_type: offer.offer_type || "" });
       setItems(offer.items?.length ? offer.items.map((it) => ({ ...emptyItem(), ...it })) : [emptyItem()]);
       setFileUrl(offer.file_url || "");
       setFileName(offer.file_name || "");
     } else {
-      setForm({ title: "", vendor: "", date: new Date().toISOString().slice(0, 10), notes: "" });
+      setForm({ title: "", vendor: "", date: new Date().toISOString().slice(0, 10), notes: "", offer_type: "" });
       setItems([emptyItem()]);
       setFileUrl("");
       setFileName("");
@@ -71,9 +79,21 @@ export default function OfferFormDialog({ offer, projectId, open, onClose, onSub
       setExtracting(true);
       try {
         const result = await extractOfferFromFile(file, file_url);
-        if (result.items?.length) setItems(result.items.map((it) => ({ ...emptyItem(), ...it })));
         if (result.meta?.vendor && !form.vendor) setForm((f) => ({ ...f, vendor: result.meta.vendor }));
         if (result.meta?.offer_date && !form.date) setForm((f) => ({ ...f, date: result.meta.offer_date.slice(0, 10) }));
+        if (result.items?.length) {
+          let finalItems = result.items.map((it) => ({ ...emptyItem(), ...it }));
+          if (subcategories.length) {
+            try {
+              setCategorizing(true);
+              const cat = await categorizeOffer(result.items, categories, subcategories.map((s) => s.name));
+              finalItems = cat.items.map((it) => ({ ...emptyItem(), ...it }));
+              if (cat.offer_type) setForm((f) => ({ ...f, offer_type: cat.offer_type }));
+            } catch (e) { /* keep defaults on AI failure */ }
+            finally { setCategorizing(false); }
+          }
+          setItems(finalItems);
+        }
       } catch (err) {
         setError(err?.message || "Η αυτόματη ανάλυση απέτυχε. Μπορείτε να συμπληρώσετε τα στοιχεία χειροκίνητα.");
       } finally {
@@ -100,6 +120,7 @@ export default function OfferFormDialog({ offer, projectId, open, onClose, onSub
       items: items.filter((it) => (it.description || "").trim() || it.total),
       total_amount: total,
       notes: form.notes,
+      offer_type: form.offer_type,
     });
   };
 
@@ -125,6 +146,11 @@ export default function OfferFormDialog({ offer, projectId, open, onClose, onSub
             </div>
           </div>
 
+          <div>
+            <Label>Είδος Προσφοράς</Label>
+            <Input value={form.offer_type} onChange={(e) => setForm({ ...form, offer_type: e.target.value })} className="mt-1.5" placeholder="π.χ. Υλικά / Εργασίες / Εξοπλισμός (συμπληρώνεται με AI)" />
+          </div>
+
           <div className="border border-dashed rounded-lg p-4 bg-gray-50/50">
             <div className="flex flex-wrap items-center gap-3 justify-between">
               <div className="flex items-center gap-2">
@@ -139,7 +165,7 @@ export default function OfferFormDialog({ offer, projectId, open, onClose, onSub
             {fileUrl && (
               <div className="mt-2 text-xs text-gray-500 flex items-center gap-2 flex-wrap">
                 <a href={fileUrl} target="_blank" rel="noreferrer" className="text-[#1e3a5f] underline">{fileName || "Αρχείο"}</a>
-                {extracting && <span className="flex items-center gap-1 text-amber-600"><Loader2 className="w-3 h-3 animate-spin" /> Ανάλυση σε εξέλιξη...</span>}
+                {(extracting || categorizing) && <span className="flex items-center gap-1 text-amber-600"><Loader2 className="w-3 h-3 animate-spin" /> {categorizing ? "Κατηγοριοποίηση με AI..." : "Ανάλυση σε εξέλιξη..."}</span>}
               </div>
             )}
             {error && (
