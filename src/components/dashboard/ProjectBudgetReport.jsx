@@ -169,8 +169,8 @@ export default function ProjectBudgetReport() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {projectSummaries.map(({ project, totalExpenses, totalIncomes, balance, budget, budgetRemaining, budgetUsedPct }) => (
-                        <tr key={project.id} className="hover:bg-gray-50/50 transition-colors group">
+                      {projectSummaries.map(({ project, totalExpenses, totalIncomes, balance, budget, budgetRemaining, budgetUsedPct }, idx) => (
+                        <tr key={project.id} className={`${idx % 2 === 0 ? "bg-white" : "bg-slate-50/70"} hover:bg-[#1e3a5f]/5 transition-colors group`}>
                           <td className="py-3 pr-4">
                             <Link
                               to={createPageUrl(`ProjectDetails?id=${project.id}`)}
