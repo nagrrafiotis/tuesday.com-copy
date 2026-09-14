@@ -90,21 +90,11 @@ export async function extractOfferFromFile(file, file_url) {
     return mapExcelRows(rows);
   }
 
-  // PDF / images → ExtractDataFromUploadedFile
-  if (/\.(pdf|png|jpg|jpeg)$/.test(name)) {
-    const res = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url,
-      json_schema: ITEMS_SCHEMA,
-    });
-    if (res?.status === "error") throw new Error(res?.details || "Σφάλμα ανάλυσης αρχείου");
-    return normalizeItems(res?.output);
-  }
-
-  // Word / other → InvokeLLM (reads file, returns structured JSON)
-  if (/\.(doc|docx)$/.test(name)) {
+  // PDF / images / Word → InvokeLLM (vision-capable model reads the file and returns structured JSON)
+  if (/\.(pdf|png|jpg|jpeg|doc|docx)$/.test(name)) {
     const res = await base44.integrations.Core.InvokeLLM({
       prompt:
-        "Extract the line items from this offer/quote document. Return JSON with vendor, offer_date (YYYY-MM-DD), total_amount, and an items array where each item has description, quantity, unit, unit_price and total. Use Greek where applicable.",
+        "Διάβασε αυτό το έγγραφο προσφοράς/quote και εξήγαγε τις γραμμές της. Επέστρεψε JSON με: vendor (όνομα προμηθευτή, string), offer_date (σε μορφή YYYY-MM-DD αν υπάρχει), total_amount (αριθμός), και items (πίνακας από αντικείμενα με πεδία description, quantity (αριθμός), unit (string), unit_price (αριθμός), total (αριθμός)). Συμπεριέλαβε ΜΟΝΟ πραγματικές γραμμές είδους, όχι επικεφαλίδες ή γραμμές συνόλων. Ελληνικά όπου απαιτείται.",
       file_urls: [file_url],
       response_json_schema: ITEMS_SCHEMA,
     });
