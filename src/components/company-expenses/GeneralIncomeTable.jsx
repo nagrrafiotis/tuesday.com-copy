@@ -13,6 +13,8 @@ import DuplicateWarningDialog from "@/components/shared/DuplicateWarningDialog";
 import DuplicateScanPanel from "@/components/shared/DuplicateScanPanel";
 import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector";
 import { MobileCard } from "@/components/shared/MobileCard";
+import ExcelExportButton from "@/components/shared/ExcelExportButton";
+import { exportColumns } from "@/lib/excelExport";
 
 const CATEGORIES = [
   "Πωλήσεις", "Υπηρεσίες", "Ενοίκια", "Επενδύσεις", "Επιστροφές", "Λοιπά"
@@ -137,6 +139,7 @@ export default function GeneralIncomeTable() {
           <Button variant="outline" onClick={() => setShowScan(true)} className="border-blue-200 text-blue-700 hover:bg-blue-50">
             <ScanLine className="w-4 h-4 mr-2" />Σάρωση
           </Button>
+          <ExcelExportButton records={filtered} columns={exportColumns.generalIncome} sheetName="Γενικά Έσοδα" fileName={`γενικά_έσοδα_${new Date().toISOString().slice(0, 10)}.xlsx`} />
           <Button className="bg-[#1e3a5f] hover:bg-[#152a45] flex-1 sm:flex-none" onClick={openNew}>
             <Plus className="w-4 h-4 mr-2" />Νέο Έσοδο
           </Button>

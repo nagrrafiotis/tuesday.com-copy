@@ -13,6 +13,8 @@ import DuplicateWarningDialog from "@/components/shared/DuplicateWarningDialog";
 import DuplicateScanPanel from "@/components/shared/DuplicateScanPanel";
 import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector";
 import { MobileCard } from "@/components/shared/MobileCard";
+import ExcelExportButton from "@/components/shared/ExcelExportButton";
+import { exportColumns } from "@/lib/excelExport";
 
 const EXPENSE_TYPES = [
   { value: "operational", label: "Λειτουργικό Έξοδο" },
@@ -140,6 +142,7 @@ export default function GeneralExpensesTable() {
           <Button variant="outline" onClick={() => setShowScan(true)} className="border-blue-200 text-blue-700 hover:bg-blue-50">
             <ScanLine className="w-4 h-4 mr-2" />Σάρωση
           </Button>
+          <ExcelExportButton records={filtered} columns={exportColumns.generalExpenses} sheetName="Γενικά Έξοδα" fileName={`γενικά_έξοδα_${new Date().toISOString().slice(0, 10)}.xlsx`} />
           <Button className="bg-[#1e3a5f] hover:bg-[#152a45] flex-1 sm:flex-none" onClick={openNew}>
             <Plus className="w-4 h-4 mr-2" />Νέο Έξοδο
           </Button>

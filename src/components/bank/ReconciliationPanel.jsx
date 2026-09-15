@@ -8,9 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { format } from "date-fns";
 import {
   CheckCircle2, AlertCircle, Link2, TrendingDown,
-  ChevronDown, ChevronRight, Zap, RefreshCw, Search, X, Plus
+  ChevronDown, ChevronRight, Zap, RefreshCw, Search, X, Plus, Download
 } from "lucide-react";
 import CreateRecordFromTxDialog from "./CreateRecordFromTxDialog";
+import { exportWorkbook } from "@/lib/excelExport";
 
 const fmt = n => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(Math.abs(n || 0));
 const DAYS_TOLERANCE = 30;
@@ -441,6 +442,41 @@ export default function ReconciliationPanel() {
 
   if (loadingTx) return <div className="text-center py-16 text-gray-400">Φόρτωση...</div>;
 
+  const handleExportRecon = () => {
+    const sugCols = [
+      { key: "confidence", label: "Βεβαιότητα" },
+      { key: "tx_date", label: "Ημ/νία Κίνησης" },
+      { key: "tx_desc", label: "Περιγραφή Κίνησης" },
+      { key: "tx_amount", label: "Ποσό Κίνησης" },
+      { key: "rec_label", label: "Τύπος Εγγραφής" },
+      { key: "rec_desc", label: "Περιγραφή Εγγραφής" },
+      { key: "rec_amount", label: "Ποσό Εγγραφής" },
+      { key: "rec_date", label: "Ημ/νία Εγγραφής" },
+    ];
+    const sugRows = suggestions.map(s => ({
+      confidence: s.confidence === "high" ? "Υψηλή" : "Μέτρια",
+      tx_date: s.transaction.date || "",
+      tx_desc: s.transaction.description || "",
+      tx_amount: s.transaction.amount || 0,
+      rec_label: s.record.label || "",
+      rec_desc: s.record.description || "",
+      rec_amount: s.record.amount || 0,
+      rec_date: s.record.date || "",
+    }));
+    const unmatchedCols = [
+      { key: "date", label: "Ημ/νία" },
+      { key: "description", label: "Περιγραφή" },
+      { key: "counterparty", label: "Αντισυμβαλλόμενος" },
+      { key: "payment_source", label: "Τράπεζα" },
+      { key: "amount", label: "Ποσό (€)" },
+      { key: "transaction_type", label: "Τύπος" },
+    ];
+    exportWorkbook([
+      { name: "Προτάσεις Αντιστοίχισης", records: sugRows, columns: sugCols },
+      { name: "Χωρίς Αντιστοιχία", records: unmatchedTx, columns: unmatchedCols },
+    ], `αντιστοίχιση_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -449,6 +485,9 @@ export default function ReconciliationPanel() {
           <p className="text-sm text-gray-500 mt-0.5">Μόνο πληρωμές & έσοδα μέσω τράπεζας (±{DAYS_TOLERANCE} ημέρες)</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportRecon} title="Εξαγωγή σε Excel" disabled={suggestions.length === 0 && unmatchedTx.length === 0}>
+            <Download className="w-4 h-4 mr-1" />Excel
+          </Button>
           <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries()}>
             <RefreshCw className="w-4 h-4 mr-1" />Ανανέωση
           </Button>

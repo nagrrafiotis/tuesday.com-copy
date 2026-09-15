@@ -22,9 +22,11 @@ import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector"
 import { MobileCard } from "@/components/shared/MobileCard";
 import {
   Plus, Search, Trash2, Pencil, FileText, ScanLine, Copy,
-  Users, DollarSign, TrendingDown, Building2, ExternalLink
+  Users, DollarSign, TrendingDown, Building2, ExternalLink, FileSpreadsheet
 } from "lucide-react";
 import { format } from "date-fns";
+import ExcelExportButton from "@/components/shared/ExcelExportButton";
+import { exportColumns, exportWorkbook } from "@/lib/excelExport";
 
 const periodTypeLabels = {
   regular: "Κανονικές Αποδοχές",
@@ -125,6 +127,27 @@ export default function Payroll() {
 
   const sortedFiltered = applySort(filtered, sortField, sortDirection);
 
+  const [exportingAll, setExportingAll] = useState(false);
+  const handleExportAll = async () => {
+    setExportingAll(true);
+    try {
+      const [payrollAll, expensesAll, incomeAll, bankAll] = await Promise.all([
+        base44.entities.Payroll.list("-payment_date"),
+        base44.entities.GeneralExpense.list("-date"),
+        base44.entities.GeneralIncome.list("-date"),
+        base44.entities.BankTransaction.list("-date"),
+      ]);
+      exportWorkbook([
+        { name: "Μισθοδοσία", records: payrollAll, columns: exportColumns.payroll },
+        { name: "Γενικά Έξοδα", records: expensesAll, columns: exportColumns.generalExpenses },
+        { name: "Γενικά Έσοδα", records: incomeAll, columns: exportColumns.generalIncome },
+        { name: "Κινήσεις Τράπεζας", records: bankAll, columns: exportColumns.bankTransactions },
+      ], `company_finances_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } finally {
+      setExportingAll(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#fafafa] p-6">
       <div className="w-full">
@@ -134,6 +157,9 @@ export default function Payroll() {
             <h1 className="text-2xl font-bold text-[#1e3a5f]">Company Expenses</h1>
             <p className="text-gray-500 text-sm mt-1">Διαχείριση εξόδων εταιρείας</p>
           </div>
+          <Button variant="outline" onClick={handleExportAll} disabled={exportingAll} className="border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+            <FileSpreadsheet className="w-4 h-4 mr-2" />{exportingAll ? "Εξαγωγή..." : "Συνολική Εξαγωγή Excel"}
+          </Button>
         </div>
 
         <Tabs defaultValue="payroll">
@@ -203,6 +229,7 @@ export default function Payroll() {
                 <Button variant="outline" onClick={() => setShowDupScan(true)} title="Έλεγχος διπλοτύπων">
                   <Copy className="w-4 h-4 mr-2" />Διπλότυπα
                 </Button>
+                <ExcelExportButton records={sortedFiltered} columns={exportColumns.payroll} sheetName="Μισθοδοσία" fileName={`μισθοδοσία_${new Date().toISOString().slice(0, 10)}.xlsx`} />
                 <Button className="bg-[#1e3a5f] hover:bg-[#152a45]"
                   onClick={() => { setEditing(null); setPrefillData(null); setShowForm(true); }}>
                   <Plus className="w-4 h-4 mr-2" />Νέα Εγγραφή
