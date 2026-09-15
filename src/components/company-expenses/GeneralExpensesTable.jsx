@@ -26,7 +26,7 @@ const CATEGORIES = [
   "Εξοπλισμός", "Λογισμικό / Συνδρομές", "Καύσιμα", "Συντήρηση", "Λοιπά"
 ];
 
-const emptyForm = { description: "", expense_type: "operational", project_id: "", project_name: "", category: "", amount: "", date: "", payment_source: "", payee: "", notes: "", file_url: "" };
+const emptyForm = { description: "", expense_type: "operational", project_id: "", project_name: "", category: "", amount: "", date: "", payment_source: "", payee: "", partner: "", is_partner_cash: false, notes: "", file_url: "" };
 
 export default function GeneralExpensesTable() {
   const [search, setSearch] = useState("");
@@ -49,6 +49,12 @@ export default function GeneralExpensesTable() {
     queryFn: () => base44.entities.Project.list("name"),
   });
 
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts-list"],
+    queryFn: () => base44.entities.Contact.list("name"),
+  });
+  const partnerContacts = contacts.filter(c => c.category === "partner");
+
   const { data: expenses = [], isLoading } = useQuery({
     queryKey: ["general-expenses"],
     queryFn: () => base44.entities.GeneralExpense.list("-date"),
@@ -70,7 +76,7 @@ export default function GeneralExpensesTable() {
   });
 
   const openNew = () => { setEditing(null); setForm(emptyForm); setShowForm(true); };
-  const openEdit = r => { setEditing(r); setForm({ ...r, amount: r.amount?.toString() || "", expense_type: r.expense_type || "operational" }); setShowForm(true); };
+  const openEdit = r => { setEditing(r); setForm({ ...r, amount: r.amount?.toString() || "", expense_type: r.expense_type || "operational", is_partner_cash: !!r.partner, partner: r.partner || "" }); setShowForm(true); };
 
   const handleProjectChange = (projectId) => {
     const proj = projects.find(p => p.id === projectId);
@@ -88,7 +94,8 @@ export default function GeneralExpensesTable() {
   };
 
   const handleSubmit = async () => {
-    const data = { ...form, amount: parseFloat(form.amount) || 0 };
+    const { is_partner_cash, ...formData } = form;
+    const data = { ...formData, amount: parseFloat(form.amount) || 0, partner: is_partner_cash ? (form.partner || "") : "" };
     const action = async () => {
       if (editing) await updateMutation.mutateAsync({ id: editing.id, data });
       else await createMutation.mutateAsync(data);
@@ -333,6 +340,26 @@ export default function GeneralExpensesTable() {
               <label className="text-xs font-medium text-gray-500 mb-1 block">Πηγή πληρωμής</label>
               <Input value={form.payment_source} onChange={e => setForm(f => ({ ...f, payment_source: e.target.value }))} placeholder="Τράπεζα, μετρητά..." />
             </div>
+            <div className="flex items-center gap-2 pt-1">
+              <input id="ge-partner-cash" type="checkbox" className="w-4 h-4 rounded border-gray-300 text-[#1e3a5f]"
+                checked={!!form.is_partner_cash}
+                onChange={e => {
+                  const c = e.target.checked;
+                  setForm(f => ({ ...f, is_partner_cash: c, partner: c ? f.partner : "", payment_source: c && !/cash|μετρητά|ταμείο/i.test(f.payment_source || "") ? "Cash (Ταμείο)" : f.payment_source }));
+                }} />
+              <label htmlFor="ge-partner-cash" className="text-sm text-gray-700 select-none">Πληρωμή σε εταίρο (cash)</label>
+            </div>
+            {form.is_partner_cash && (
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Εταίρος *</label>
+                <select className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  value={form.partner} onChange={e => setForm(f => ({ ...f, partner: e.target.value }))}>
+                  <option value="">Επιλέξτε εταίρο...</option>
+                  {partnerContacts.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                </select>
+                {partnerContacts.length === 0 && <p className="text-[11px] text-amber-600 mt-1">Δεν υπάρχουν επαφές κατηγορίας «Συνεργάτης». Προσθέστε τις στο Contacts.</p>}
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">Σημειώσεις</label>
               <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Προαιρετικά..." />

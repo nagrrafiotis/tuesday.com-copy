@@ -12,6 +12,7 @@ import PayrollScanDialog from "@/components/payroll/PayrollScanDialog";
 import APDScanDialog from "@/components/payroll/APDScanDialog";
 import GeneralExpensesTable from "@/components/company-expenses/GeneralExpensesTable";
 import GeneralIncomeTable from "@/components/company-expenses/GeneralIncomeTable";
+import CashRegisterCard from "@/components/company-expenses/CashRegisterCard";
 import BankTransactionsTable from "@/components/bank/BankTransactionsTable";
 import ReconciliationPanel from "@/components/bank/ReconciliationPanel";
 import SortableHeader, { applySort } from "@/components/ui/sort-select";
@@ -346,6 +347,7 @@ export default function Payroll() {
           {/* ── GENERAL EXPENSES TAB ── */}
           <TabsContent value="general">
             <GeneralExpensesTable />
+            <CashRegisterCard />
           </TabsContent>
 
           {/* ── GENERAL INCOME TAB ── */}
