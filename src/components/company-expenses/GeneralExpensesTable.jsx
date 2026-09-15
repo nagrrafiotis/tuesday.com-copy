@@ -15,6 +15,8 @@ import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector"
 import { MobileCard } from "@/components/shared/MobileCard";
 import ExcelExportButton from "@/components/shared/ExcelExportButton";
 import { exportColumns } from "@/lib/excelExport";
+import ResizableHeader from "@/components/shared/ResizableHeader";
+import { useColumnWidths } from "@/hooks/useColumnWidths";
 
 const EXPENSE_TYPES = [
   { value: "operational", label: "Λειτουργικό Έξοδο" },
@@ -32,6 +34,7 @@ const emptyForm = { description: "", expense_type: "operational", project_id: ""
 
 export default function GeneralExpensesTable() {
   const [search, setSearch] = useState("");
+  const { widths: colW, setColumnWidth, autoFitByHeader } = useColumnWidths("generalExpenses", { description: 200, type: 150, category: 130, payee: 140, amount: 110, payment_source: 120, date: 100, file: 70 });
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -165,15 +168,15 @@ export default function GeneralExpensesTable() {
             <table className="w-full text-sm table-fixed">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[20%]"><SortableHeader label="Περιγραφή" field="description" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[13%]">Τύπος / Έργο</th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[11%]"><SortableHeader label="Κατηγορία" field="category" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[12%]"><SortableHeader label="Δικαιούχος" field="payee" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
-                  <th className="text-right px-3 py-3 font-medium text-gray-500 w-[10%]"><SortableHeader label="Ποσό" field="amount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[10%]"><SortableHeader label="Πηγή" field="payment_source" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
-                  <th className="text-left px-3 py-3 font-medium text-gray-500 w-[8%]"><SortableHeader label="Ημ/νία" field="date" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></th>
-                  <th className="text-center px-3 py-3 font-medium text-gray-500 w-[5%]">Αρχείο</th>
-                  <th className="px-3 py-3 w-[8%]"></th>
+                  <ResizableHeader width={colW.description} onResize={w => setColumnWidth("description", w)} onAutoFit={() => autoFitByHeader("description")} data-column="description"><SortableHeader label="Περιγραφή" field="description" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
+                  <ResizableHeader width={colW.type} onResize={w => setColumnWidth("type", w)} onAutoFit={() => autoFitByHeader("type")} data-column="type">Τύπος / Έργο</ResizableHeader>
+                  <ResizableHeader width={colW.category} onResize={w => setColumnWidth("category", w)} onAutoFit={() => autoFitByHeader("category")}><SortableHeader label="Κατηγορία" field="category" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
+                  <ResizableHeader width={colW.payee} onResize={w => setColumnWidth("payee", w)} onAutoFit={() => autoFitByHeader("payee")}><SortableHeader label="Δικαιούχος" field="payee" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
+                  <ResizableHeader width={colW.amount} onResize={w => setColumnWidth("amount", w)} onAutoFit={() => autoFitByHeader("amount")} align="right"><SortableHeader label="Ποσό" field="amount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></ResizableHeader>
+                  <ResizableHeader width={colW.payment_source} onResize={w => setColumnWidth("payment_source", w)} onAutoFit={() => autoFitByHeader("payment_source")}><SortableHeader label="Πηγή" field="payment_source" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
+                  <ResizableHeader width={colW.date} onResize={w => setColumnWidth("date", w)} onAutoFit={() => autoFitByHeader("date")}><SortableHeader label="Ημ/νία" field="date" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
+                  <ResizableHeader width={colW.file} onResize={w => setColumnWidth("file", w)} onAutoFit={() => autoFitByHeader("file")} align="center">Αρχείο</ResizableHeader>
+                  <th className="px-3 py-3"></th>
                 </tr>
               </thead>
               <tbody>
