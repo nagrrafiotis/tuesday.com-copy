@@ -21,6 +21,7 @@ import DuplicateWarningDialog from "@/components/shared/DuplicateWarningDialog";
 import DuplicateScanPanel from "@/components/shared/DuplicateScanPanel";
 import BankImportPreviewDialog from "./BankImportPreviewDialog";
 import ColumnMappingWizard from "./ColumnMappingWizard";
+import CreateRecordFromTxDialog from "./CreateRecordFromTxDialog";
 import { parseWorkbook } from "@/lib/excelBankImport";
 import { findDuplicateMatches, duplicateConfigs } from "@/lib/duplicateDetector";
 
@@ -180,6 +181,7 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
   const [uploading, setUploading] = useState(false);
   const [reconcileDialog, setReconcileDialog] = useState(null);
   const [reconcileForm, setReconcileForm] = useState({ reconciled_with: "", reconciled_note: "" });
+  const [sendToIncomeTx, setSendToIncomeTx] = useState(null);
   const [importing, setImporting] = useState(false);
   const importRef = useRef(null);
   const [importPreview, setImportPreview] = useState(null);
@@ -534,6 +536,15 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
     await updateMutation.mutateAsync({ id: tx.id, data: { ...tx, reconciled: false, reconciled_with: null, reconciled_id: null, reconciled_note: "" } });
   };
 
+  const handleSendToIncomeCreated = async (tx, rec) => {
+    await updateMutation.mutateAsync({
+      id: tx.id,
+      data: { ...tx, reconciled: true, reconciled_with: rec.type, reconciled_id: rec.id, reconciled_note: rec.label || rec.description || "" },
+    });
+    setSendToIncomeTx(null);
+    queryClient.invalidateQueries({ queryKey: ["general-incomes"] });
+  };
+
   const getMatchingSuggestions = (tx) => {
     if (!tx) return [];
     const amt = Math.abs(tx.amount);
@@ -836,6 +847,13 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
                               <Link2 className="w-3.5 h-3.5" />
                             </button>
                           )}
+                          {!t.reconciled && t.transaction_type === "credit" && (
+                            <button title="Αποστολή στα Γενικά Έσοδα"
+                              onClick={() => setSendToIncomeTx(t)}
+                              className="p-1 rounded hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors">
+                              <TrendingUp className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           {t.reconciled && (
                             <button title="Αναίρεση αντιστοίχισης" onClick={() => handleUnreconcile(t)}
                               className="p-1 rounded hover:bg-green-50 text-green-500 hover:text-green-700 transition-colors">
@@ -1058,6 +1076,13 @@ export default function BankTransactionsTable({ paymentSources = [] }) {
         onConfirm={handleConfirmImport}
         importing={importing}
       />
+      {sendToIncomeTx && (
+        <CreateRecordFromTxDialog
+          tx={sendToIncomeTx}
+          onCreated={handleSendToIncomeCreated}
+          onClose={() => setSendToIncomeTx(null)}
+        />
+      )}
     </div>
   );
 }
