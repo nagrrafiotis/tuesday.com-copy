@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Search, Trash2, Pencil, FileText, Upload, Loader2, ScanLine, Copy } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, FileText, Upload, Loader2, ScanLine, Copy, Check, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import ScanExpenseIncomeDialog from "./ScanExpenseIncomeDialog";
 import SortableHeader, { applySort } from "@/components/ui/sort-select";
@@ -112,6 +113,11 @@ export default function GeneralIncomeTable() {
     }
   };
 
+  const toggleTransferred = async r => {
+    await base44.entities.GeneralIncome.update(r.id, { transferred: !r.transferred });
+    queryClient.invalidateQueries({ queryKey: ["general-income"] });
+  };
+
   const filtered = applySort(
     incomes.filter(r =>
       !search ||
@@ -123,9 +129,11 @@ export default function GeneralIncomeTable() {
     sortDirection
   );
 
-  const totalNet = filtered.reduce((s, r) => s + (r.net_amount || 0), 0);
-  const totalVat = filtered.reduce((s, r) => s + (r.vat_amount || 0), 0);
-  const totalAmount = filtered.reduce((s, r) => s + (r.total_amount || 0), 0);
+  const transferredOnly = filtered.filter(r => r.transferred);
+  const totalNet = transferredOnly.reduce((s, r) => s + (r.net_amount || 0), 0);
+  const totalVat = transferredOnly.reduce((s, r) => s + (r.vat_amount || 0), 0);
+  const totalAmount = transferredOnly.reduce((s, r) => s + (r.total_amount || 0), 0);
+  const transferredCount = transferredOnly.length;
 
   return (
     <div className="space-y-4">
@@ -176,6 +184,7 @@ export default function GeneralIncomeTable() {
                    <ResizableHeader width={colW.payment_source} onResize={w => setColumnWidth("payment_source", w)} onAutoFit={() => autoFitByHeader("payment_source")}><SortableHeader label="Πηγή" field="payment_source" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
                    <ResizableHeader width={colW.date} onResize={w => setColumnWidth("date", w)} onAutoFit={() => autoFitByHeader("date")}><SortableHeader label="Ημ/νία" field="date" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
                    <ResizableHeader width={colW.file} onResize={w => setColumnWidth("file", w)} onAutoFit={() => autoFitByHeader("file")} align="center">Αρχείο</ResizableHeader>
+                   <th className="px-3 py-3 text-center" style={{ width: 60 }}>OK</th>
                    <th className="px-3 py-3"></th>
                  </tr>
               </thead>
@@ -214,6 +223,19 @@ export default function GeneralIncomeTable() {
                           </a>
                         )}
                       </td>
+                      <td className="px-3 py-3 text-center">
+                        <button
+                          onClick={() => toggleTransferred(r)}
+                          className={`inline-flex items-center justify-center w-7 h-7 rounded-md border transition-colors ${
+                            r.transferred
+                              ? "bg-emerald-500 border-emerald-500 text-white"
+                              : "bg-white border-gray-300 text-gray-300 hover:border-gray-400"
+                          }`}
+                          title={r.transferred ? "Μεταφέρθηκε (OK)" : "Δεν μεταφέρθηκε"}
+                        >
+                          {r.transferred ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                        </button>
+                      </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-1 justify-end">
                           <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => openEdit(r)}>
@@ -230,11 +252,13 @@ export default function GeneralIncomeTable() {
               </tbody>
               <tfoot className="bg-gray-50 border-t border-gray-200">
                 <tr>
-                  <td colSpan={5} className="px-3 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} εγγραφές)</td>
+                  <td colSpan={5} className="px-3 py-3 font-semibold text-gray-600">
+                    Σύνολο ({transferredCount}/{filtered.length} μεταφερμένα)
+                  </td>
                   <td className="px-3 py-3 text-right font-semibold text-gray-700 tabular-nums">{fmt(totalNet)}</td>
                   <td className="px-3 py-3 text-right font-semibold text-amber-700 tabular-nums">{fmt(totalVat)}</td>
                   <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(totalAmount)}</td>
-                  <td colSpan={4}></td>
+                  <td colSpan={5}></td>
                 </tr>
               </tfoot>
             </table>
@@ -260,6 +284,15 @@ export default function GeneralIncomeTable() {
                 { label: "Πηγή", value: r.payment_source || "—" },
                 { label: "Καθαρό", value: fmt(r.net_amount), align: "right" },
                 { label: "ΦΠΑ", value: fmt(r.vat_amount), align: "right", className: "text-amber-700" },
+                { label: "Μεταφορά", value: (
+                  <button
+                    onClick={() => toggleTransferred(r)}
+                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      r.transferred ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"
+                    }`}>
+                    {r.transferred ? <><Check className="w-3 h-3" /> Μεταφέρθηκε</> : <><X className="w-3 h-3" /> Όχι</>}
+                  </button>
+                ) },
                 { label: "Ημ/νία", value: r.date ? format(new Date(r.date), "dd/MM/yyyy") : "—", fullWidth: true },
               ]}
               actions={(
