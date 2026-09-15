@@ -9,6 +9,8 @@ import { useQuery as useContactsQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import ScanContributionsDialog from "./ScanContributionsDialog";
 import ScanEmployeesDialog from "./ScanEmployeesDialog";
+import { useColumnWidths } from "@/hooks/useColumnWidths";
+import ResizableHeader from "@/components/shared/ResizableHeader";
 
 const fmt = (n) => new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(n || 0);
 
@@ -149,6 +151,8 @@ export default function InsurancePanel({ projectId }) {
   const [showScan, setShowScan] = useState(false);
   const [showEmpScan, setShowEmpScan] = useState(false);
   const queryClient = useQueryClient();
+  const { widths: empW, setColumnWidth: setEmpW, autoFitByHeader: empFit } = useColumnWidths("insurance-employees", { name: 180, payee: 160, phase: 130, month: 120, stamps: 110, salary: 120 });
+  const { widths: conW, setColumnWidth: setConW, autoFitByHeader: conFit } = useColumnWidths("insurance-contributions", { month: 140, total: 200, stamps: 120, notes: 200 });
 
   // Employees query
   const { data: employees = [] } = useQuery({
@@ -229,12 +233,12 @@ export default function InsurancePanel({ projectId }) {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                 <tr>
-                  <th className="px-4 py-3 text-left">Ονοματεπώνυμο</th>
-                  <th className="px-4 py-3 text-left">Δικαιούχος</th>
-                  <th className="px-4 py-3 text-left">Φάση</th>
-                  <th className="px-4 py-3 text-left">Μήνας</th>
-                  <th className="px-4 py-3 text-right">Αρ. Ενσήμων</th>
-                  <th className="px-4 py-3 text-right">Μισθοδοσία</th>
+                  <ResizableHeader width={empW.name} onResize={w => setEmpW("name", w)} onAutoFit={() => empFit("name")} dataColumn="name">Ονοματεπώνυμο</ResizableHeader>
+                  <ResizableHeader width={empW.payee} onResize={w => setEmpW("payee", w)} onAutoFit={() => empFit("payee")} dataColumn="payee">Δικαιούχος</ResizableHeader>
+                  <ResizableHeader width={empW.phase} onResize={w => setEmpW("phase", w)} onAutoFit={() => empFit("phase")} dataColumn="phase">Φάση</ResizableHeader>
+                  <ResizableHeader width={empW.month} onResize={w => setEmpW("month", w)} onAutoFit={() => empFit("month")} dataColumn="month">Μήνας</ResizableHeader>
+                  <ResizableHeader width={empW.stamps} onResize={w => setEmpW("stamps", w)} onAutoFit={() => empFit("stamps")} align="right" dataColumn="stamps">Αρ. Ενσήμων</ResizableHeader>
+                  <ResizableHeader width={empW.salary} onResize={w => setEmpW("salary", w)} onAutoFit={() => empFit("salary")} align="right" dataColumn="salary">Μισθοδοσία</ResizableHeader>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -305,10 +309,10 @@ export default function InsurancePanel({ projectId }) {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                 <tr>
-                  <th className="px-4 py-3 text-left">Μήνας</th>
-                  <th className="px-4 py-3 text-right">Σύνολο Εισφορών Εργοδότη (€)</th>
-                  <th className="px-4 py-3 text-right">Αρ. Ενσήμων</th>
-                  <th className="px-4 py-3 text-left">Σημ.</th>
+                  <ResizableHeader width={conW.month} onResize={w => setConW("month", w)} onAutoFit={() => conFit("month")} dataColumn="month">Μήνας</ResizableHeader>
+                  <ResizableHeader width={conW.total} onResize={w => setConW("total", w)} onAutoFit={() => conFit("total")} align="right" dataColumn="total">Σύνολο Εισφορών Εργοδότη (€)</ResizableHeader>
+                  <ResizableHeader width={conW.stamps} onResize={w => setConW("stamps", w)} onAutoFit={() => conFit("stamps")} align="right" dataColumn="stamps">Αρ. Ενσήμων</ResizableHeader>
+                  <ResizableHeader width={conW.notes} onResize={w => setConW("notes", w)} onAutoFit={() => conFit("notes")} dataColumn="notes">Σημ.</ResizableHeader>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>

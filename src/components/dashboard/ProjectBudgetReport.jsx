@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useColumnWidths } from "@/hooks/useColumnWidths";
+import ResizableHeader from "@/components/shared/ResizableHeader";
 
 const formatCurrency = (v) =>
   new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v || 0);
@@ -25,6 +27,7 @@ const statusLabels = {
 
 export default function ProjectBudgetReport() {
   const [expanded, setExpanded] = useState(true);
+  const { widths, setColumnWidth, autoFitByHeader } = useColumnWidths("project-budget-report", { project: 220, status: 140, expenses: 130, incomes: 130, balance: 130, budget: 160 });
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
@@ -160,11 +163,11 @@ export default function ProjectBudgetReport() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-xs text-gray-400 uppercase tracking-wide">
-                        <th className="text-left py-3 pr-4 font-semibold">Έργο</th>
+                        <ResizableHeader width={widths.project} onResize={w => setColumnWidth("project", w)} onAutoFit={() => autoFitByHeader("project")} className="font-semibold" dataColumn="project">Έργο</ResizableHeader>
                         <th className="text-left py-3 pr-4 font-semibold hidden sm:table-cell">Κατάσταση</th>
-                        <th className="text-right py-3 pr-4 font-semibold">Έξοδα</th>
-                        <th className="text-right py-3 pr-4 font-semibold">Έσοδα</th>
-                        <th className="text-right py-3 pr-4 font-semibold">Καθαρό</th>
+                        <ResizableHeader width={widths.expenses} onResize={w => setColumnWidth("expenses", w)} onAutoFit={() => autoFitByHeader("expenses")} align="right" className="font-semibold" dataColumn="expenses">Έξοδα</ResizableHeader>
+                        <ResizableHeader width={widths.incomes} onResize={w => setColumnWidth("incomes", w)} onAutoFit={() => autoFitByHeader("incomes")} align="right" className="font-semibold" dataColumn="incomes">Έσοδα</ResizableHeader>
+                        <ResizableHeader width={widths.balance} onResize={w => setColumnWidth("balance", w)} onAutoFit={() => autoFitByHeader("balance")} align="right" className="font-semibold" dataColumn="balance">Καθαρό</ResizableHeader>
                         <th className="text-right py-3 font-semibold hidden md:table-cell">Υπόλοιπο Π/Υ</th>
                       </tr>
                     </thead>

@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Users, Wrench, Package, Truck, Receipt, Layers } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useColumnWidths } from "@/hooks/useColumnWidths";
+import ResizableHeader from "@/components/shared/ResizableHeader";
 
 const categoryIcons = {
   labor: Users,
@@ -106,19 +108,9 @@ function InlineNumber({ value, onSave, className = "" }) {
 }
 
 export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, selectedItems = [], onSelectAll, onSelectItem }) {
-  const [columnWidths, setColumnWidths] = useState({
-    phase: 140,
-    category: 150,
-    subcategory: 150,
-    payee: 150,
-    description: 200,
-    payment: 150,
-    quantity: 100,
-    unit: 100,
-    unitCost: 120,
-    total: 120,
+  const { widths: columnWidths, setColumnWidth, autoFitByHeader } = useColumnWidths("budget", {
+    phase: 140, category: 150, subcategory: 150, payee: 150, description: 200, payment: 150, quantity: 100, unit: 100, unitCost: 120, total: 120,
   });
-  const [resizing, setResizing] = useState(null);
 
   const { data: subcategories = [] } = useQuery({
     queryKey: ["subcategories"],
@@ -162,33 +154,6 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
     }).format(amount);
   };
 
-  const handleMouseDown = (column, e) => {
-    e.preventDefault();
-    setResizing({ column, startX: e.clientX, startWidth: columnWidths[column] });
-  };
-
-  React.useEffect(() => {
-    if (!resizing) return;
-
-    const handleMouseMove = (e) => {
-      const diff = e.clientX - resizing.startX;
-      const newWidth = Math.max(80, resizing.startWidth + diff);
-      setColumnWidths(prev => ({ ...prev, [resizing.column]: newWidth }));
-    };
-
-    const handleMouseUp = () => {
-      setResizing(null);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [resizing]);
-
   if (!budgetItems || budgetItems.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-dashed border-gray-200 p-12 text-center">
@@ -217,76 +182,16 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
                 onChange={() => onSelectAll()}
               />
             </TableHead>
-            <TableHead style={{ width: columnWidths.phase }} className="relative group bg-gray-50">
-              Phase
-              <div
-                onMouseDown={(e) => handleMouseDown('phase', e)}
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </TableHead>
-            <TableHead style={{ width: columnWidths.category }} className="relative group bg-gray-50">
-              Category
-              <div
-                onMouseDown={(e) => handleMouseDown('category', e)}
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </TableHead>
-            <TableHead style={{ width: columnWidths.subcategory }} className="relative group bg-gray-50">
-              Subcategory
-              <div
-                onMouseDown={(e) => handleMouseDown('subcategory', e)}
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </TableHead>
-            <TableHead style={{ width: columnWidths.payee }} className="relative group bg-gray-50">
-              Payee
-              <div
-                onMouseDown={(e) => handleMouseDown('payee', e)}
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </TableHead>
-            <TableHead style={{ width: columnWidths.description }} className="relative group bg-gray-50">
-              Description
-              <div
-                onMouseDown={(e) => handleMouseDown('description', e)}
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </TableHead>
-            <TableHead style={{ width: columnWidths.payment }} className="relative group bg-gray-50">
-              Payment Source
-              <div
-                onMouseDown={(e) => handleMouseDown('payment', e)}
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </TableHead>
-            <TableHead style={{ width: columnWidths.quantity }} className="text-right relative group bg-gray-50">
-              Qty
-              <div
-                onMouseDown={(e) => handleMouseDown('quantity', e)}
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </TableHead>
-            <TableHead style={{ width: columnWidths.unit }} className="relative group bg-gray-50">
-              Unit
-              <div
-                onMouseDown={(e) => handleMouseDown('unit', e)}
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </TableHead>
-            <TableHead style={{ width: columnWidths.unitCost }} className="text-right relative group bg-gray-50">
-              Unit Cost
-              <div
-                onMouseDown={(e) => handleMouseDown('unitCost', e)}
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </TableHead>
-            <TableHead style={{ width: columnWidths.total }} className="text-right relative group bg-gray-50">
-              Total
-              <div
-                onMouseDown={(e) => handleMouseDown('total', e)}
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </TableHead>
+            <ResizableHeader width={columnWidths.phase} onResize={w => setColumnWidth("phase", w)} onAutoFit={() => autoFitByHeader("phase")} className="bg-gray-50" dataColumn="phase">Phase</ResizableHeader>
+            <ResizableHeader width={columnWidths.category} onResize={w => setColumnWidth("category", w)} onAutoFit={() => autoFitByHeader("category")} className="bg-gray-50" dataColumn="category">Category</ResizableHeader>
+            <ResizableHeader width={columnWidths.subcategory} onResize={w => setColumnWidth("subcategory", w)} onAutoFit={() => autoFitByHeader("subcategory")} className="bg-gray-50" dataColumn="subcategory">Subcategory</ResizableHeader>
+            <ResizableHeader width={columnWidths.payee} onResize={w => setColumnWidth("payee", w)} onAutoFit={() => autoFitByHeader("payee")} className="bg-gray-50" dataColumn="payee">Payee</ResizableHeader>
+            <ResizableHeader width={columnWidths.description} onResize={w => setColumnWidth("description", w)} onAutoFit={() => autoFitByHeader("description")} className="bg-gray-50" dataColumn="description">Description</ResizableHeader>
+            <ResizableHeader width={columnWidths.payment} onResize={w => setColumnWidth("payment", w)} onAutoFit={() => autoFitByHeader("payment")} className="bg-gray-50" dataColumn="payment">Payment Source</ResizableHeader>
+            <ResizableHeader width={columnWidths.quantity} onResize={w => setColumnWidth("quantity", w)} onAutoFit={() => autoFitByHeader("quantity")} align="right" className="bg-gray-50" dataColumn="quantity">Qty</ResizableHeader>
+            <ResizableHeader width={columnWidths.unit} onResize={w => setColumnWidth("unit", w)} onAutoFit={() => autoFitByHeader("unit")} className="bg-gray-50" dataColumn="unit">Unit</ResizableHeader>
+            <ResizableHeader width={columnWidths.unitCost} onResize={w => setColumnWidth("unitCost", w)} onAutoFit={() => autoFitByHeader("unitCost")} align="right" className="bg-gray-50" dataColumn="unitCost">Unit Cost</ResizableHeader>
+            <ResizableHeader width={columnWidths.total} onResize={w => setColumnWidth("total", w)} onAutoFit={() => autoFitByHeader("total")} align="right" className="bg-gray-50" dataColumn="total">Total</ResizableHeader>
             <TableHead className="w-12 bg-gray-50"></TableHead>
           </TableRow>
         </TableHeader>

@@ -6,11 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { ScanLine, Trash2, ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { format } from "date-fns";
 import ScanWorkDaysDialog from "./ScanWorkDaysDialog";
+import { useColumnWidths } from "@/hooks/useColumnWidths";
+import ResizableHeader from "@/components/shared/ResizableHeader";
 
 export default function WorkDaysPanel({ projectId }) {
   const [showScan, setShowScan] = useState(false);
   const [expanded, setExpanded] = useState(null);
   const queryClient = useQueryClient();
+  const { widths: wdW, setColumnWidth: setWdW, autoFitByHeader: wdFit } = useColumnWidths("workdays", { code: 100, description: 220, building: 150, days: 100, reduction: 100, final: 100 });
 
   const { data: reports = [] } = useQuery({
     queryKey: ["work-days-reports", projectId],
@@ -77,12 +80,12 @@ export default function WorkDaysPanel({ projectId }) {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                       <tr>
-                        <th className="px-4 py-2 text-left">Κωδ.</th>
-                        <th className="px-4 py-2 text-left">Περιγραφή</th>
-                        <th className="px-4 py-2 text-left">Είδος Κτιρίου</th>
-                        <th className="px-4 py-2 text-right">Ημέρες</th>
-                        <th className="px-4 py-2 text-right">Μείωση</th>
-                        <th className="px-4 py-2 text-right">Τελικές</th>
+                        <ResizableHeader width={wdW.code} onResize={w => setWdW("code", w)} onAutoFit={() => wdFit("code")} dataColumn="code">Κωδ.</ResizableHeader>
+                        <ResizableHeader width={wdW.description} onResize={w => setWdW("description", w)} onAutoFit={() => wdFit("description")} dataColumn="description">Περιγραφή</ResizableHeader>
+                        <ResizableHeader width={wdW.building} onResize={w => setWdW("building", w)} onAutoFit={() => wdFit("building")} dataColumn="building">Είδος Κτιρίου</ResizableHeader>
+                        <ResizableHeader width={wdW.days} onResize={w => setWdW("days", w)} onAutoFit={() => wdFit("days")} align="right" dataColumn="days">Ημέρες</ResizableHeader>
+                        <ResizableHeader width={wdW.reduction} onResize={w => setWdW("reduction", w)} onAutoFit={() => wdFit("reduction")} align="right" dataColumn="reduction">Μείωση</ResizableHeader>
+                        <ResizableHeader width={wdW.final} onResize={w => setWdW("final", w)} onAutoFit={() => wdFit("final")} align="right" dataColumn="final">Τελικές</ResizableHeader>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
