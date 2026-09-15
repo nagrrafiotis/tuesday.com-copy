@@ -170,7 +170,7 @@ export default function Payroll() {
             <TabsList className="w-max min-w-full">
               <TabsTrigger value="payroll" className="whitespace-nowrap">Payroll Expenses</TabsTrigger>
               <TabsTrigger value="general" className="whitespace-nowrap">General Expenses</TabsTrigger>
-              <TabsTrigger value="income" className="whitespace-nowrap">General Income</TabsTrigger>
+              <TabsTrigger value="income" className="whitespace-nowrap">Invoice</TabsTrigger>
               <TabsTrigger value="bank" className="whitespace-nowrap">Κινήσεις Τράπεζας</TabsTrigger>
               <TabsTrigger value="reconciliation" className="whitespace-nowrap">Αντιστοίχιση</TabsTrigger>
             </TabsList>
