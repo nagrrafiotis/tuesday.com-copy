@@ -6,7 +6,7 @@ import React, { useRef } from "react";
  * @param {(w:number)=>void} onResize - called with new width during drag
  * @param {()=>void} onAutoFit - called on double-click of the resize handle
  */
-export default function ResizableHeader({ width, onResize, onAutoFit, children, className = "", align = "left" }) {
+export default function ResizableHeader({ width, onResize, onAutoFit, children, className = "", align = "left", dataColumn, ...rest }) {
   const dragging = useRef(false);
   const startX = useRef(0);
   const startW = useRef(0);
@@ -38,6 +38,8 @@ export default function ResizableHeader({ width, onResize, onAutoFit, children, 
     <th
       className={`relative select-none px-3 py-3 font-medium text-gray-500 whitespace-nowrap ${alignClass} ${className}`}
       style={{ width, minWidth: width, maxWidth: width }}
+      data-column={dataColumn}
+      {...rest}
     >
       <div className="pr-3">{children}</div>
       <div

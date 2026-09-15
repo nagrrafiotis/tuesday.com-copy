@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
+import { useColumnWidths } from "@/hooks/useColumnWidths";
+import ResizableHeader from "@/components/shared/ResizableHeader";
 
 const categoryIcons = {
   labor: Users, subcontractor: Wrench, materials: Package, equipment: Truck, general_expenses: Receipt,
@@ -80,10 +82,9 @@ export default function InvoiceTable({
   const [editingCell, setEditingCell] = useState(null);
   const [bulkField, setBulkField] = useState(null); // "phase" | "category" | "subcategory"
   const [viewingInvoice, setViewingInvoice] = useState(null);
-  const [expandedCol, setExpandedCol] = useState(null);
+  const { widths, setColumnWidth, autoFitByHeader } = useColumnWidths("invoices", { date: 90, phase: 110, category: 130, subcategory: 140, project: 140, vendor: 160, afm: 110, invoice_num: 120, type: 90, status: 110, method: 130, total: 110 });
 
-  const toggleCol = (col) => setExpandedCol(prev => prev === col ? null : col);
-  const colClass = (col) => expandedCol === col ? "whitespace-normal break-words max-w-xs" : "whitespace-nowrap max-w-[120px] truncate";
+  const colClass = (col) => "whitespace-nowrap max-w-[160px] truncate";
   const queryClient = useQueryClient();
 
   const { data: subcategories = [] } = useQuery({ queryKey: ["subcategories"], queryFn: () => base44.entities.Subcategory.list() });
@@ -249,32 +250,18 @@ export default function InvoiceTable({
                 onCheckedChange={onSelectAll}
               />
             </TableHead>
-            {[
-              { key: "date", label: "Date" },
-              { key: "phase", label: "Phase" },
-              { key: "category", label: "Category" },
-              { key: "subcategory", label: "Subcategory" },
-              { key: "project", label: "Project" },
-              { key: "vendor", label: "Vendor / Client" },
-              { key: "afm", label: "ΑΦΜ" },
-              { key: "invoice_num", label: "Invoice #" },
-              { key: "type", label: "Type" },
-              { key: "status", label: "Status" },
-              { key: "method", label: "Payment Source" },
-            ].map(({ key, label }) => (
-              <TableHead
-                key={key}
-                className={`bg-gray-50 cursor-pointer select-none ${expandedCol === key ? "whitespace-normal" : "whitespace-nowrap"}`}
-                onDoubleClick={() => toggleCol(key)}
-                title="Double-click to expand/collapse column"
-              >
-                <span className={`flex items-center gap-1 ${expandedCol === key ? "text-[#1e3a5f]" : ""}`}>
-                  {label}
-                  {expandedCol === key && <span className="text-[10px] text-[#1e3a5f] font-normal ml-1">↔</span>}
-                </span>
-              </TableHead>
-            ))}
-            <TableHead className="text-right bg-gray-50 whitespace-nowrap">Total</TableHead>
+            <ResizableHeader width={widths.date} onResize={w => setColumnWidth("date", w)} onAutoFit={() => autoFitByHeader("date")} className="bg-gray-50" dataColumn="date">Date</ResizableHeader>
+            <ResizableHeader width={widths.phase} onResize={w => setColumnWidth("phase", w)} onAutoFit={() => autoFitByHeader("phase")} className="bg-gray-50" dataColumn="phase">Phase</ResizableHeader>
+            <ResizableHeader width={widths.category} onResize={w => setColumnWidth("category", w)} onAutoFit={() => autoFitByHeader("category")} className="bg-gray-50" dataColumn="category">Category</ResizableHeader>
+            <ResizableHeader width={widths.subcategory} onResize={w => setColumnWidth("subcategory", w)} onAutoFit={() => autoFitByHeader("subcategory")} className="bg-gray-50" dataColumn="subcategory">Subcategory</ResizableHeader>
+            <ResizableHeader width={widths.project} onResize={w => setColumnWidth("project", w)} onAutoFit={() => autoFitByHeader("project")} className="bg-gray-50" dataColumn="project">Project</ResizableHeader>
+            <ResizableHeader width={widths.vendor} onResize={w => setColumnWidth("vendor", w)} onAutoFit={() => autoFitByHeader("vendor")} className="bg-gray-50" dataColumn="vendor">Vendor / Client</ResizableHeader>
+            <ResizableHeader width={widths.afm} onResize={w => setColumnWidth("afm", w)} onAutoFit={() => autoFitByHeader("afm")} className="bg-gray-50" dataColumn="afm">ΑΦΜ</ResizableHeader>
+            <ResizableHeader width={widths.invoice_num} onResize={w => setColumnWidth("invoice_num", w)} onAutoFit={() => autoFitByHeader("invoice_num")} className="bg-gray-50" dataColumn="invoice_num">Invoice #</ResizableHeader>
+            <ResizableHeader width={widths.type} onResize={w => setColumnWidth("type", w)} onAutoFit={() => autoFitByHeader("type")} className="bg-gray-50" dataColumn="type">Type</ResizableHeader>
+            <ResizableHeader width={widths.status} onResize={w => setColumnWidth("status", w)} onAutoFit={() => autoFitByHeader("status")} className="bg-gray-50" dataColumn="status">Status</ResizableHeader>
+            <ResizableHeader width={widths.method} onResize={w => setColumnWidth("method", w)} onAutoFit={() => autoFitByHeader("method")} className="bg-gray-50" dataColumn="method">Payment Source</ResizableHeader>
+            <ResizableHeader width={widths.total} onResize={w => setColumnWidth("total", w)} onAutoFit={() => autoFitByHeader("total")} align="right" className="bg-gray-50" dataColumn="total">Total</ResizableHeader>
             <TableHead className="bg-gray-50 w-28"></TableHead>
           </TableRow>
         </TableHeader>

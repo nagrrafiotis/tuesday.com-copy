@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useColumnWidths } from "@/hooks/useColumnWidths";
+import ResizableHeader from "@/components/shared/ResizableHeader";
 
 const categoryColors = [
   "bg-emerald-100 text-emerald-700", "bg-blue-100 text-blue-700", "bg-purple-100 text-purple-700",
@@ -54,7 +55,7 @@ function InlineNumber({ value, onSave }) {
 
 export default function IncomeTable({ incomes, projects, contacts = [], onEdit, onDelete, onUpdate, showProject = false, selectedIncomes = [], onSelectAll, onSelectIncome, onViewContact }) {
   const [editingCell, setEditingCell] = useState(null);
-  const { widths, autoAdjustColumnByHeader } = useColumnWidths();
+  const { widths, setColumnWidth, autoFitByHeader } = useColumnWidths("incomes", { date: 90, category: 120, project: 150, source: 160, description: 200, paymentSource: 140, amount: 110 });
   const isBulkMode = selectedIncomes.length > 1;
 
   const { data: dropdownLists = [] } = useQuery({ queryKey: ["dropdown-lists"], queryFn: () => base44.entities.DropdownList.list() });
@@ -109,13 +110,13 @@ export default function IncomeTable({ incomes, projects, contacts = [], onEdit, 
             <TableHead className="w-12">
               <Checkbox checked={selectedIncomes.length === incomes.length && incomes.length > 0} onCheckedChange={onSelectAll} />
             </TableHead>
-            <TableHead className="cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['date'] }} onClick={() => autoAdjustColumnByHeader('date')} data-column="date" title="Click to auto-fit">Date</TableHead>
-            <TableHead className="cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['category'] }} onClick={() => autoAdjustColumnByHeader('category')} data-column="category" title="Click to auto-fit">Category</TableHead>
-            {showProject && <TableHead className="cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['project'] }} onClick={() => autoAdjustColumnByHeader('project')} data-column="project" title="Click to auto-fit">Project</TableHead>}
-            <TableHead className="cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['source'] }} onClick={() => autoAdjustColumnByHeader('source')} data-column="source" title="Click to auto-fit">Source</TableHead>
-            <TableHead className="cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['description'] }} onClick={() => autoAdjustColumnByHeader('description')} data-column="description" title="Click to auto-fit">Description</TableHead>
-            <TableHead className="cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['paymentSource'] }} onClick={() => autoAdjustColumnByHeader('paymentSource')} data-column="paymentSource" title="Click to auto-fit">Payment Source</TableHead>
-            <TableHead className="text-right cursor-pointer hover:bg-gray-100 transition-colors" style={{ width: widths['amount'] }} onClick={() => autoAdjustColumnByHeader('amount')} data-column="amount" title="Click to auto-fit">Amount</TableHead>
+            <ResizableHeader width={widths.date} onResize={w => setColumnWidth("date", w)} onAutoFit={() => autoFitByHeader("date")} className="bg-gray-50" dataColumn="date">Date</ResizableHeader>
+            <ResizableHeader width={widths.category} onResize={w => setColumnWidth("category", w)} onAutoFit={() => autoFitByHeader("category")} className="bg-gray-50" dataColumn="category">Category</ResizableHeader>
+            {showProject && <ResizableHeader width={widths.project} onResize={w => setColumnWidth("project", w)} onAutoFit={() => autoFitByHeader("project")} className="bg-gray-50" dataColumn="project">Project</ResizableHeader>}
+            <ResizableHeader width={widths.source} onResize={w => setColumnWidth("source", w)} onAutoFit={() => autoFitByHeader("source")} className="bg-gray-50" dataColumn="source">Source</ResizableHeader>
+            <ResizableHeader width={widths.description} onResize={w => setColumnWidth("description", w)} onAutoFit={() => autoFitByHeader("description")} className="bg-gray-50" dataColumn="description">Description</ResizableHeader>
+            <ResizableHeader width={widths.paymentSource} onResize={w => setColumnWidth("paymentSource", w)} onAutoFit={() => autoFitByHeader("paymentSource")} className="bg-gray-50" dataColumn="paymentSource">Payment Source</ResizableHeader>
+            <ResizableHeader width={widths.amount} onResize={w => setColumnWidth("amount", w)} onAutoFit={() => autoFitByHeader("amount")} align="right" className="bg-gray-50" dataColumn="amount">Amount</ResizableHeader>
             <TableHead className="w-12"></TableHead>
           </TableRow>
         </TableHeader>
