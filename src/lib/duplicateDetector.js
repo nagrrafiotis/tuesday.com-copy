@@ -24,6 +24,26 @@ function getRecordKey(rec, config) {
     .join("|");
 }
 
+// "Παρόμοια περιγραφή": ίδιο string, ή το ένα υποστρίνγκ του άλλου,
+// ή τουλάχιστον 2 κοινές σημαντικές λέξεις (length > 2, αγνοούνται stopwords).
+const STOPWORDS = new Set([
+  "the", "a", "an", "to", "of", "and", "or", "for", "in", "on", "at", "is",
+  "from", "by", "with", "payment", "pay", "paid",
+]);
+function descriptionSimilar(a, b) {
+  const na = normalize(a);
+  const nb = normalize(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  if (na.includes(nb) || nb.includes(na)) return true;
+  const ta = na.split(" ").filter((w) => w.length > 2 && !STOPWORDS.has(w));
+  const tb = new Set(nb.split(" ").filter((w) => w.length > 2 && !STOPWORDS.has(w)));
+  if (!ta.length || !tb.size) return false;
+  let shared = 0;
+  ta.forEach((w) => { if (tb.has(w)) shared++; });
+  return shared >= 2;
+}
+
 /**
  * Βρίσκει υπάρχουσες εγγραφές που είναι duplicates της `newRecord`.
  * Αγνοεί την ίδια την εγγραφή όταν δίνεται `newRecord.id` (για edit).
@@ -35,7 +55,11 @@ export function findDuplicateMatches(newRecord, existingRecords, config) {
     if (!amountEqual(newRecord, config, r)) return false;
     const dateM = dateEqual(newRecord[config.dateField], r[config.dateField]);
     const keyM = newKey && newKey === getRecordKey(r, config);
-    return dateM || keyM;
+    const descM = config.descriptionField && descriptionSimilar(
+      newRecord[config.descriptionField],
+      r[config.descriptionField],
+    );
+    return dateM || keyM || descM;
   });
 }
 
@@ -57,7 +81,11 @@ export function findAllDuplicateGroups(records, config) {
       const dateM = dateEqual(a[config.dateField], b[config.dateField]);
       const aKey = getRecordKey(a, config);
       const keyM = aKey && aKey === getRecordKey(b, config);
-      if (dateM || keyM) {
+      const descM = config.descriptionField && descriptionSimilar(
+        a[config.descriptionField],
+        b[config.descriptionField],
+      );
+      if (dateM || keyM || descM) {
         group.push(b);
         used.add(b.id);
       }
@@ -75,6 +103,7 @@ export const duplicateConfigs = {
     amountField: "amount",
     dateField: "date",
     keyFields: ["description", "reference", "counterparty"],
+    descriptionField: "description",
     entityLabel: "Κίνηση",
   },
   Payroll: {
