@@ -57,6 +57,17 @@ export function applySort(items, sortField, sortDirection) {
   // Numeric columns: amounts, prices, costs, salaries
   const isNumericField = /amount|price|cost|salary|payment|total|net\b/i.test(sortField);
 
+  // Ημερομηνία ως δευτερεύουσα ταξινόμηση (tiebreaker) για ίδιες τιμές.
+  // Χρησιμοποιεί το πεδίο ημερομηνίας της κάθε οντότητας (payment_date / date).
+  const dateOf = (r) => new Date(r.payment_date || r.date || r.created_date || 0);
+  const dateCmp = (a, b) => {
+    const da = dateOf(a), db = dateOf(b);
+    if (isNaN(da) && isNaN(db)) return 0;
+    if (isNaN(da)) return 1;
+    if (isNaN(db)) return -1;
+    return (da - db) * dir;
+  };
+
   if (isDateField) {
     const d = (r) => new Date(r[sortField] || r.date || r.payment_date || r.created_date || 0);
     return [...items].sort((a, b) => {
@@ -69,12 +80,14 @@ export function applySort(items, sortField, sortDirection) {
   }
   if (isNumericField) {
     const v = (r) => Number(r[sortField] ?? 0) || 0;
-    return [...items].sort((a, b) => (v(a) - v(b)) * dir);
+    return [...items].sort((a, b) => {
+      const diff = (v(a) - v(b)) * dir;
+      return diff !== 0 ? diff : dateCmp(a, b);
+    });
   }
   // Default: text sort by the named field with Greek locale
   return [...items].sort((a, b) => {
-    const va = String(a[sortField] ?? "");
-    const vb = String(b[sortField] ?? "");
-    return va.localeCompare(vb, "el") * dir;
+    const cmp = String(a[sortField] ?? "").localeCompare(String(b[sortField] ?? ""), "el") * dir;
+    return cmp !== 0 ? cmp : dateCmp(a, b);
   });
 }
