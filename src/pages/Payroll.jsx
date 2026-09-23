@@ -54,6 +54,7 @@ export default function Payroll() {
   const [search, setSearch] = useState("");
   const [filterEmployee, setFilterEmployee] = useState("all");
   const [filterType, setFilterType] = useState("all");
+  const [filterSource, setFilterSource] = useState("all");
   const [prefillData, setPrefillData] = useState(null);
   const [dupWarning, setDupWarning] = useState(null);
   const [showDupScan, setShowDupScan] = useState(false);
@@ -118,7 +119,8 @@ export default function Payroll() {
     const matchSearch = !search || r.employee_name?.toLowerCase().includes(search.toLowerCase()) || r.period?.toLowerCase().includes(search.toLowerCase());
     const matchEmployee = filterEmployee === "all" || r.employee_name === filterEmployee;
     const matchType = filterType === "all" || r.period_type === filterType;
-    return matchSearch && matchEmployee && matchType;
+    const matchSource = filterSource === "all" || r.payment_source === filterSource;
+    return matchSearch && matchEmployee && matchType && matchSource;
   });
 
   const totalNet = filtered.reduce((s, r) => s + (r.net_salary || 0), 0);
@@ -219,6 +221,13 @@ export default function Payroll() {
                   <SelectContent>
                     <SelectItem value="all">Όλοι οι τύποι</SelectItem>
                     {Object.entries(periodTypeLabels).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={filterSource} onValueChange={setFilterSource}>
+                  <SelectTrigger className="w-48"><SelectValue placeholder="Πηγή Χρηματοδότησης" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Όλες οι πηγές</SelectItem>
+                    {paymentSources.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
