@@ -269,9 +269,6 @@ export default function Payroll() {
                         <ResizableHeader width={colW.employee_name} onResize={w => setColumnWidth("employee_name", w)} onAutoFit={() => autoFitByHeader("employee_name")}><SortableHeader label="Εργαζόμενος" field="employee_name" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
                         <ResizableHeader width={colW.period} onResize={w => setColumnWidth("period", w)} onAutoFit={() => autoFitByHeader("period")}><SortableHeader label="Περίοδος" field="period" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
                         <ResizableHeader width={colW.period_type} onResize={w => setColumnWidth("period_type", w)} onAutoFit={() => autoFitByHeader("period_type")}><SortableHeader label="Τύπος" field="period_type" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
-                        <ResizableHeader width={colW.gross_salary} onResize={w => setColumnWidth("gross_salary", w)} onAutoFit={() => autoFitByHeader("gross_salary")} align="right"><SortableHeader label="Σύν. Αποδ." field="gross_salary" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></ResizableHeader>
-                        <ResizableHeader width={colW.total_insurance_deductions} onResize={w => setColumnWidth("total_insurance_deductions", w)} onAutoFit={() => autoFitByHeader("total_insurance_deductions")} align="right"><SortableHeader label="Κρατ. Εργ/νου" field="total_insurance_deductions" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></ResizableHeader>
-                        <ResizableHeader width={colW.employer_insurance_amount} onResize={w => setColumnWidth("employer_insurance_amount", w)} onAutoFit={() => autoFitByHeader("employer_insurance_amount")} align="right"><SortableHeader label="Εισφ. Εργοδ." field="employer_insurance_amount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></ResizableHeader>
                         <ResizableHeader width={colW.net_salary} onResize={w => setColumnWidth("net_salary", w)} onAutoFit={() => autoFitByHeader("net_salary")} align="right"><SortableHeader label="Καθαρές" field="net_salary" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" /></ResizableHeader>
                         <ResizableHeader width={colW.payment_source} onResize={w => setColumnWidth("payment_source", w)} onAutoFit={() => autoFitByHeader("payment_source")}><SortableHeader label="Πηγή" field="payment_source" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
                         <ResizableHeader width={colW.payment_date} onResize={w => setColumnWidth("payment_date", w)} onAutoFit={() => autoFitByHeader("payment_date")}><SortableHeader label="Ημ/νία" field="payment_date" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} /></ResizableHeader>
@@ -291,9 +288,6 @@ export default function Payroll() {
                                 {periodTypeLabels[r.period_type] || r.period_type}
                               </Badge>
                             </td>
-                            <td className="px-3 py-3 text-right text-gray-700 tabular-nums">{fmt(r.gross_salary)}</td>
-                            <td className="px-3 py-3 text-right text-amber-700 tabular-nums">{fmt(r.total_insurance_deductions)}</td>
-                            <td className="px-3 py-3 text-right text-purple-700 tabular-nums">{fmt(r.employer_insurance_amount)}</td>
                             <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(r.net_salary)}</td>
                             <td className="px-3 py-3 text-gray-500 text-xs truncate">{r.payment_source || "—"}</td>
                             <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">
@@ -334,9 +328,6 @@ export default function Payroll() {
                     <tfoot className="bg-gray-50 border-t border-gray-200">
                       <tr>
                         <td colSpan={3} className="px-3 py-3 font-semibold text-gray-600">Σύνολο ({filtered.length} εγγραφές)</td>
-                        <td className="px-3 py-3 text-right font-semibold text-gray-700 tabular-nums">{fmt(totalGross)}</td>
-                        <td className="px-3 py-3 text-right font-semibold text-amber-700 tabular-nums">{fmt(totalEmployeeInsurance)}</td>
-                        <td className="px-3 py-3 text-right font-semibold text-purple-700 tabular-nums">{fmt(totalEmployerInsurance)}</td>
                         <td className="px-3 py-3 text-right font-semibold text-emerald-700 tabular-nums">{fmt(totalNet)}</td>
                         <td colSpan={4}></td>
                       </tr>
@@ -356,9 +347,6 @@ export default function Payroll() {
                     badge={<Badge className={`${periodTypeColors[r.period_type] || "bg-gray-100 text-gray-700"} border-0 text-xs whitespace-nowrap`}>{periodTypeLabels[r.period_type] || r.period_type}</Badge>}
                     meta={`${r.period || "—"} · ${r.payment_date ? format(new Date(r.payment_date), "dd/MM/yyyy") : "—"}`}
                     rows={[
-                      { label: "Σύν. Αποδ.", value: fmt(r.gross_salary), align: "right" },
-                      { label: "Κρατ. Εργ/νου", value: fmt(r.total_insurance_deductions), align: "right", className: "text-amber-700" },
-                      { label: "Εισφ. Εργοδ.", value: fmt(r.employer_insurance_amount), align: "right", className: "text-purple-700" },
                       { label: "Πηγή", value: r.payment_source || "—" },
                     ]}
                     actions={(
