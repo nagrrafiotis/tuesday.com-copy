@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, ShieldCheck, ScanLine, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, ShieldCheck, ScanLine, Users, Send } from "lucide-react";
+import SendToExpenseDialog from "./SendToExpenseDialog";
 import { useQuery as useContactsQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import ScanContributionsDialog from "./ScanContributionsDialog";
@@ -150,6 +151,7 @@ export default function InsurancePanel({ projectId }) {
   const [editingContrib, setEditingContrib] = useState(null);
   const [showScan, setShowScan] = useState(false);
   const [showEmpScan, setShowEmpScan] = useState(false);
+  const [sendingEmp, setSendingEmp] = useState(null);
   const queryClient = useQueryClient();
   const { widths: empW, setColumnWidth: setEmpW, autoFitByHeader: empFit } = useColumnWidths("insurance-employees", { name: 180, payee: 160, phase: 130, month: 120, stamps: 110, salary: 120 });
   const { widths: conW, setColumnWidth: setConW, autoFitByHeader: conFit } = useColumnWidths("insurance-contributions", { month: 140, total: 200, stamps: 120, notes: 200 });
@@ -253,6 +255,9 @@ export default function InsurancePanel({ projectId }) {
                     <td className="px-4 py-3 text-right font-medium text-[#1e3a5f]">{emp.salary_amount ? fmt(emp.salary_amount) : "—"}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 justify-end">
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600 hover:text-emerald-700" title="Αποστολή στα Έξοδα Έργου" onClick={() => setSendingEmp(emp)}>
+                          <Send className="w-3.5 h-3.5" />
+                        </Button>
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingEmp(emp); setShowEmpForm(true); }}>
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
@@ -367,6 +372,7 @@ export default function InsurancePanel({ projectId }) {
         />
       )}
 
+      {sendingEmp && <SendToExpenseDialog emp={sendingEmp} projectId={projectId} onClose={() => setSendingEmp(null)} />}
       {showScan && <ScanContributionsDialog projectId={projectId} onClose={() => setShowScan(false)} />}
       {showEmpScan && <ScanEmployeesDialog projectId={projectId} onClose={() => setShowEmpScan(false)} />}
     </div>
