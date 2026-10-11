@@ -17,7 +17,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, ClipboardList, Calendar as CalendarIcon, List, Download } from "lucide-react";
+import { Plus, Search, ClipboardList, Calendar as CalendarIcon, List, Download, Users } from "lucide-react";
+import MeetingsPanel from "@/components/meetings/MeetingsPanel";
 import { format, isSameDay } from "date-fns";
 
 const priorityColors = {
@@ -260,7 +261,7 @@ export default function Tasks() {
             
             {/* View Toggle */}
             <Tabs value={view} onValueChange={setView} className="w-full">
-              <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsList className="grid w-full max-w-xl grid-cols-3">
                 <TabsTrigger value="board">
                   <List className="w-4 h-4 mr-2" />
                   Board View
@@ -269,13 +270,19 @@ export default function Tasks() {
                   <CalendarIcon className="w-4 h-4 mr-2" />
                   Calendar View
                 </TabsTrigger>
+                <TabsTrigger value="meetings">
+                  <Users className="w-4 h-4 mr-2" />
+                  Συναντήσεις
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
         </motion.div>
 
         {/* Board or Calendar View */}
-        {view === "board" ? (
+        {view === "meetings" ? (
+          <MeetingsPanel projects={projects} users={users} projectFilter={projectFilter} search={search} />
+        ) : view === "board" ? (
           // Task Board or Empty State
           projects.length === 0 ? (
             <motion.div
