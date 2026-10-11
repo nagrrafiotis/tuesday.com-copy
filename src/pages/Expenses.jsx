@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
+import { applySort } from "@/components/ui/sort-select";
 import ExpenseTable from "@/components/expenses/ExpenseTable";
 import IncomeForm from "@/components/income/IncomeForm";
 import IncomeTable from "@/components/income/IncomeTable";
@@ -60,6 +61,8 @@ export default function Expenses() {
   const [filterInvoiceType, setFilterInvoiceType] = useState("all");
   const [filterInvoiceStatus, setFilterInvoiceStatus] = useState("all");
   const [sortInvoiceOrder, setSortInvoiceOrder] = useState("newest");
+  const [expSort, setExpSort] = useState({ field: "date", direction: "desc" });
+  const [incSort, setIncSort] = useState({ field: "date", direction: "desc" });
   const [filterInvoiceProject, setFilterInvoiceProject] = useState("all");
   const [filterInvoicePaymentSource, setFilterInvoicePaymentSource] = useState("all");
   const [filterInvoiceCategory, setFilterInvoiceCategory] = useState("all");
@@ -193,12 +196,12 @@ export default function Expenses() {
     queryClient.invalidateQueries({ queryKey: ["incomes"] });
   };
 
-  const filteredIncomes = incomes.filter((i) => {
+  const filteredIncomes = applySort(incomes.filter((i) => {
     const matchesSearch = i.source?.toLowerCase().includes(incomeSearch.toLowerCase()) || i.description?.toLowerCase().includes(incomeSearch.toLowerCase());
     const matchesProject = incomeProjectFilter === "all" || i.project_id === incomeProjectFilter;
     const matchesCategory = incomeCategoryFilter === "all" || i.category === incomeCategoryFilter;
     return matchesSearch && matchesProject && matchesCategory;
-  });
+  }), incSort.field, incSort.direction);
 
   const exportIncomeToCSV = () => {
     const BOM = "\uFEFF";
@@ -394,7 +397,7 @@ export default function Expenses() {
     );
   };
 
-  const filteredExpenses = expenses.filter((e) => {
+  const filteredExpenses = applySort(expenses.filter((e) => {
     const q = search.toLowerCase();
     const matchesSearch = !q || [
       e.payee, e.description, e.category, e.subcategory,
@@ -406,7 +409,7 @@ export default function Expenses() {
     const matchesPayee = payeeFilter === "all" || e.payee === payeeFilter;
     const matchesPaymentSource = paymentSourceFilter === "all" || e.payment_source === paymentSourceFilter;
     return matchesSearch && matchesProject && matchesCategory && matchesPayee && matchesPaymentSource;
-  });
+  }), expSort.field, expSort.direction);
 
   const exportToExcel = () => {
     const getProjectName = (id) => projects.find((p) => p.id === id)?.name || "";
@@ -730,6 +733,7 @@ export default function Expenses() {
               )}
 
               <ExpenseTable expenses={filteredExpenses} projects={projects} contacts={contacts}
+                sortField={expSort.field} sortDirection={expSort.direction} onSort={(field, direction) => setExpSort({ field, direction })}
                 showProject={projectFilter === "all"} selectedExpenses={selectedExpenses}
                 onSelectAll={toggleSelectAll} onSelectExpense={toggleSelectExpense}
                 onEdit={(expense) => { setEditingExpense(expense); setShowForm(true); }}
@@ -929,6 +933,7 @@ export default function Expenses() {
               )}
 
               <IncomeTable incomes={filteredIncomes} projects={projects} contacts={contacts}
+                sortField={incSort.field} sortDirection={incSort.direction} onSort={(field, direction) => setIncSort({ field, direction })}
                 showProject={incomeProjectFilter === "all"}
                 selectedIncomes={selectedIncomes}
                 onSelectAll={() => setSelectedIncomes(selectedIncomes.length === filteredIncomes.length ? [] : filteredIncomes.map(i => i.id))}

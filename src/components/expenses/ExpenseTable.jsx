@@ -22,6 +22,7 @@ import { MoreHorizontal, Users, Wrench, Package, Truck, Receipt, Layers, Calenda
 import { Checkbox } from "@/components/ui/checkbox";
 import { useColumnWidths } from "@/hooks/useColumnWidths";
 import ResizableHeader from "@/components/shared/ResizableHeader";
+import SortableHeader from "@/components/ui/sort-select";
 
 const categoryIcons = {
   labor: Users, subcontractor: Wrench, materials: Package, equipment: Truck, general_expenses: Receipt,
@@ -68,7 +69,7 @@ function InlineNumber({ value, onSave }) {
   );
 }
 
-export default function ExpenseTable({ expenses, projects, contacts = [], onEdit, onDelete, onUpdate, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense, onViewContact }) {
+export default function ExpenseTable({ expenses, projects, contacts = [], onEdit, onDelete, onUpdate, showProject = false, selectedExpenses = [], onSelectAll, onSelectExpense, onViewContact, sortField, sortDirection, onSort }) {
   const [editingCell, setEditingCell] = useState(null);
   const { widths, setColumnWidth, autoFitByHeader } = useColumnWidths("expenses", { date: 90, phase: 110, category: 130, subcategory: 140, project: 150, payee: 160, description: 200, paymentSource: 140, amount: 110 });
   const isBulkSelected = (id) => selectedExpenses.length > 1 && selectedExpenses.includes(id);
@@ -132,15 +133,15 @@ export default function ExpenseTable({ expenses, projects, contacts = [], onEdit
               <TableHead className="w-10 bg-gray-50">
                 <Checkbox checked={selectedExpenses.length === expenses.length && expenses.length > 0} onCheckedChange={onSelectAll} />
               </TableHead>
-              <ResizableHeader width={widths.date} onResize={w => setColumnWidth("date", w)} onAutoFit={() => autoFitByHeader("date")} className="bg-gray-50" dataColumn="date">Date</ResizableHeader>
-              <ResizableHeader width={widths.phase} onResize={w => setColumnWidth("phase", w)} onAutoFit={() => autoFitByHeader("phase")} className="bg-gray-50" dataColumn="phase">Phase</ResizableHeader>
-              <ResizableHeader width={widths.category} onResize={w => setColumnWidth("category", w)} onAutoFit={() => autoFitByHeader("category")} className="bg-gray-50" dataColumn="category">Category</ResizableHeader>
-              <ResizableHeader width={widths.subcategory} onResize={w => setColumnWidth("subcategory", w)} onAutoFit={() => autoFitByHeader("subcategory")} className="bg-gray-50" dataColumn="subcategory">Subcategory</ResizableHeader>
+              <ResizableHeader width={widths.date} onResize={w => setColumnWidth("date", w)} onAutoFit={() => autoFitByHeader("date")} className="bg-gray-50" dataColumn="date"><SortableHeader label="Date" field="date" sortField={sortField} sortDirection={sortDirection} onSort={onSort} /></ResizableHeader>
+              <ResizableHeader width={widths.phase} onResize={w => setColumnWidth("phase", w)} onAutoFit={() => autoFitByHeader("phase")} className="bg-gray-50" dataColumn="phase"><SortableHeader label="Phase" field="subcategory" sortField={sortField} sortDirection={sortDirection} onSort={onSort} /></ResizableHeader>
+              <ResizableHeader width={widths.category} onResize={w => setColumnWidth("category", w)} onAutoFit={() => autoFitByHeader("category")} className="bg-gray-50" dataColumn="category"><SortableHeader label="Category" field="category" sortField={sortField} sortDirection={sortDirection} onSort={onSort} /></ResizableHeader>
+              <ResizableHeader width={widths.subcategory} onResize={w => setColumnWidth("subcategory", w)} onAutoFit={() => autoFitByHeader("subcategory")} className="bg-gray-50" dataColumn="subcategory"><SortableHeader label="Subcategory" field="subcategory" sortField={sortField} sortDirection={sortDirection} onSort={onSort} /></ResizableHeader>
               {showProject && <ResizableHeader width={widths.project} onResize={w => setColumnWidth("project", w)} onAutoFit={() => autoFitByHeader("project")} className="bg-gray-50" dataColumn="project">Project</ResizableHeader>}
-              <ResizableHeader width={widths.payee} onResize={w => setColumnWidth("payee", w)} onAutoFit={() => autoFitByHeader("payee")} className="bg-gray-50" dataColumn="payee">Payee</ResizableHeader>
-              <ResizableHeader width={widths.description} onResize={w => setColumnWidth("description", w)} onAutoFit={() => autoFitByHeader("description")} className="bg-gray-50" dataColumn="description">Description</ResizableHeader>
-              <ResizableHeader width={widths.paymentSource} onResize={w => setColumnWidth("paymentSource", w)} onAutoFit={() => autoFitByHeader("paymentSource")} className="bg-gray-50" dataColumn="paymentSource">Payment Source</ResizableHeader>
-              <ResizableHeader width={widths.amount} onResize={w => setColumnWidth("amount", w)} onAutoFit={() => autoFitByHeader("amount")} align="right" className="bg-gray-50" dataColumn="amount">Amount</ResizableHeader>
+              <ResizableHeader width={widths.payee} onResize={w => setColumnWidth("payee", w)} onAutoFit={() => autoFitByHeader("payee")} className="bg-gray-50" dataColumn="payee"><SortableHeader label="Payee" field="payee" sortField={sortField} sortDirection={sortDirection} onSort={onSort} /></ResizableHeader>
+              <ResizableHeader width={widths.description} onResize={w => setColumnWidth("description", w)} onAutoFit={() => autoFitByHeader("description")} className="bg-gray-50" dataColumn="description"><SortableHeader label="Description" field="description" sortField={sortField} sortDirection={sortDirection} onSort={onSort} /></ResizableHeader>
+              <ResizableHeader width={widths.paymentSource} onResize={w => setColumnWidth("paymentSource", w)} onAutoFit={() => autoFitByHeader("paymentSource")} className="bg-gray-50" dataColumn="paymentSource"><SortableHeader label="Payment Source" field="payment_source" sortField={sortField} sortDirection={sortDirection} onSort={onSort} /></ResizableHeader>
+              <ResizableHeader width={widths.amount} onResize={w => setColumnWidth("amount", w)} onAutoFit={() => autoFitByHeader("amount")} align="right" className="bg-gray-50" dataColumn="amount"><SortableHeader label="Amount" field="amount" sortField={sortField} sortDirection={sortDirection} onSort={onSort} align="right" /></ResizableHeader>
               <TableHead className="w-10 bg-gray-50"></TableHead>
             </TableRow>
           </TableHeader>
