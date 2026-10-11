@@ -20,6 +20,8 @@ export default function SendToExpenseDialog({ emp, projectId, onClose }) {
 
   const handleSubmit = async (data) => {
     await base44.entities.Expense.create(data);
+    await base44.entities.InsuranceContribution.update(emp.id, { sent_to_expense: true });
+    queryClient.invalidateQueries({ queryKey: ["insurance-employees", projectId] });
     queryClient.invalidateQueries({ queryKey: ["expenses"] });
     queryClient.invalidateQueries({ queryKey: ["expenses", projectId] });
     onClose();

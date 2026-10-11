@@ -247,7 +247,12 @@ export default function InsurancePanel({ projectId }) {
               <tbody className="divide-y divide-gray-50">
                 {employees.map(emp => (
                   <tr key={emp.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-800">{emp.full_name}</td>
+                    <td className="px-4 py-3 font-medium text-gray-800">
+                      {emp.full_name}
+                      {emp.sent_to_expense && (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Εστάλη</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-gray-600">{emp.payee || "—"}</td>
                     <td className="px-4 py-3 text-gray-600">{emp.work_phase || "—"}</td>
                     <td className="px-4 py-3 text-gray-600">{emp.work_month}</td>
