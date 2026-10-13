@@ -638,10 +638,9 @@ export default function Expenses() {
                 Import from Google Sheets
               </Button>
               <Button type="button" variant="outline" className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white cursor-pointer"
-                onClick={() => document.getElementById('expense-import').click()}>
-                <Upload className="w-4 h-4 mr-2" />Import CSV
+                onClick={() => setActiveTab("csv_import")}>
+                <Upload className="w-4 h-4 mr-2" />Import CSV / Excel (AI)
               </Button>
-              <input id="expense-import" type="file" accept=".csv" className="hidden" onChange={importFromExcel} />
               <Button onClick={exportToExcel} variant="outline" disabled={filteredExpenses.length === 0} className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
                 <Download className="w-4 h-4 mr-2" />Export
               </Button>
@@ -886,7 +885,7 @@ export default function Expenses() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-[#1e3a5f]">Εισαγωγή από CSV / Excel</h2>
-                <p className="text-sm text-gray-500 mt-1">Ανέβασε το αρχείο σου, αντιστοίχισε τις στήλες και εισήγαγε τα έξοδα απευθείας — χωρίς AI.</p>
+                <p className="text-sm text-gray-500 mt-1">Ανέβασε το αρχείο σου και είτε αντιστοίχισε τις στήλες χειροκίνητα, είτε άφησε το AI να τις αναγνωρίσει αυτόματα.</p>
               </div>
               <CsvImportWizard onDone={() => setActiveTab("expenses")} />
             </div>

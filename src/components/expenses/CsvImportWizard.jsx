@@ -11,8 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
   Upload, FileSpreadsheet, ArrowRight, CheckCircle2, XCircle,
-  AlertCircle, Trash2, Check, ChevronLeft, ChevronRight, Info, Loader2,
+  AlertCircle, Trash2, Check, ChevronLeft, ChevronRight, Info, Loader2, Sparkles,
 } from "lucide-react";
+import { extractExpensesWithAI } from "@/lib/aiExpenseExtract";
 
 const CATEGORY_OPTIONS = [
   { value: "labor", label: "Εργατικά" },
@@ -76,7 +77,7 @@ function guessMapping(headers) {
 }
 
 // ── STEP 1: File upload ──────────────────────────────────────────────────────
-function StepUpload({ onParsed }) {
+function StepUpload({ onParsed, useAI, onToggleAI, aiProgress }) {
   const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
@@ -85,33 +86,43 @@ function StepUpload({ onParsed }) {
     if (!file) return;
     setLoading(true);
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const data = new Uint8Array(e.target.result);
       const wb = XLSX.read(data, { type: "array", cellDates: true });
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true });
       const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+      await onParsed({ rows, headers, fileName: file.name });
       setLoading(false);
-      onParsed({ rows, headers, fileName: file.name });
     };
     reader.readAsArrayBuffer(file);
   };
 
   return (
+    <div className="space-y-3">
+    <label className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 cursor-pointer">
+      <Checkbox checked={useAI} onCheckedChange={(v) => onToggleAI(!!v)} disabled={loading} className="mt-0.5" />
+      <div>
+        <p className="text-sm font-medium text-amber-900 flex items-center gap-1.5"><Sparkles className="w-4 h-4" />Έξυπνη ανάγνωση με AI</p>
+        <p className="text-xs text-amber-700 mt-0.5">Το AI διαβάζει το Excel/CSV όποια μορφή κι αν έχει, αναγνωρίζει στήλες, έργο και κατηγορία και πας κατευθείαν στον έλεγχο. Καταναλώνει AI credits.</p>
+      </div>
+    </label>
     <div
       className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all cursor-pointer ${
         dragOver ? "border-[#1e3a5f] bg-[#1e3a5f]/5" : "border-gray-200 hover:border-[#1e3a5f]/40 hover:bg-gray-50"
       }`}
       onClick={() => !loading && inputRef.current?.click()}
-      onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files?.[0]); }}
+      onDrop={(e) => { e.preventDefault(); setDragOver(false); !loading && handleFile(e.dataTransfer.files?.[0]); }}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
     >
-      <input ref={inputRef} type="file" accept=".csv,.xls,.xlsx" className="hidden" onChange={e => handleFile(e.target.files?.[0])} />
+      <input ref={inputRef} type="file" accept=".csv,.xls,.xlsx" className="hidden" onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ""; }} />
       {loading ? (
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 text-[#1e3a5f] animate-spin" />
-          <p className="text-sm text-gray-500">Ανάγνωση αρχείου...</p>
+          <p className="text-sm text-gray-500">
+            {useAI ? `Ανάλυση με AI... ${aiProgress ? `(${aiProgress.done}/${aiProgress.total} γραμμές)` : ""}` : "Ανάγνωση αρχείου..."}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-4">
@@ -127,6 +138,7 @@ function StepUpload({ onParsed }) {
           </Button>
         </div>
       )}
+    </div>
     </div>
   );
 }
@@ -366,6 +378,9 @@ export default function CsvImportWizard({ onDone }) {
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
   const [summary, setSummary] = useState(null);
+  const [useAI, setUseAI] = useState(false);
+  const [aiProgress, setAiProgress] = useState(null);
+  const [aiError, setAiError] = useState("");
 
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: () => base44.entities.Project.list("-created_date") });
   const { data: categoryRules = [] } = useQuery({ queryKey: ["category-rules"], queryFn: () => base44.entities.CategoryRule.list("-priority"), staleTime: 60000 });
@@ -376,7 +391,50 @@ export default function CsvImportWizard({ onDone }) {
   });
 
   // Step 0 → 1
-  const handleParsed = ({ rows, headers, fileName }) => {
+  const handleParsed = async ({ rows, headers, fileName }) => {
+    setAiError("");
+    if (useAI) {
+      if (rows.length === 0) { setAiError("Το αρχείο δεν περιέχει γραμμές."); return; }
+      setAiProgress({ done: 0, total: rows.length });
+      let extracted;
+      try {
+        extracted = await extractExpensesWithAI(rows, projects.map(p => p.name), (done, total) => setAiProgress({ done, total }));
+      } catch (err) {
+        setAiProgress(null);
+        setAiError("Η ανάλυση με AI απέτυχε. Δοκίμαξε ξανά ή απενεργοποίησε το AI για χειροκίνητη αντιστοίχιση.");
+        return;
+      }
+      setAiProgress(null);
+      const today = new Date().toISOString().split("T")[0];
+      const defaultProject = projects.length === 1 ? projects[0].id : "";
+      const validCats = CATEGORY_OPTIONS.map(c => c.value);
+      const mapped = extracted.map(r => {
+        const description = String(r.description || "").trim();
+        const payee = String(r.payee || "").trim();
+        const ruleMatch = applyRules(`${description} ${payee}`, categoryRules);
+        const proj = projects.find(p => p.name?.trim().toLowerCase() === String(r.project || "").trim().toLowerCase());
+        const amount = Math.abs(Number(r.amount) || 0);
+        return {
+          date: r.date || today,
+          payee,
+          description,
+          amount,
+          category: ruleMatch?.category || (validCats.includes(r.category) ? r.category : "general_expenses"),
+          subcategory: ruleMatch?.subcategory || String(r.subcategory || "").trim(),
+          payment_source: String(r.payment_source || "").trim(),
+          project_id: proj?.id || defaultProject,
+          autoCategory: ruleMatch ? `${ruleMatch.category}` : null,
+          skip: false,
+          imported: false,
+          error: null,
+        };
+      }).filter(r => r.amount > 0 || r.payee);
+      if (mapped.length === 0) { setAiError("Το AI δεν βρήκε έξοδα στο αρχείο."); return; }
+      setFileData({ rows, headers, fileName });
+      setMappedRows(mapped);
+      setStep(2);
+      return;
+    }
     const guessed = guessMapping(headers);
     setFileData({ rows, headers, fileName });
     setMapping(guessed);
@@ -479,7 +537,12 @@ export default function CsvImportWizard({ onDone }) {
       </div>
 
       {/* Step content */}
-      {step === 0 && <StepUpload onParsed={handleParsed} />}
+      {step === 0 && (
+        <>
+          <StepUpload onParsed={handleParsed} useAI={useAI} onToggleAI={setUseAI} aiProgress={aiProgress} />
+          {aiError && <p className="text-sm text-red-600 flex items-center gap-1.5"><AlertCircle className="w-4 h-4" />{aiError}</p>}
+        </>
+      )}
 
       {step === 1 && fileData && (
         <StepMapping
@@ -496,7 +559,7 @@ export default function CsvImportWizard({ onDone }) {
         <StepReview
           mapped={mappedRows}
           projects={projects}
-          onBack={() => setStep(1)}
+          onBack={() => setStep(useAI ? 0 : 1)}
           onImport={handleImport}
           importing={importing}
           importedCount={importedCount}
