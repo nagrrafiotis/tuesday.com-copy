@@ -27,6 +27,7 @@ export default function BudgetItemForm({ item, projectId, open, onClose, onSubmi
     unit: "",
     unit_cost: 0,
     total_cost: 0,
+    vat_percent: "",
     notes: "",
   });
   const [saving, setSaving] = useState(false);
@@ -48,10 +49,11 @@ export default function BudgetItemForm({ item, projectId, open, onClose, onSubmi
           unit: item.unit || "",
           unit_cost: item.unit_cost ?? 0,
           total_cost: item.total_cost ?? 0,
+          vat_percent: item.vat_percent ?? "",
           notes: item.notes || "",
         });
       } else {
-        setFormData({ category: "materials", subcategory: "", description: "", quantity: 1, unit: "", unit_cost: 0, total_cost: 0, notes: "" });
+        setFormData({ category: "materials", subcategory: "", description: "", quantity: 1, unit: "", unit_cost: 0, total_cost: 0, vat_percent: "", notes: "" });
       }
     }
   }, [item, open]);
@@ -110,6 +112,7 @@ export default function BudgetItemForm({ item, projectId, open, onClose, onSubmi
       unit: formData.unit,
       unit_cost: uc,
       total_cost: Number(formData.total_cost) || qty * uc,
+      vat_percent: formData.vat_percent === "" ? 0 : Math.min(100, Math.max(0, Number(formData.vat_percent) || 0)),
       notes: formData.notes,
     });
     setSaving(false);
@@ -251,6 +254,30 @@ export default function BudgetItemForm({ item, projectId, open, onClose, onSubmi
                 onChange={(e) => setFormData({ ...formData, total_cost: e.target.value })}
                 step="0.01"
                 className="mt-1.5"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>ΦΠΑ (%)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={formData.vat_percent}
+                onChange={(e) => setFormData({ ...formData, vat_percent: e.target.value })}
+                placeholder="0 - 100"
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Τελικό με ΦΠΑ (€)</Label>
+              <Input
+                readOnly
+                value={((Number(formData.total_cost) || 0) * (1 + (Number(formData.vat_percent) || 0) / 100)).toFixed(2)}
+                className="mt-1.5 bg-gray-50"
               />
             </div>
           </div>

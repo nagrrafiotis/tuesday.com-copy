@@ -109,8 +109,10 @@ function InlineNumber({ value, onSave, className = "" }) {
 
 export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, selectedItems = [], onSelectAll, onSelectItem }) {
   const { widths: columnWidths, setColumnWidth, autoFitByHeader } = useColumnWidths("budget", {
-    phase: 140, category: 150, subcategory: 150, payee: 150, description: 200, payment: 150, quantity: 100, unit: 100, unitCost: 120, total: 120,
+    phase: 140, category: 150, subcategory: 150, payee: 150, description: 200, payment: 150, quantity: 100, unit: 100, unitCost: 120, total: 120, vat: 90, finalTotal: 140,
   });
+
+  const finalOf = (item) => (item.total_cost || 0) * (1 + (item.vat_percent || 0) / 100);
 
   const { data: subcategories = [] } = useQuery({
     queryKey: ["subcategories"],
@@ -192,6 +194,8 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
             <ResizableHeader width={columnWidths.unit} onResize={w => setColumnWidth("unit", w)} onAutoFit={() => autoFitByHeader("unit")} className="bg-gray-50" dataColumn="unit">Unit</ResizableHeader>
             <ResizableHeader width={columnWidths.unitCost} onResize={w => setColumnWidth("unitCost", w)} onAutoFit={() => autoFitByHeader("unitCost")} align="right" className="bg-gray-50" dataColumn="unitCost">Unit Cost</ResizableHeader>
             <ResizableHeader width={columnWidths.total} onResize={w => setColumnWidth("total", w)} onAutoFit={() => autoFitByHeader("total")} align="right" className="bg-gray-50" dataColumn="total">Total</ResizableHeader>
+            <ResizableHeader width={columnWidths.vat} onResize={w => setColumnWidth("vat", w)} onAutoFit={() => autoFitByHeader("vat")} align="right" className="bg-gray-50" dataColumn="vat">ΦΠΑ %</ResizableHeader>
+            <ResizableHeader width={columnWidths.finalTotal} onResize={w => setColumnWidth("finalTotal", w)} onAutoFit={() => autoFitByHeader("finalTotal")} align="right" className="bg-gray-50" dataColumn="finalTotal">Τελικό (με ΦΠΑ)</ResizableHeader>
             <TableHead className="w-12 bg-gray-50"></TableHead>
           </TableRow>
         </TableHeader>
@@ -292,6 +296,12 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
                 <TableCell className="text-right font-semibold text-[#c9a962]">
                 <InlineNumber value={item.total_cost} onSave={v => onUpdate?.(item, { total_cost: isNaN(v) ? 0 : v })} className="text-right font-semibold text-[#c9a962]" />
                 </TableCell>
+                <TableCell className="text-right text-gray-600">
+                  <InlineNumber value={item.vat_percent} onSave={v => onUpdate?.(item, { vat_percent: Math.min(100, Math.max(0, isNaN(v) ? 0 : v)) })} className="text-right" />
+                </TableCell>
+                <TableCell className="text-right font-semibold text-[#1e3a5f]">
+                  {formatCurrency(finalOf(item))}
+                </TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -320,6 +330,12 @@ export default function BudgetTable({ budgetItems, onEdit, onDelete, onUpdate, s
             </TableCell>
             <TableCell className="text-right font-bold text-[#c9a962] text-lg">
               {formatCurrency(budgetItems.reduce((sum, item) => sum + (item.total_cost || 0), 0))}
+            </TableCell>
+            <TableCell className="text-right text-xs text-gray-500">
+              ΦΠΑ: {formatCurrency(budgetItems.reduce((sum, item) => sum + finalOf(item) - (item.total_cost || 0), 0))}
+            </TableCell>
+            <TableCell className="text-right font-bold text-[#1e3a5f] text-lg">
+              {formatCurrency(budgetItems.reduce((sum, item) => sum + finalOf(item), 0))}
             </TableCell>
             <TableCell />
           </TableRow>
