@@ -27,7 +27,7 @@ export default function BudgetItemForm({ item, projectId, open, onClose, onSubmi
     unit: "",
     unit_cost: 0,
     total_cost: 0,
-    vat_percent: "",
+    vat_percent: 24,
     notes: "",
   });
   const [saving, setSaving] = useState(false);
@@ -53,7 +53,7 @@ export default function BudgetItemForm({ item, projectId, open, onClose, onSubmi
           notes: item.notes || "",
         });
       } else {
-        setFormData({ category: "materials", subcategory: "", description: "", quantity: 1, unit: "", unit_cost: 0, total_cost: 0, vat_percent: "", notes: "" });
+        setFormData({ category: "materials", subcategory: "", description: "", quantity: 1, unit: "", unit_cost: 0, total_cost: 0, vat_percent: 24, notes: "" });
       }
     }
   }, [item, open]);

@@ -50,6 +50,7 @@ export default function OffersPanel({ projectId }) {
         unit: it.unit || "",
         unit_cost: Number(it.unit_cost) || 0,
         total_cost: Number(it.total) || 0,
+        vat_percent: 24,
         notes: `Από προσφορά: ${offer.title}`,
       }));
       if (budgetItems.length) await base44.entities.BudgetItem.bulkCreate(budgetItems);
