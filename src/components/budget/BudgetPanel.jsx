@@ -77,16 +77,20 @@ export default function BudgetPanel({ projectId }) {
       unit_cost: template.unit_cost || 0,
       quantity: 1,
       total_cost: template.unit_cost || 0,
+      vat_percent: 24,
       notes: "",
     });
     setShowForm(true);
   };
 
+  const vatOf = (i) => (i.total_cost || 0) * ((i.vat_percent || 0) / 100);
   const grandTotal = items.reduce((sum, i) => sum + (i.total_cost || 0), 0);
+  const totalVat = items.reduce((sum, i) => sum + vatOf(i), 0);
+  const grandFinal = grandTotal + totalVat;
 
   const exportToExcel = () => {
     const rows = [
-      ["Κατηγορία", "Υποκατηγορία", "Περιγραφή", "Ποσότητα", "Μονάδα", "Τιμή/Μονάδα (€)", "Σύνολο (€)", "Σημειώσεις"],
+      ["Κατηγορία", "Υποκατηγορία", "Περιγραφή", "Ποσότητα", "Μονάδα", "Τιμή/Μονάδα (€)", "Σύνολο (€)", "ΦΠΑ %", "ΦΠΑ (€)", "Τελικό με ΦΠΑ (€)", "Σημειώσεις"],
       ...items.map(item => [
         item.category?.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || "",
         item.subcategory || "",
@@ -95,10 +99,13 @@ export default function BudgetPanel({ projectId }) {
         item.unit || "",
         item.unit_cost ?? "",
         item.total_cost ?? "",
+        item.vat_percent ?? 0,
+        vatOf(item),
+        (item.total_cost || 0) + vatOf(item),
         item.notes || "",
       ]),
       [],
-      ["", "", "", "", "", "ΣΥΝΟΛΟ", grandTotal],
+      ["", "", "", "", "", "ΣΥΝΟΛΟ", grandTotal, "", totalVat, grandFinal],
     ];
     const bom = "\uFEFF";
     const csv = bom + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
@@ -182,6 +189,9 @@ export default function BudgetPanel({ projectId }) {
                 <TableHead className="bg-gray-50 font-semibold">Μον.</TableHead>
                 <TableHead className="text-right bg-gray-50 font-semibold">Τιμή/Μον.</TableHead>
                 <TableHead className="text-right bg-gray-50 font-semibold text-[#1e3a5f]">Σύνολο</TableHead>
+                <TableHead className="text-right bg-gray-50 font-semibold">ΦΠΑ %</TableHead>
+                <TableHead className="text-right bg-gray-50 font-semibold">ΦΠΑ (€)</TableHead>
+                <TableHead className="text-right bg-gray-50 font-semibold text-[#1e3a5f]">Τελικό</TableHead>
                 <TableHead className="bg-gray-50 w-20"></TableHead>
               </TableRow>
             </TableHeader>
@@ -199,6 +209,9 @@ export default function BudgetPanel({ projectId }) {
                   <TableCell className="text-gray-500 text-sm">{item.unit || "—"}</TableCell>
                   <TableCell className="text-right text-gray-600 text-sm">{item.unit_cost ? formatCurrency(item.unit_cost) : <span className="text-gray-300">—</span>}</TableCell>
                   <TableCell className="text-right font-semibold text-[#1e3a5f]">{formatCurrency(item.total_cost)}</TableCell>
+                  <TableCell className="text-right text-gray-600 text-sm">{item.vat_percent ?? 0}%</TableCell>
+                  <TableCell className="text-right text-gray-600 text-sm">{formatCurrency(vatOf(item))}</TableCell>
+                  <TableCell className="text-right font-semibold text-[#1e3a5f]">{formatCurrency((item.total_cost || 0) + vatOf(item))}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1 justify-end">
                       <Button
@@ -226,6 +239,9 @@ export default function BudgetPanel({ projectId }) {
               <TableRow className="bg-gray-50 border-t-2 border-gray-200">
                 <TableCell colSpan={6} className="font-bold text-gray-900">Σύνολο Προϋπολογισμού</TableCell>
                 <TableCell className="text-right font-bold text-[#1e3a5f] text-lg">{formatCurrency(grandTotal)}</TableCell>
+                <TableCell />
+                <TableCell className="text-right font-bold text-gray-700">{formatCurrency(totalVat)}</TableCell>
+                <TableCell className="text-right font-bold text-[#1e3a5f] text-lg">{formatCurrency(grandFinal)}</TableCell>
                 <TableCell />
               </TableRow>
             </TableBody>
