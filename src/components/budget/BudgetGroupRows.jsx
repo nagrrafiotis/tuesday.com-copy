@@ -23,11 +23,16 @@ export default function BudgetGroupRows({ name, items, onEdit, onDelete }) {
 
   return (
     <>
-      <TableRow className="bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/5">
-        <TableCell colSpan={11} className="font-bold text-[#1e3a5f] py-2">
+      <TableRow className="bg-[#1e3a5f] hover:bg-[#1e3a5f] border-t-4 border-white">
+        <TableCell colSpan={6} className="font-bold text-white py-2.5 text-base">
           {name || "Χωρίς υποκατηγορία"}
-          <span className="ml-2 text-xs font-normal text-gray-500">({items.length})</span>
+          <span className="ml-2 text-xs font-normal text-white/70">({items.length} items)</span>
         </TableCell>
+        <TableCell className="text-right font-bold text-white py-2.5">{formatCurrency(subTotal)}</TableCell>
+        <TableCell />
+        <TableCell className="text-right font-bold text-white/80 py-2.5">{formatCurrency(subVat)}</TableCell>
+        <TableCell className="text-right font-bold text-white py-2.5">{formatCurrency(subTotal + subVat)}</TableCell>
+        <TableCell />
       </TableRow>
 
       {items.map((item) => (
