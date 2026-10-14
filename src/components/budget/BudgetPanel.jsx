@@ -83,6 +83,12 @@ export default function BudgetPanel({ projectId }) {
     setShowForm(true);
   };
 
+  const sortedItems = [...items].sort((a, b) => {
+    if (!a.subcategory && !b.subcategory) return 0;
+    if (!a.subcategory) return 1;
+    if (!b.subcategory) return -1;
+    return a.subcategory.localeCompare(b.subcategory, "el", { numeric: true });
+  });
   const vatOf = (i) => (i.total_cost || 0) * ((i.vat_percent || 0) / 100);
   const grandTotal = items.reduce((sum, i) => sum + (i.total_cost || 0), 0);
   const totalVat = items.reduce((sum, i) => sum + vatOf(i), 0);
@@ -91,7 +97,7 @@ export default function BudgetPanel({ projectId }) {
   const exportToExcel = () => {
     const rows = [
       ["Κατηγορία", "Υποκατηγορία", "Περιγραφή", "Ποσότητα", "Μονάδα", "Τιμή/Μονάδα (€)", "Σύνολο (€)", "ΦΠΑ %", "ΦΠΑ (€)", "Τελικό με ΦΠΑ (€)", "Σημειώσεις"],
-      ...items.map(item => [
+      ...sortedItems.map(item => [
         item.category?.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || "",
         item.subcategory || "",
         item.description || "",
@@ -196,7 +202,7 @@ export default function BudgetPanel({ projectId }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item) => (
+              {sortedItems.map((item) => (
                 <TableRow key={item.id} className="hover:bg-gray-50/50 transition-colors">
                   <TableCell>
                     <Badge className={`${categoryColors[item.category] || "bg-gray-100 text-gray-700"} border-0 text-xs`}>
