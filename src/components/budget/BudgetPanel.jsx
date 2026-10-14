@@ -75,11 +75,12 @@ export default function BudgetPanel({ projectId }) {
     setShowForm(true);
   };
 
+  const subKey = (i) => (i.subcategory || "").trim().toLowerCase();
   const sortedItems = [...items].sort((a, b) => {
-    if (!a.subcategory && !b.subcategory) return 0;
-    if (!a.subcategory) return 1;
-    if (!b.subcategory) return -1;
-    return a.subcategory.localeCompare(b.subcategory, "el", { numeric: true });
+    if (!subKey(a) && !subKey(b)) return 0;
+    if (!subKey(a)) return 1;
+    if (!subKey(b)) return -1;
+    return subKey(a).localeCompare(subKey(b), "el", { numeric: true });
   });
   const vatOf = (i) => (i.total_cost || 0) * ((i.vat_percent || 0) / 100);
   const grandTotal = items.reduce((sum, i) => sum + (i.total_cost || 0), 0);
@@ -117,10 +118,10 @@ export default function BudgetPanel({ projectId }) {
   // Group by subcategory (already sorted, empty subcategory last)
   const groups = [];
   sortedItems.forEach((item) => {
-    const name = item.subcategory || "";
+    const key = subKey(item);
     const last = groups[groups.length - 1];
-    if (last && last.name === name) last.items.push(item);
-    else groups.push({ name, items: [item] });
+    if (last && last.key === key) last.items.push(item);
+    else groups.push({ key, name: (item.subcategory || "").trim(), items: [item] });
   });
 
   if (isLoading) return <div className="text-center py-12 text-gray-500">Φόρτωση...</div>;
@@ -197,7 +198,7 @@ export default function BudgetPanel({ projectId }) {
             <TableBody>
               {groups.map((g) => (
                 <BudgetGroupRows
-                  key={g.name || "__none__"}
+                  key={g.key || "__none__"}
                   name={g.name}
                   storageKey={projectId}
                   items={g.items}
