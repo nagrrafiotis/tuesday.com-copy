@@ -2,23 +2,15 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Pencil, BookOpen, Receipt, Download } from "lucide-react";
+import { Plus, BookOpen, Receipt, Download } from "lucide-react";
+import BudgetGroupRows from "./BudgetGroupRows";
 import BudgetItemForm from "./BudgetItemForm";
 import BudgetTemplatesDialog from "./BudgetTemplatesDialog";
 import OffersPanel from "./OffersPanel";
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(amount || 0);
-
-const categoryColors = {
-  labor: "bg-blue-100 text-blue-700",
-  subcontractor: "bg-purple-100 text-purple-700",
-  materials: "bg-amber-100 text-amber-700",
-  equipment: "bg-orange-100 text-orange-700",
-  general_expenses: "bg-gray-100 text-gray-700",
-};
 
 export default function BudgetPanel({ projectId }) {
   const [showForm, setShowForm] = useState(false);
@@ -122,12 +114,13 @@ export default function BudgetPanel({ projectId }) {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
-  // Group by category for display
-  const grouped = {};
-  items.forEach(item => {
-    const key = item.category || "—";
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(item);
+  // Group by subcategory (already sorted, empty subcategory last)
+  const groups = [];
+  sortedItems.forEach((item) => {
+    const name = item.subcategory || "";
+    const last = groups[groups.length - 1];
+    if (last && last.name === name) last.items.push(item);
+    else groups.push({ name, items: [item] });
   });
 
   if (isLoading) return <div className="text-center py-12 text-gray-500">Φόρτωση...</div>;
@@ -202,43 +195,14 @@ export default function BudgetPanel({ projectId }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedItems.map((item) => (
-                <TableRow key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                  <TableCell>
-                    <Badge className={`${categoryColors[item.category] || "bg-gray-100 text-gray-700"} border-0 text-xs`}>
-                      {item.category?.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || "—"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-gray-600 text-sm">{item.subcategory || <span className="text-gray-300">—</span>}</TableCell>
-                  <TableCell className="text-gray-700 text-sm max-w-[200px] truncate">{item.description || <span className="text-gray-300">—</span>}</TableCell>
-                  <TableCell className="text-right text-gray-600 text-sm">{item.quantity ?? "—"}</TableCell>
-                  <TableCell className="text-gray-500 text-sm">{item.unit || "—"}</TableCell>
-                  <TableCell className="text-right text-gray-600 text-sm">{item.unit_cost ? formatCurrency(item.unit_cost) : <span className="text-gray-300">—</span>}</TableCell>
-                  <TableCell className="text-right font-semibold text-[#1e3a5f]">{formatCurrency(item.total_cost)}</TableCell>
-                  <TableCell className="text-right text-gray-600 text-sm">{item.vat_percent ?? 0}%</TableCell>
-                  <TableCell className="text-right text-gray-600 text-sm">{formatCurrency(vatOf(item))}</TableCell>
-                  <TableCell className="text-right font-semibold text-[#1e3a5f]">{formatCurrency((item.total_cost || 0) + vatOf(item))}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 justify-end">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => { setEditingItem(item); setShowForm(true); }}
-                        className="text-gray-400 hover:text-[#1e3a5f] h-7 w-7 p-0"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => { if (window.confirm("Διαγραφή item;")) deleteMutation.mutate(item.id); }}
-                        className="text-gray-400 hover:text-red-600 h-7 w-7 p-0"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+              {groups.map((g) => (
+                <BudgetGroupRows
+                  key={g.name || "__none__"}
+                  name={g.name}
+                  items={g.items}
+                  onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
+                  onDelete={(item) => { if (window.confirm("Διαγραφή item;")) deleteMutation.mutate(item.id); }}
+                />
               ))}
 
               {/* Grand Total */}
