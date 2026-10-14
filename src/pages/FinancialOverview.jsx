@@ -129,7 +129,7 @@ export default function FinancialOverview() {
       ["OVERALL", totalBudget, totalExpenses, totalIncome, netProfit, ""],
     ];
     const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `financial_overview_${new Date().toISOString().split("T")[0]}.csv`;

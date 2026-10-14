@@ -10,7 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { MapPin, Calendar, DollarSign, BarChart3, ClipboardList, CheckCircle2, Clock, Circle, ArrowUpCircle, Download } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import jsPDF from "jspdf";
+import { htmlToPdf, esc } from "@/lib/htmlToPdf";
 
 const statusColors = {
   planning: "bg-blue-100 text-blue-700",
@@ -103,40 +103,18 @@ export default function ClientProjectView() {
     enabled: !!projectId,
   });
 
-  const exportPDF = () => {
-    const doc = new jsPDF();
-    const pageW = doc.internal.pageSize.getWidth();
-    let y = 20;
+  const exportPDF = async () => {
+    const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0)
+      + projectInvoices.filter(i => i.type === "expense").reduce((s, i) => s + (i.total_amount || 0), 0);
+    const totalIncome = incomes.reduce((s, i) => s + (i.amount || 0), 0)
+      + projectInvoices.filter(i => i.type === "income").reduce((s, i) => s + (i.total_amount || 0), 0);
+    const balance = totalIncome - totalExpenses;
 
-    const addText = (text, x, size = 10, style = "normal", color = [30, 58, 95]) => {
-      doc.setFontSize(size);
-      doc.setFont("helvetica", style);
-      doc.setTextColor(...color);
-      doc.text(text, x, y);
-    };
+    const eur = (v) => `€${(v || 0).toLocaleString("el-GR")}`;
+    const row = (l, v, color = "#1e293b", bold = false) =>
+      `<tr><td style="padding:5px 0;font-size:12px;font-weight:700;color:#505050;width:42%;">${esc(l)}</td><td style="padding:5px 0;font-size:12px;font-weight:${bold ? 700 : 400};color:${color};">${esc(v)}</td></tr>`;
+    const title = (t) => `<h2 style="font-size:14px;color:#1e3a5f;margin:22px 0 6px;padding-bottom:4px;border-bottom:1px solid #d1d5db;">${esc(t)}</h2>`;
 
-    const line = () => {
-      doc.setDrawColor(200, 200, 200);
-      doc.line(14, y, pageW - 14, y);
-      y += 6;
-    };
-
-    // Header
-    doc.setFillColor(30, 58, 95);
-    doc.rect(0, 0, pageW, 40, "F");
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(255, 255, 255);
-    doc.text(project.name, 14, 18);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Συνοπτική Αναφορά Έργου  |  ${format(new Date(), "dd/MM/yyyy")}`, 14, 30);
-    y = 52;
-
-    // Project info
-    addText("ΣΤΟΙΧΕΙΑ ΕΡΓΟΥ", 14, 11, "bold");
-    y += 7;
-    line();
     const info = [
       ["Κατάσταση:", project.status?.replace("_", " ") || "—"],
       ["Τοποθεσία:", project.address || "—"],
@@ -144,108 +122,46 @@ export default function ClientProjectView() {
       ["Στόχος ολοκλήρωσης:", project.target_completion ? format(new Date(project.target_completion), "dd/MM/yyyy") : "—"],
       ["Πρόοδος:", `${project.progress || 0}%`],
     ];
-    info.forEach(([label, value]) => {
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(80, 80, 80);
-      doc.text(label, 14, y);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(30, 30, 30);
-      doc.text(value, 70, y);
-      y += 7;
-    });
-    y += 4;
-
-    // Financials
-    addText("ΟΙΚΟΝΟΜΙΚΑ ΣΤΟΙΧΕΙΑ", 14, 11, "bold");
-    y += 7;
-    line();
-
-    const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0)
-      + projectInvoices.filter(i => i.type === "expense").reduce((s, i) => s + (i.total_amount || 0), 0);
-    const totalIncome = incomes.reduce((s, i) => s + (i.amount || 0), 0)
-      + projectInvoices.filter(i => i.type === "income").reduce((s, i) => s + (i.total_amount || 0), 0);
-    const balance = totalIncome - totalExpenses;
-
     const financials = [
-      ["Συνολικός Προϋπολογισμός:", project.budget ? `€${project.budget.toLocaleString("el-GR")}` : "—"],
-      ["Συνολικά Έσοδα:", `€${totalIncome.toLocaleString("el-GR")}`],
-      ["Συνολικά Έξοδα:", `€${totalExpenses.toLocaleString("el-GR")}`],
-      ["Υπόλοιπο:", `€${balance.toLocaleString("el-GR")}`],
+      ["Συνολικός Προϋπολογισμός:", project.budget ? eur(project.budget) : "—"],
+      ["Συνολικά Έσοδα:", eur(totalIncome)],
+      ["Συνολικά Έξοδα:", eur(totalExpenses)],
     ];
-    financials.forEach(([label, value], i) => {
-      const isBalance = i === 3;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(80, 80, 80);
-      doc.text(label, 14, y);
-      doc.setFont("helvetica", isBalance ? "bold" : "normal");
-      doc.setTextColor(isBalance ? (balance >= 0 ? 22 : 220) : 30, isBalance ? (balance >= 0 ? 160 : 38) : 30, isBalance ? (balance >= 0 ? 90 : 38) : 30);
-      doc.text(value, 100, y);
-      y += 8;
-    });
-    y += 4;
-
-    // Expenses by phase
-    if (phaseChartData.length > 0) {
-      addText("ΕΞΟΔΑ ΑΝΑ ΦΑΣΗ", 14, 11, "bold");
-      y += 7;
-      line();
-      // Table header
-      doc.setFillColor(245, 245, 245);
-      doc.rect(14, y - 4, pageW - 28, 8, "F");
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(60, 60, 60);
-      doc.text("Φάση", 16, y);
-      doc.text("Προϋπολογισμός", 100, y);
-      doc.text("Δαπάνες", 155, y);
-      y += 8;
-      phaseChartData.forEach(row => {
-        if (y > 270) { doc.addPage(); y = 20; }
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(40, 40, 40);
-        doc.text(row.name, 16, y);
-        doc.text(`€${row["Προϋπολογισμός"].toLocaleString("el-GR")}`, 100, y);
-        doc.text(`€${row["Δαπάνες"].toLocaleString("el-GR")}`, 155, y);
-        y += 7;
-      });
-      y += 4;
-    }
-
-    // Tasks summary
-    addText("TASKS", 14, 11, "bold");
-    y += 7;
-    line();
     const taskSummary = [
       ["Συνολικά:", String(tasks.length)],
       ["Ολοκληρωμένα:", String(tasks.filter(t => t.status === "completed").length)],
       ["Σε εξέλιξη:", String(tasks.filter(t => t.status === "in_progress").length)],
       ["Εκκρεμή:", String(tasks.filter(t => t.status === "todo").length)],
     ];
-    taskSummary.forEach(([label, value]) => {
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(80, 80, 80);
-      doc.text(label, 14, y);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(30, 30, 30);
-      doc.text(value, 70, y);
-      y += 7;
-    });
 
-    // Footer
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(150, 150, 150);
-      doc.text(`Σελίδα ${i} / ${pageCount}`, pageW / 2, 290, { align: "center" });
-    }
+    const phaseHtml = phaseChartData.length > 0
+      ? title("ΕΞΟΔΑ ΑΝΑ ΦΑΣΗ") + `<table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f3f4f6;"><th style="text-align:left;padding:6px 8px;font-size:11px;">Φάση</th><th style="text-align:right;padding:6px 8px;font-size:11px;">Προϋπολογισμός</th><th style="text-align:right;padding:6px 8px;font-size:11px;">Δαπάνες</th></tr></thead>
+          <tbody>${phaseChartData.map(r => `<tr><td style="padding:5px 8px;font-size:11px;border-bottom:1px solid #eef0f3;">${esc(r.name)}</td><td style="padding:5px 8px;font-size:11px;text-align:right;border-bottom:1px solid #eef0f3;">${esc(eur(r["Προϋπολογισμός"]))}</td><td style="padding:5px 8px;font-size:11px;text-align:right;border-bottom:1px solid #eef0f3;">${esc(eur(r["Δαπάνες"]))}</td></tr>`).join("")}</tbody>
+        </table>`
+      : "";
 
-    doc.save(`${project.name}_αναφορα_${format(new Date(), "dd-MM-yyyy")}.pdf`);
+    const html = `
+      <div style="padding-bottom:24px;">
+        <div style="background:#1e3a5f;color:#fff;padding:22px 28px;">
+          <div style="font-size:24px;font-weight:700;">${esc(project.name)}</div>
+          <div style="font-size:12px;margin-top:8px;">Συνοπτική Αναφορά Έργου &nbsp;|&nbsp; ${esc(format(new Date(), "dd/MM/yyyy"))}</div>
+        </div>
+        <div style="padding:0 28px;">
+          ${title("ΣΤΟΙΧΕΙΑ ΕΡΓΟΥ")}
+          <table style="width:100%;border-collapse:collapse;">${info.map(([l, v]) => row(l, v)).join("")}</table>
+          ${title("ΟΙΚΟΝΟΜΙΚΑ ΣΤΟΙΧΕΙΑ")}
+          <table style="width:100%;border-collapse:collapse;">
+            ${financials.map(([l, v]) => row(l, v)).join("")}
+            ${row("Υπόλοιπο:", eur(balance), balance >= 0 ? "#16a05a" : "#dc2626", true)}
+          </table>
+          ${phaseHtml}
+          ${title("TASKS")}
+          <table style="width:100%;border-collapse:collapse;">${taskSummary.map(([l, v]) => row(l, v)).join("")}</table>
+        </div>
+      </div>`;
+
+    await htmlToPdf({ html, filename: `${project.name}_αναφορα_${format(new Date(), "dd-MM-yyyy")}.pdf` });
   };
 
   if (authChecking || projectLoading) {
