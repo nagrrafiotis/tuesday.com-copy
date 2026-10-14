@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(amount || 0);
@@ -18,13 +18,18 @@ const categoryColors = {
 const vatOf = (i) => (i.total_cost || 0) * ((i.vat_percent || 0) / 100);
 
 export default function BudgetGroupRows({ name, items, onEdit, onDelete }) {
+  const [open, setOpen] = useState(true);
   const subTotal = items.reduce((s, i) => s + (i.total_cost || 0), 0);
   const subVat = items.reduce((s, i) => s + vatOf(i), 0);
 
   return (
     <>
-      <TableRow className="bg-[#1e3a5f] hover:bg-[#1e3a5f] border-t-4 border-white">
+      <TableRow
+        onClick={() => setOpen((o) => !o)}
+        className="bg-[#1e3a5f] hover:bg-[#2a4d7c] border-t-4 border-white cursor-pointer select-none"
+      >
         <TableCell colSpan={6} className="font-bold text-white py-2.5 text-base">
+          {open ? <ChevronDown className="inline w-4 h-4 mr-2" /> : <ChevronRight className="inline w-4 h-4 mr-2" />}
           {name || "Χωρίς υποκατηγορία"}
           <span className="ml-2 text-xs font-normal text-white/70">({items.length} items)</span>
         </TableCell>
@@ -35,7 +40,7 @@ export default function BudgetGroupRows({ name, items, onEdit, onDelete }) {
         <TableCell />
       </TableRow>
 
-      {items.map((item) => (
+      {open && items.map((item) => (
         <TableRow key={item.id} className="hover:bg-gray-50/50 transition-colors">
           <TableCell>
             <Badge className={`${categoryColors[item.category] || "bg-gray-100 text-gray-700"} border-0 text-xs`}>
@@ -64,7 +69,7 @@ export default function BudgetGroupRows({ name, items, onEdit, onDelete }) {
         </TableRow>
       ))}
 
-      <TableRow className="bg-gray-50/70 hover:bg-gray-50/70">
+      {open && <TableRow className="bg-gray-50/70 hover:bg-gray-50/70">
         <TableCell colSpan={6} className="text-right text-sm font-semibold text-gray-600">
           Υποσύνολο {name || "Χωρίς υποκατηγορία"}
         </TableCell>
@@ -73,7 +78,7 @@ export default function BudgetGroupRows({ name, items, onEdit, onDelete }) {
         <TableCell className="text-right font-semibold text-gray-700">{formatCurrency(subVat)}</TableCell>
         <TableCell className="text-right font-semibold text-[#1e3a5f]">{formatCurrency(subTotal + subVat)}</TableCell>
         <TableCell />
-      </TableRow>
+      </TableRow>}
     </>
   );
 }
