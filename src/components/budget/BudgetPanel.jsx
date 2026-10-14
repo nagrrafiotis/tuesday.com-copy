@@ -199,6 +199,7 @@ export default function BudgetPanel({ projectId }) {
                 <BudgetGroupRows
                   key={g.name || "__none__"}
                   name={g.name}
+                  storageKey={projectId}
                   items={g.items}
                   onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
                   onDelete={(item) => { if (window.confirm("Διαγραφή item;")) deleteMutation.mutate(item.id); }}
