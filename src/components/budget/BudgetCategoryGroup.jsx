@@ -13,14 +13,34 @@ export const leadingNumberOf = (sub) => {
   return m ? m[1] : null;
 };
 
-export default function BudgetCategoryGroup({ num, children, items }) {
+export default function BudgetCategoryGroup({ num, children, items, storageKey }) {
   const [open, setOpen] = useState(true);
   const total = items.reduce((s, i) => s + (i.total_cost || 0), 0);
   const vat = items.reduce((s, i) => s + vatOf(i), 0);
   const label = num ? `Κατηγορία ${num}` : "Χωρίς αριθμό υποκατηγορίας";
 
+  const noteKey = `budget-group-note:${storageKey || ""}:${num || "__none__"}`;
+  const [note, setNote] = useState(() => localStorage.getItem(noteKey) || "");
+  const saveNote = (v) => {
+    setNote(v);
+    if (v) localStorage.setItem(noteKey, v);
+    else localStorage.removeItem(noteKey);
+  };
+
   return (
     <>
+      {/* Group note — sits above the category header, spans full width */}
+      <TableRow className="bg-[#fdf8ec]">
+        <TableCell colSpan={11} className="py-2 px-3">
+          <input
+            value={note}
+            onChange={(e) => saveNote(e.target.value)}
+            placeholder="Σημείωση: σε τι αναφέρεται το κομμάτι του προϋπολογισμού..."
+            className="block w-full bg-white/60 hover:bg-white focus:bg-white placeholder:text-amber-700/40 text-[#7a5c1f] text-lg font-bold rounded px-3 py-1.5 outline-none border border-[#c9a962]/40"
+          />
+        </TableCell>
+      </TableRow>
+
       <TableRow
         onClick={() => setOpen((o) => !o)}
         className="bg-[#c9a962] hover:bg-[#b8985a] cursor-pointer select-none border-t-2 border-white"

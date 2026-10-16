@@ -210,7 +210,7 @@ export default function BudgetPanel({ projectId }) {
               {categories.map((cat) => {
                 const catItems = cat.groups.flatMap((g) => g.items);
                 return (
-                  <BudgetCategoryGroup key={cat.key} num={cat.num} items={catItems}>
+                  <BudgetCategoryGroup key={cat.key} num={cat.num} items={catItems} storageKey={projectId}>
                     {cat.groups.map((g) => (
                       <BudgetGroupRows
                         key={g.key || "__none__"}
