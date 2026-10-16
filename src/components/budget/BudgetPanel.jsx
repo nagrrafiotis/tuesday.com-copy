@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, BookOpen, Receipt, Download } from "lucide-react";
 import BudgetGroupRows from "./BudgetGroupRows";
+import BudgetCategoryGroup, { leadingNumberOf } from "./BudgetCategoryGroup";
 import BudgetItemForm from "./BudgetItemForm";
 import BudgetTemplatesDialog from "./BudgetTemplatesDialog";
 import OffersPanel from "./OffersPanel";
@@ -124,6 +125,16 @@ export default function BudgetPanel({ projectId }) {
     else groups.push({ key, name: (item.subcategory || "").trim(), items: [item] });
   });
 
+  // Higher-level grouping by the leading number of the subcategory
+  const categories = [];
+  groups.forEach((g) => {
+    const num = leadingNumberOf(g.name);
+    const catKey = num || "__none__";
+    const last = categories[categories.length - 1];
+    if (last && last.key === catKey) last.groups.push(g);
+    else categories.push({ key: catKey, num, groups: [g] });
+  });
+
   if (isLoading) return <div className="text-center py-12 text-gray-500">Φόρτωση...</div>;
 
   return (
@@ -196,16 +207,23 @@ export default function BudgetPanel({ projectId }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {groups.map((g) => (
-                <BudgetGroupRows
-                  key={g.key || "__none__"}
-                  name={g.name}
-                  storageKey={projectId}
-                  items={g.items}
-                  onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
-                  onDelete={(item) => { if (window.confirm("Διαγραφή item;")) deleteMutation.mutate(item.id); }}
-                />
-              ))}
+              {categories.map((cat) => {
+                const catItems = cat.groups.flatMap((g) => g.items);
+                return (
+                  <BudgetCategoryGroup key={cat.key} num={cat.num} items={catItems}>
+                    {cat.groups.map((g) => (
+                      <BudgetGroupRows
+                        key={g.key || "__none__"}
+                        name={g.name}
+                        storageKey={projectId}
+                        items={g.items}
+                        onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
+                        onDelete={(item) => { if (window.confirm("Διαγραφή item;")) deleteMutation.mutate(item.id); }}
+                      />
+                    ))}
+                  </BudgetCategoryGroup>
+                );
+              })}
 
               {/* Grand Total */}
               <TableRow className="bg-gray-50 border-t-2 border-gray-200">

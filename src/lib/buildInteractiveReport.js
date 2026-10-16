@@ -35,6 +35,7 @@ th.r,td.r{text-align:right}
 td{padding:7px 10px;border-bottom:1px solid #eef0f3}
 tbody tr.data:hover{background:#f7f9fc}
 tfoot td{background:#f0f2f5;font-weight:700;color:#1e3a5f}
+tr.cat td{background:#c9a962;color:#fff;font-weight:700;cursor:pointer;padding:10px 10px;font-size:14px}
 tr.grp td{background:#1e3a5f;color:#fff;font-weight:700;cursor:pointer;padding:9px 10px}
 tr.grp .note{display:block;font-size:12px;font-weight:400;opacity:.85}
 tr.sub td{background:#f3f5f8;font-weight:600}
@@ -100,30 +101,48 @@ function setupBudget(){
   root.innerHTML='<div class="tools"><input placeholder="Αναζήτηση..." data-q><button class="tab" data-all>Ανοιγμα / Κλείσιμο όλων</button></div>'+
   '<table><thead><tr>'+['Κατηγορία','Περιγραφή','Ποσ.','Μον.','Τιμή/Μον.','Σύνολο','ΦΠΑ %','ΦΠΑ (€)','Τελικό'].map((h,i)=>'<th'+(i>=4?' class="r"':'')+'>'+h+'</th>').join('')+'</tr></thead><tbody></tbody><tfoot></tfoot></table>';
   const body=root.querySelector('tbody'),foot=root.querySelector('tfoot');
-  const closed=new Set();let q='';
+  const closedGrp=new Set(),closedCat=new Set();let q='';
   const vat=b=>(b.total_cost||0)*((b.vat_percent||0)/100);
+  const leadNum=s=>{const m=(s||'').trim().match(/^(\d+)/);return m?m[1]:null};
+  const catKey=n=>{const k=leadNum(n);return k===null?'__none__':k};
   function draw(){
     const list=items.filter(b=>!q||[b.category,b.subcategory,b.description].some(x=>String(x||'').toLowerCase().includes(q)));
-    const groups={};
-    list.forEach(b=>{const k=(b.subcategory||'').trim();(groups[k]=groups[k]||[]).push(b)});
-    const names=Object.keys(groups).sort((a,b)=>!a?1:!b?-1:a.localeCompare(b,'el',{numeric:true}));
+    const subgroups={};
+    list.forEach(b=>{const k=(b.subcategory||'').trim();(subgroups[k]=subgroups[k]||[]).push(b)});
+    const names=Object.keys(subgroups).sort((a,b)=>!a?1:!b?-1:a.localeCompare(b,'el',{numeric:true}));
+    const catOrder=[];
+    const catMap={};
+    names.forEach(n=>{const ck=catKey(n);if(!catMap[ck]){catMap[ck]={num:leadNum(n),subs:[]};catOrder.push(ck)}catMap[ck].subs.push(n)});
     let html='',gt=0,gv=0;
-    names.forEach(n=>{
-      const g=groups[n],sub=g.reduce((s,b)=>s+(b.total_cost||0),0),sv=g.reduce((s,b)=>s+vat(b),0);
-      gt+=sub;gv+=sv;
-      const note=D.notes[n]||'';
-      html+='<tr class="grp" data-g="'+esc(n)+'"><td colspan="5">'+(closed.has(n)?'▶ ':'▼ ')+(note?'<span style="font-size:15px">'+esc(note)+'</span><span class="note">'+esc(n||'Χωρίς υποκατηγορία')+' ('+g.length+' items)</span>':esc(n||'Χωρίς υποκατηγορία')+' ('+g.length+' items)')+'</td><td class="r">'+fmt(sub)+'</td><td></td><td class="r">'+fmt(sv)+'</td><td class="r">'+fmt(sub+sv)+'</td></tr>';
-      if(!closed.has(n)){
-        g.forEach(b=>{html+='<tr class="data"><td>'+esc(D.labels[b.category]||b.category||'—')+'</td><td>'+esc(b.description)+'</td><td class="r">'+esc(b.quantity??'')+'</td><td>'+esc(b.unit)+'</td><td class="r">'+fmt(b.unit_cost)+'</td><td class="r">'+fmt(b.total_cost)+'</td><td class="r">'+(b.vat_percent??0)+'%</td><td class="r">'+fmt(vat(b))+'</td><td class="r"><b>'+fmt((b.total_cost||0)+vat(b))+'</b></td></tr>'});
-        html+='<tr class="sub"><td colspan="5" class="r">Υποσύνολο '+esc(n||'Χωρίς υποκατηγορία')+'</td><td class="r">'+fmt(sub)+'</td><td></td><td class="r">'+fmt(sv)+'</td><td class="r">'+fmt(sub+sv)+'</td></tr>';
-      }
+    catOrder.forEach(ck=>{
+      const cat=catMap[ck],catItems=cat.subs.flatMap(n=>subgroups[n]);
+      const ct=catItems.reduce((s,b)=>s+(b.total_cost||0),0),cv=catItems.reduce((s,b)=>s+vat(b),0);
+      gt+=ct;gv+=cv;
+      const catLabel=cat.num?('Κατηγορία '+esc(cat.num)):'Χωρίς αριθμό υποκατηγορίας';
+      html+='<tr class="cat" data-ck="'+esc(ck)+'"><td colspan="5">'+(closedCat.has(ck)?'▶ ':'▼ ')+catLabel+' <span style="font-weight:400;opacity:.8">('+catItems.length+' items)</span></td><td class="r">'+fmt(ct)+'</td><td></td><td class="r">'+fmt(cv)+'</td><td class="r">'+fmt(ct+cv)+'</td></tr>';
+      if(closedCat.has(ck))return;
+      cat.subs.forEach(n=>{
+        const g=subgroups[n],sub=g.reduce((s,b)=>s+(b.total_cost||0),0),sv=g.reduce((s,b)=>s+vat(b),0);
+        const note=D.notes[n]||'';
+        html+='<tr class="grp" data-g="'+esc(n)+'"><td colspan="5">'+(closedGrp.has(n)?'▶ ':'▼ ')+(note?'<span style="font-size:15px">'+esc(note)+'</span><span class="note">'+esc(n||'Χωρίς υποκατηγορία')+' ('+g.length+' items)</span>':esc(n||'Χωρίς υποκατηγορία')+' ('+g.length+' items)')+'</td><td class="r">'+fmt(sub)+'</td><td></td><td class="r">'+fmt(sv)+'</td><td class="r">'+fmt(sub+sv)+'</td></tr>';
+        if(!closedGrp.has(n)){
+          g.forEach(b=>{html+='<tr class="data"><td>'+esc(D.labels[b.category]||b.category||'—')+'</td><td>'+esc(b.description)+'</td><td class="r">'+esc(b.quantity??'')+'</td><td>'+esc(b.unit)+'</td><td class="r">'+fmt(b.unit_cost)+'</td><td class="r">'+fmt(b.total_cost)+'</td><td class="r">'+(b.vat_percent??0)+'%</td><td class="r">'+fmt(vat(b))+'</td><td class="r"><b>'+fmt((b.total_cost||0)+vat(b))+'</b></td></tr>'});
+          html+='<tr class="sub"><td colspan="5" class="r">Υποσύνολο '+esc(n||'Χωρίς υποκατηγορία')+'</td><td class="r">'+fmt(sub)+'</td><td></td><td class="r">'+fmt(sv)+'</td><td class="r">'+fmt(sub+sv)+'</td></tr>';
+        }
+      });
     });
     body.innerHTML=html;
     foot.innerHTML='<tr><td colspan="5">ΣΥΝΟΛΟ ΠΡΟΫΠΟΛΟΓΙΣΜΟΥ</td><td class="r">'+fmt(gt)+'</td><td></td><td class="r">'+fmt(gv)+'</td><td class="r">'+fmt(gt+gv)+'</td></tr>';
-    body.querySelectorAll('tr.grp').forEach(r=>r.onclick=()=>{const n=r.dataset.g;closed.has(n)?closed.delete(n):closed.add(n);draw()});
+    body.querySelectorAll('tr.cat').forEach(r=>r.onclick=()=>{const k=r.dataset.ck;closedCat.has(k)?closedCat.delete(k):closedCat.add(k);draw()});
+    body.querySelectorAll('tr.grp').forEach(r=>r.onclick=()=>{const n=r.dataset.g;closedGrp.has(n)?closedGrp.delete(n):closedGrp.add(n);draw()});
   }
   root.querySelector('[data-q]').oninput=e=>{q=e.target.value.toLowerCase();draw()};
-  root.querySelector('[data-all]').onclick=()=>{const all=[...new Set(items.map(b=>(b.subcategory||'').trim()))];if(closed.size)closed.clear();else all.forEach(n=>closed.add(n));draw()};
+  root.querySelector('[data-all]').onclick=()=>{
+    const allCats=[...new Set(items.map(b=>catKey((b.subcategory||'').trim())))];
+    const allGrps=[...new Set(items.map(b=>(b.subcategory||'').trim()))];
+    if(closedCat.size||closedGrp.size){closedCat.clear();closedGrp.clear()}
+    else{allCats.forEach(n=>closedCat.add(n));allGrps.forEach(n=>closedGrp.add(n))}
+    draw()};
   draw();
 }
 
