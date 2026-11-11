@@ -2,11 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Undo2, Save, Check, Loader2 } from "lucide-react";
 import { subscribe, undo, peek, onAfterUndo } from "@/lib/undoHistory";
-import { useToast } from "@/components/ui/use-toast";
 
 export default function GlobalActionsBar() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
   const [count, setCount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
@@ -28,9 +26,8 @@ export default function GlobalActionsBar() {
     } finally {
       setSaving(false);
       setJustSaved(true);
-      setTimeout(() => setJustSaved(false), 1500);
+      setTimeout(() => setJustSaved(false), 2500);
     }
-    toast({ title: "Αποθηκεύτηκαν όλες οι αλλαγές" });
   };
 
   const handleUndo = () => {
@@ -41,6 +38,12 @@ export default function GlobalActionsBar() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 print:hidden">
+      {justSaved && (
+        <div className="flex items-center gap-1.5 px-3 h-10 rounded-full bg-emerald-50 border border-emerald-200 text-sm font-medium text-emerald-700 shadow-sm">
+          <Check className="w-4 h-4" />
+          <span>Αποθηκεύτηκαν όλες οι αλλαγές</span>
+        </div>
+      )}
       <button
         onClick={handleUndo}
         disabled={count === 0}
